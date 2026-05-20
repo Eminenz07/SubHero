@@ -38,6 +38,43 @@ DATABASES = {
 }
 
 # =============================================================
+# CACHE & SESSIONS — Resilient Production Fallbacks
+# =============================================================
+REDIS_URL = config("REDIS_URL", default="")
+
+if REDIS_URL:
+    CACHES = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": REDIS_URL,
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            },
+        },
+        "sessions": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": config("REDIS_SESSION_URL", default=REDIS_URL),
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            },
+        },
+    }
+else:
+    # Safe fallback if Redis is not provisioned or attached yet
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "unique-snowflake",
+        },
+        "sessions": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "unique-snowflake-sessions",
+        },
+    }
+    # Fall back to database for persistent sessions, so user logins are saved safely
+    SESSION_ENGINE = "django.contrib.sessions.backends.db"
+
+# =============================================================
 # STATIC FILES — WhiteNoise (PRD Section 6 optimisation)
 # =============================================================
 MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")  # noqa: F405
