@@ -1,0 +1,296 @@
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap&subset=latin');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =============================================================
+   SubHero — Custom Component Styles
+   Mobile-first, low-data, system fonts
+   ============================================================= */
+
+@layer base {
+  /* Prevent iOS zoom on input focus — min 16px (PRD directive) */
+  input, select, textarea {
+    font-size: 16px;
+  }
+
+  body {
+    @apply font-body text-text-primary bg-slate-200 antialiased;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+
+  /* Typography Base */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display;
+  }
+}
+
+@layer components {
+  /* =============================================================
+     App Shell
+     ============================================================= */
+  .app-shell {
+    @apply w-full sm:max-w-md md:max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto 
+           h-[100dvh] md:h-[94vh] md:max-h-[900px] md:my-[3vh] md:rounded-[32px] md:overflow-hidden
+           bg-surface-page relative shadow-[0_20px_60px_rgba(0,0,0,0.12)] md:ring-1 md:ring-black/5
+           flex flex-col;
+  }
+
+  .page-content {
+    @apply flex-1 overflow-y-auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .page-content.no-bottom-nav {
+    @apply pb-0;
+  }
+
+  /* =============================================================
+     Form Inputs
+     ============================================================= */
+  .form-input {
+    @apply w-full h-[52px] px-4 text-base
+           bg-surface-card border-[1.5px] border-surface-border rounded-input
+           text-text-primary placeholder-text-muted
+           focus:outline-none focus:border-brand-accent
+           transition-all duration-150;
+  }
+  
+  .form-input:focus {
+    box-shadow: 0 0 0 3px rgba(0,196,106,0.12);
+  }
+
+  .form-input:disabled {
+    @apply bg-surface-page text-text-muted cursor-not-allowed border-surface-border;
+  }
+
+  .form-input--error {
+    @apply border-status-danger focus:border-status-danger;
+  }
+  
+  .form-input--error:focus {
+    box-shadow: 0 0 0 3px rgba(229, 62, 62, 0.12);
+  }
+
+  .form-label {
+    @apply block text-[13px] font-medium text-text-secondary tracking-[0.2px] mb-1.5;
+  }
+
+  .form-error {
+    @apply text-xs text-status-danger mt-[2px];
+  }
+
+  .form-group {
+    @apply flex flex-col gap-[6px] mb-4;
+  }
+
+  /* =============================================================
+     Buttons
+     ============================================================= */
+  .btn {
+    @apply h-[52px] rounded-btn text-base font-semibold
+           flex items-center justify-center gap-2 px-5
+           transition-all duration-75 border-none cursor-pointer
+           disabled:opacity-50 disabled:cursor-not-allowed
+           active:scale-[0.98] active:brightness-[0.92];
+  }
+
+  .btn-primary {
+    @apply btn bg-brand-accent text-white;
+  }
+
+  .btn-secondary {
+    @apply btn bg-brand-accent/10 text-brand-primary;
+  }
+  
+  .btn-outline {
+    @apply btn bg-transparent text-brand-primary border-[1.5px] border-brand-primary;
+  }
+  
+  .btn-ghost {
+    @apply btn bg-white/15 text-white border-[1.5px] border-white/40;
+  }
+
+  .btn-danger {
+    @apply btn bg-[#FEE2E2] text-status-danger;
+  }
+
+  .btn-block {
+    @apply w-full;
+  }
+  
+  .btn-sm {
+    @apply h-[40px] text-[14px] px-4 rounded-[10px];
+  }
+
+  /* =============================================================
+     Cards
+     ============================================================= */
+  .card {
+    @apply bg-surface-card rounded-card shadow-card overflow-hidden;
+  }
+  
+  .card-padding {
+    @apply p-5;
+  }
+
+  /* =============================================================
+     Bottom Navigation
+     ============================================================= */
+  .bottom-nav {
+    @apply h-bottom-nav bg-surface-card border-t border-surface-border
+           flex items-center w-full z-[100] pb-safe-bottom shrink-0;
+  }
+
+  .nav-item {
+    @apply flex-1 flex flex-col items-center gap-1 py-2 px-1
+           cursor-pointer text-text-muted text-[11px] font-medium
+           transition-colors duration-150 relative;
+  }
+
+  .nav-item.active {
+    @apply text-brand-primary;
+  }
+  
+  .nav-dot {
+    @apply absolute top-1 w-1 h-1 rounded-full bg-brand-accent opacity-0;
+  }
+  
+  .nav-item.active .nav-dot {
+    @apply opacity-100;
+  }
+
+  .nav-icon {
+    @apply w-[22px] h-[22px];
+  }
+
+  /* =============================================================
+     Top Bar
+     ============================================================= */
+  .top-bar {
+    @apply h-top-bar flex items-center justify-between px-5
+           bg-surface-card border-b border-surface-border
+           z-50 shrink-0;
+  }
+  
+  .top-bar-title {
+    @apply font-display text-[18px] font-bold text-text-primary;
+  }
+  
+  .top-bar-icon {
+    @apply w-10 h-10 rounded-full flex items-center justify-center
+           text-text-secondary bg-surface-page cursor-pointer relative;
+  }
+
+  /* =============================================================
+     Bottom Sheet Modal
+     ============================================================= */
+  .sheet-backdrop {
+    @apply absolute inset-0 bg-[#0A1628]/50 z-[200] opacity-0 pointer-events-none transition-opacity duration-[250ms] hidden;
+  }
+
+  .sheet-backdrop.active {
+    @apply block opacity-100 pointer-events-auto;
+  }
+
+  .bottom-sheet {
+    @apply absolute bottom-0 left-0 w-full bg-surface-card rounded-t-[20px]
+           pb-safe-bottom z-[201] translate-y-full
+           transition-transform duration-[250ms] ease-[cubic-bezier(0.16,1,0.3,1)]
+           max-h-[85%] overflow-y-auto;
+  }
+
+  .bottom-sheet.active {
+    @apply translate-y-0;
+  }
+
+  .sheet-handle {
+    @apply w-10 h-1 bg-surface-border rounded-full mx-auto mt-3 mb-1;
+  }
+
+  /* =============================================================
+     Messages / Alerts
+     ============================================================= */
+  .alert {
+    @apply px-4 py-3 rounded-[12px] text-sm font-medium mb-4;
+  }
+
+  .alert-success {
+    @apply alert bg-status-success-bg text-status-success-text;
+  }
+
+  .alert-error {
+    @apply alert bg-status-danger-bg text-status-danger-text;
+  }
+
+  .alert-warning {
+    @apply alert bg-status-warning-bg text-status-warning-text;
+  }
+
+  .alert-info {
+    @apply alert bg-[#E0F2FE] text-[#0369A1];
+  }
+
+  /* =============================================================
+     Loading Spinner
+     ============================================================= */
+  .spinner {
+    @apply inline-block w-5 h-5 border-2 border-current border-t-transparent
+           rounded-full animate-spin;
+  }
+
+  /* =============================================================
+     Auth Layout
+     ============================================================= */
+  .auth-wrap {
+    @apply h-full flex flex-col flex-1;
+  }
+
+  .auth-top {
+    @apply bg-gradient-to-br from-brand-primary to-[#004D2C]
+           pt-12 px-6 pb-9 rounded-b-[32px];
+  }
+
+  .auth-logo {
+    @apply font-display text-[26px] font-extrabold text-white mb-1;
+  }
+  
+  .auth-logo span {
+    @apply text-brand-accent;
+  }
+
+  .auth-tagline {
+    @apply text-[13px] text-white/65;
+  }
+  
+  .auth-form {
+    @apply bg-surface-card flex-1 px-6 pt-8 pb-10;
+  }
+  
+  .auth-title {
+    @apply font-display text-2xl font-bold text-text-primary mb-6;
+  }
+}
+
+/* =============================================================
+   HTMX Loading States
+   ============================================================= */
+.htmx-indicator {
+  display: none;
+}
+
+.htmx-request .htmx-indicator {
+  display: inline-block;
+}
+
+.htmx-request .htmx-hide-on-request {
+  display: none;
+}

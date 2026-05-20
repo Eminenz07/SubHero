@@ -1,0 +1,47 @@
+# Environment
+.env
+*.env.local
+venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+eggs/
+*.egg
+
+# Django
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+*.log
+
+# Node / Tailwind
+node_modules/
+package-lock.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# PRD / Docs (keep in repo but ignore generated extracts)
+PRD_full.txt
+PRD_tables.txt
+
+# Coverage
+htmlcov/
+.coverage
+.coverage.*

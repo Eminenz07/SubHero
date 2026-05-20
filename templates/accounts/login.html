@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block main_extra_classes %}no-bottom-nav p-0{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+    <div class="auth-top">
+        <div class="auth-logo">Sub<span>Hero</span></div>
+        <div class="auth-tagline">Welcome back. Secure login.</div>
+    </div>
+    
+    <div class="auth-form">
+        <h2 class="auth-title">Log in</h2>
+        
+        <form method="post" class="flex flex-col gap-2">
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+                <div class="alert-error">
+                    {% for error in form.non_field_errors %}
+                        <p>{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            
+            <!-- Phone Number -->
+            <div class="form-group">
+                <label for="{{ form.phone_number.id_for_label }}" class="form-label">Phone Number</label>
+                <input type="tel" name="{{ form.phone_number.name }}" id="{{ form.phone_number.id_for_label }}" 
+                       class="form-input {% if form.phone_number.errors %}form-input--error{% endif %}" 
+                       placeholder="e.g. 08012345678" required
+                       value="{{ form.phone_number.value|default:'' }}">
+                {% if form.phone_number.errors %}
+                    <p class="form-error">{{ form.phone_number.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Password -->
+            <div class="form-group">
+                <div class="flex justify-between items-end mb-1.5">
+                    <label for="{{ form.password.id_for_label }}" class="form-label !mb-0">Password</label>
+                    <a href="#" class="text-xs font-semibold text-brand-primary">Forgot Password?</a>
+                </div>
+                <input type="password" name="{{ form.password.name }}" id="{{ form.password.id_for_label }}" 
+                       class="form-input {% if form.password.errors %}form-input--error{% endif %}" 
+                       placeholder="••••••••" required>
+                {% if form.password.errors %}
+                    <p class="form-error">{{ form.password.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <button type="submit" class="btn-primary btn-block mt-4">
+                Login
+            </button>
+        </form>
+        
+        <p class="text-center text-sm mt-8 text-text-secondary">
+            Don't have an account? <a href="{% url 'accounts:register' %}" class="font-bold text-brand-primary">Register</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

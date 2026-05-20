@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+
+{% block main_extra_classes %}no-bottom-nav p-0{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+    <div class="auth-top">
+        <div class="auth-logo">Sub<span>Hero</span></div>
+        <div class="auth-tagline">Secure your transactions.</div>
+    </div>
+    
+    <div class="auth-form">
+        <h2 class="auth-title">Create PIN</h2>
+        <p class="text-sm text-text-secondary mb-8">
+            Set a 4-digit transaction PIN. You'll need this to authorize payments and transfers.
+        </p>
+        
+        <form method="post" class="flex flex-col gap-2">
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+                <div class="alert-error">
+                    {% for error in form.non_field_errors %}
+                        <p>{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            
+            <div class="form-group text-center">
+                <label class="form-label text-center mb-4">Enter 4-Digit PIN</label>
+                
+                <div class="flex justify-center gap-3 mb-2" id="pin-setup-inputs">
+                    <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="w-[58px] h-[62px] text-center text-[28px] font-bold text-brand-primary border-2 border-surface-border rounded-xl focus:border-brand-accent focus:shadow-[0_0_0_3px_rgba(0,196,106,0.15)] focus:outline-none transition-colors" data-pin-index="0" required>
+                    <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="w-[58px] h-[62px] text-center text-[28px] font-bold text-brand-primary border-2 border-surface-border rounded-xl focus:border-brand-accent focus:shadow-[0_0_0_3px_rgba(0,196,106,0.15)] focus:outline-none transition-colors" data-pin-index="1" required>
+                    <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="w-[58px] h-[62px] text-center text-[28px] font-bold text-brand-primary border-2 border-surface-border rounded-xl focus:border-brand-accent focus:shadow-[0_0_0_3px_rgba(0,196,106,0.15)] focus:outline-none transition-colors" data-pin-index="2" required>
+                    <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="w-[58px] h-[62px] text-center text-[28px] font-bold text-brand-primary border-2 border-surface-border rounded-xl focus:border-brand-accent focus:shadow-[0_0_0_3px_rgba(0,196,106,0.15)] focus:outline-none transition-colors" data-pin-index="3" required>
+                    
+                    <!-- Hidden field to store actual value for Django Form -->
+                    <input type="hidden" name="{{ form.pin.name }}" id="id_{{ form.pin.name }}">
+                </div>
+                {% if form.pin.errors %}
+                    <p class="form-error">{{ form.pin.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <div class="form-group text-center mt-6">
+                <label class="form-label text-center mb-4">Confirm PIN</label>
+                
+                <div class="flex justify-center gap-3 mb-2" id="pin-confirm-inputs">
+                    <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="w-[58px] h-[62px] text-center text-[28px] font-bold text-brand-primary border-2 border-surface-border rounded-xl focus:border-brand-accent focus:shadow-[0_0_0_3px_rgba(0,196,106,0.15)] focus:outline-none transition-colors" data-pin-index="0" required>
+                    <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="w-[58px] h-[62px] text-center text-[28px] font-bold text-brand-primary border-2 border-surface-border rounded-xl focus:border-brand-accent focus:shadow-[0_0_0_3px_rgba(0,196,106,0.15)] focus:outline-none transition-colors" data-pin-index="1" required>
+                    <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="w-[58px] h-[62px] text-center text-[28px] font-bold text-brand-primary border-2 border-surface-border rounded-xl focus:border-brand-accent focus:shadow-[0_0_0_3px_rgba(0,196,106,0.15)] focus:outline-none transition-colors" data-pin-index="2" required>
+                    <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="w-[58px] h-[62px] text-center text-[28px] font-bold text-brand-primary border-2 border-surface-border rounded-xl focus:border-brand-accent focus:shadow-[0_0_0_3px_rgba(0,196,106,0.15)] focus:outline-none transition-colors" data-pin-index="3" required>
+                    
+                    <!-- Hidden field to store actual value for Django Form -->
+                    <input type="hidden" name="{{ form.confirm_pin.name }}" id="id_{{ form.confirm_pin.name }}">
+                </div>
+                {% if form.confirm_pin.errors %}
+                    <p class="form-error">{{ form.confirm_pin.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <button type="submit" class="btn-primary btn-block mt-8">
+                Save PIN
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Simple inline script for the Set PIN page to handle the 4-box inputs
+    function setupPinBoxes(containerId, hiddenInputId) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        
+        const inputs = container.querySelectorAll('input[type="password"]');
+        const hiddenInput = document.getElementById(hiddenInputId);
+        
+        inputs.forEach((input, index) => {
+            input.addEventListener('input', (e) => {
+                if (e.target.value.length > 1) {
+                    e.target.value = e.target.value.slice(0, 1);
+                }
+                
+                if (e.target.value !== '') {
+                    input.classList.add('active', 'filled');
+                    if (index < 3) inputs[index + 1].focus();
+                } else {
+                    input.classList.remove('active', 'filled');
+                }
+                updateHiddenInput();
+            });
+            
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Backspace' && e.target.value === '' && index > 0) {
+                    inputs[index - 1].focus();
+                    inputs[index - 1].value = '';
+                    inputs[index - 1].classList.remove('active', 'filled');
+                    updateHiddenInput();
+                }
+            });
+        });
+        
+        function updateHiddenInput() {
+            const val = Array.from(inputs).map(i => i.value).join('');
+            hiddenInput.value = val;
+        }
+    }
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        setupPinBoxes('pin-setup-inputs', 'id_{{ form.pin.name }}');
+        setupPinBoxes('pin-confirm-inputs', 'id_{{ form.confirm_pin.name }}');
+    });
+</script>
+{% endblock %}

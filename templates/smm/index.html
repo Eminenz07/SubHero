@@ -1,0 +1,408 @@
+{% extends 'base.html' %}
+
+{% block title %}Social Media Booster — SubHero{% endblock %}
+
+{% block top_bar %}
+{% include 'partials/_top_bar.html' with page_title="Social Media Growth" show_back=True %}
+{% endblock %}
+
+{% block content %}
+<style>
+  .platform-tabs {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 12px 16px;
+    scrollbar-width: none;
+    background: #F5F7FA;
+    border-bottom: 1px solid #E5E7EB;
+  }
+  .platform-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .platform-tab {
+    flex-shrink: 0;
+    padding: 8px 16px;
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #4B5563;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .platform-tab.active {
+    background: var(--brand-primary, #006B3E);
+    border-color: var(--brand-primary, #006B3E);
+    color: #FFFFFF;
+  }
+  .smm-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    border-radius: 16px;
+    padding: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .smm-card:active {
+    transform: scale(0.98);
+  }
+  .smm-icon-bg {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    color: #FFFFFF;
+    flex-shrink: 0;
+  }
+  .smm-info {
+    flex-grow: 1;
+    min-width: 0;
+  }
+  .smm-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1F2937;
+    margin-bottom: 2px;
+  }
+  .smm-desc {
+    font-size: 11px;
+    color: #6B7280;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .smm-price {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--brand-primary, #006B3E);
+    flex-shrink: 0;
+    background: rgba(0, 107, 62, 0.06);
+    padding: 4px 8px;
+    border-radius: 8px;
+  }
+</style>
+
+<div class="platform-tabs">
+  <div class="platform-tab active" data-platform="instagram" onclick="filterPlatform('instagram')">📸 Instagram</div>
+  <div class="platform-tab" data-platform="tiktok" onclick="filterPlatform('tiktok')">🎵 TikTok</div>
+  <div class="platform-tab" data-platform="youtube" onclick="filterPlatform('youtube')">▶️ YouTube</div>
+  <div class="platform-tab" data-platform="twitter" onclick="filterPlatform('twitter')">🐦 Twitter</div>
+  <div class="platform-tab" data-platform="telegram" onclick="filterPlatform('telegram')">✈️ Telegram</div>
+  <div class="platform-tab" data-platform="spotify" onclick="filterPlatform('spotify')">🎧 Spotify</div>
+</div>
+
+<div class="px-4 py-4 space-y-3">
+  <!-- Messages Alert -->
+  {% if messages %}
+  <div class="space-y-2 mb-4">
+    {% for message in messages %}
+    <div class="alert{% if message.tags == 'error' %}-error{% elif message.tags == 'success' %}-success{% else %}-info{% endif %}">
+      {{ message }}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Balance Header -->
+  <div class="card card-padding mb-4">
+    <div class="flex items-center justify-between">
+      <div>
+        <div class="text-[11px] font-medium text-text-muted tracking-[0.3px]">Available Balance</div>
+        <div class="font-mono text-xl font-bold text-text-primary mt-0.5">₦{{ wallet.balance|floatformat:2 }}</div>
+      </div>
+      <div class="w-[46px] h-[46px] rounded-xl bg-brand-accent/15 text-brand-primary flex items-center justify-center">
+        <i data-feather="zap" class="w-[22px] h-[22px]"></i>
+      </div>
+    </div>
+  </div>
+
+  <!-- SMM Platform Services Card List -->
+  <div class="space-y-3" id="smm-cards-container">
+    {% for platform, services in rates.items %}
+      {% for service_name, rate in services.items %}
+        <div class="smm-card {% if platform != 'instagram' %}hidden{% endif %}" 
+             data-platform="{{ platform }}"
+             data-service="{{ service_name }}"
+             data-rate="{{ rate }}"
+             onclick="selectService('{{ platform }}', '{{ service_name }}', '{{ rate }}')">
+          
+          {% if service_name == "Instagram Followers" or service_name == "TikTok Followers" or service_name == "Twitter Followers" or service_name == "Spotify Followers" %}
+            <div class="smm-icon-bg" style="background: {% if platform == 'instagram' %}linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888){% elif platform == 'tiktok' %}#000000{% elif platform == 'twitter' %}#1DA1F2{% else %}#1DB954{% endif %};">👥</div>
+          {% elif service_name == "Instagram Likes" or service_name == "TikTok Likes" or service_name == "YouTube Likes" or service_name == "Twitter Likes" %}
+            <div class="smm-icon-bg" style="background: #FEE2E2; color: #EF4444;">❤️</div>
+          {% elif service_name == "Instagram Views" or service_name == "TikTok Views" or service_name == "YouTube Views" or service_name == "Telegram Post Views" or service_name == "Spotify Plays" %}
+            <div class="smm-icon-bg" style="background: #EFF6FF; color: #3B82F6;">👁️</div>
+          {% elif service_name == "Story Views" %}
+            <div class="smm-icon-bg" style="background: #F5F3FF; color: #8B5CF6;">📖</div>
+          {% elif service_name == "Post Comments" %}
+            <div class="smm-icon-bg" style="background: #FFFBEB; color: #F59E0B;">💬</div>
+          {% else %}
+            <div class="smm-icon-bg" style="background: var(--brand-primary); color: #FFFFFF;">✨</div>
+          {% endif %}
+
+          <div class="smm-info">
+            <div class="smm-name">{{ service_name }}</div>
+            <div class="smm-desc">
+              {% if service_name == "Instagram Followers" %}
+                Real-looking, fast delivery, 30-day refill
+              {% elif service_name == "Instagram Likes" %}
+                Instant start, high quality
+              {% elif service_name == "Instagram Views" %}
+                Video & reel views, fast delivery
+              {% elif service_name == "Story Views" %}
+                24-hour story boost
+              {% elif service_name == "Post Comments" %}
+                Custom comments, real-looking
+              {% else %}
+                High quality service, automated fulfillment
+              {% endif %}
+            </div>
+          </div>
+          <div class="smm-price">₦{{ rate }}/unit</div>
+        </div>
+      {% endfor %}
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Main Checkout Form -->
+<form id="smm-checkout-form" method="post">
+  {% csrf_token %}
+  <input type="hidden" name="platform" id="id_platform" value="instagram">
+  <input type="hidden" name="service_name" id="id_service_name">
+  <input type="hidden" name="url" id="id_hidden_url">
+  <input type="hidden" name="quantity" id="id_hidden_quantity">
+  <input type="hidden" name="pin" id="id_hidden_pin">
+</form>
+
+<!-- Bottom Sheets -->
+<div class="sheet-backdrop" id="custom-backdrop" onclick="closeCustomSheets()"></div>
+
+<!-- SMM Order Sheet -->
+<div class="bottom-sheet shadow-2xl" id="sheet-smm-order">
+  <div class="sheet-handle"></div>
+  <div class="p-5 pb-6">
+    <h2 class="sheet-title" id="smm-sheet-title">Order Service</h2>
+    <p class="sheet-subtitle">Enter your profile link and quantity</p>
+    
+    <div class="space-y-4">
+      <div class="form-group">
+        <label class="form-label" for="smm-url-input">Profile / Post URL</label>
+        <input class="form-input" type="url" id="smm-url-input" placeholder="https://instagram.com/username">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="smm-quantity-input">Quantity</label>
+        <input class="form-input" type="number" id="smm-quantity-input" placeholder="500" inputmode="numeric">
+      </div>
+      <div class="flex justify-between items-center bg-[#F5F7FA] rounded-xl p-4">
+        <span class="text-sm font-semibold text-text-muted">Estimated Cost</span>
+        <span class="text-lg font-bold text-brand-primary" id="smm-cost-display">₦0.00</span>
+      </div>
+      
+      <div class="pt-2 flex gap-3">
+        <button type="button" class="btn btn-secondary flex-1" onclick="closeCustomSheets()">Cancel</button>
+        <button type="button" class="btn btn-primary flex-1" onclick="proceedToPin()">Proceed to PIN →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PIN Confirmation Modal Bottom Sheet (Numpad) -->
+<div class="bottom-sheet shadow-2xl" id="custom-sheet-pin">
+  <div class="sheet-handle"></div>
+  <div class="p-5 pb-6">
+    <h2 class="sheet-title">Confirm Transaction</h2>
+    <p class="sheet-subtitle" id="custom-sheet-pin-subtitle">Enter your 4-digit PIN to confirm purchase</p>
+    
+    <div class="flex justify-center gap-3 mb-6">
+      <div class="w-12 h-14 text-center text-2xl font-bold flex items-center justify-center border-2 border-surface-border rounded-xl" id="pin-box-0"></div>
+      <div class="w-12 h-14 text-center text-2xl font-bold flex items-center justify-center border-2 border-surface-border rounded-xl" id="pin-box-1"></div>
+      <div class="w-12 h-14 text-center text-2xl font-bold flex items-center justify-center border-2 border-surface-border rounded-xl" id="pin-box-2"></div>
+      <div class="w-12 h-14 text-center text-2xl font-bold flex items-center justify-center border-2 border-surface-border rounded-xl" id="pin-box-3"></div>
+    </div>
+    
+    <!-- Custom Numpad Grid -->
+    <div class="grid grid-cols-3 gap-2.5 max-w-[320px] mx-auto">
+      {% for num in "123456789"|make_list %}
+        <button type="button" class="h-14 bg-[#F5F7FA] active:bg-surface-border font-bold text-xl rounded-xl transition-colors" onclick="pressPinKey('{{ num }}')">{{ num }}</button>
+      {% endfor %}
+      <div></div>
+      <button type="button" class="h-14 bg-[#F5F7FA] active:bg-surface-border font-bold text-xl rounded-xl transition-colors" onclick="pressPinKey('0')">0</button>
+      <button type="button" class="h-14 bg-[#F5F7FA] active:bg-surface-border font-bold text-xl rounded-xl flex items-center justify-center transition-colors" onclick="pressPinBackspace()">⌫</button>
+    </div>
+    
+    <div class="pt-4">
+      <button type="button" class="btn btn-outline btn-block" onclick="closeCustomSheets()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let activePlatform = 'instagram';
+  let activeServiceName = '';
+  let activeRate = 0.0;
+  
+  const backdrop = document.getElementById('custom-backdrop');
+  const orderSheet = document.getElementById('sheet-smm-order');
+  const pinSheet = document.getElementById('custom-sheet-pin');
+  
+  const urlInput = document.getElementById('smm-url-input');
+  const quantityInput = document.getElementById('smm-quantity-input');
+  const costDisplay = document.getElementById('smm-cost-display');
+  
+  // Platform Filter tabs
+  function filterPlatform(platform) {
+    activePlatform = platform;
+    
+    // Update active tab style
+    document.querySelectorAll('.platform-tab').forEach(tab => {
+      if (tab.getAttribute('data-platform') === platform) {
+        tab.classList.add('active');
+      } else {
+        tab.classList.remove('active');
+      }
+    });
+    
+    // Update hidden form
+    document.getElementById('id_platform').value = platform;
+    
+    // Show/hide SMM Cards
+    document.querySelectorAll('.smm-card').forEach(card => {
+      if (card.getAttribute('data-platform') === platform) {
+        card.classList.remove('hidden');
+      } else {
+        card.classList.add('hidden');
+      }
+    });
+  }
+  
+  // Service selection
+  function selectService(platform, serviceName, rate) {
+    activeServiceName = serviceName;
+    activeRate = parseFloat(rate);
+    
+    // Populate form fields
+    document.getElementById('id_service_name').value = serviceName;
+    
+    // Set placeholder URL depending on platform
+    if (platform === 'instagram') {
+      urlInput.placeholder = 'https://instagram.com/username';
+    } else if (platform === 'tiktok') {
+      urlInput.placeholder = 'https://tiktok.com/@username';
+    } else if (platform === 'youtube') {
+      urlInput.placeholder = 'https://youtube.com/c/channelname';
+    } else if (platform === 'twitter') {
+      urlInput.placeholder = 'https://twitter.com/username';
+    } else {
+      urlInput.placeholder = 'https://link-to-profile-or-post';
+    }
+    
+    // Reset fields
+    urlInput.value = '';
+    quantityInput.value = '';
+    costDisplay.textContent = '₦0.00';
+    
+    // Open sheet
+    document.getElementById('smm-sheet-title').textContent = serviceName;
+    backdrop.classList.add('active');
+    orderSheet.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+  
+  // Dynamic Cost Calculation
+  quantityInput.addEventListener('input', () => {
+    const qty = parseInt(quantityInput.value) || 0;
+    const cost = qty * activeRate;
+    costDisplay.textContent = '₦' + cost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  });
+  
+  function closeCustomSheets() {
+    backdrop.classList.remove('active');
+    orderSheet.classList.remove('active');
+    pinSheet.classList.remove('active');
+    document.body.style.overflow = '';
+    pinState = [];
+    refreshPinBoxes();
+  }
+  
+  function proceedToPin() {
+    const url = urlInput.value.trim();
+    const qty = quantityInput.value.trim();
+    
+    if (!url) {
+      alert('Please enter a profile or post URL link.');
+      return;
+    }
+    if (!qty || parseInt(qty) <= 0) {
+      alert('Please enter a valid order quantity.');
+      return;
+    }
+    
+    // Copy inputs to hidden form
+    document.getElementById('id_hidden_url').value = url;
+    document.getElementById('id_hidden_quantity').value = qty;
+    
+    // Open PIN sheet
+    orderSheet.classList.remove('active');
+    pinState = [];
+    refreshPinBoxes();
+    pinSheet.classList.add('active');
+    document.getElementById('custom-sheet-pin-subtitle').textContent = `Enter your PIN to confirm ₦${((parseInt(qty) || 0) * activeRate).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+  
+  // Custom Numpad Logic
+  let pinState = [];
+  
+  function pressPinKey(digit) {
+    if (pinState.length >= 4) return;
+    pinState.push(digit);
+    refreshPinBoxes();
+    
+    if (pinState.length === 4) {
+      setTimeout(() => {
+        // Set PIN and submit
+        const pinCode = pinState.join('');
+        document.getElementById('id_hidden_pin').value = pinCode;
+        
+        // Disable numpad buttons to prevent duplicate submits
+        document.querySelectorAll('#custom-sheet-pin button').forEach(b => b.disabled = true);
+        
+        // Show spinner / submit
+        document.getElementById('smm-checkout-form').submit();
+      }, 250);
+    }
+  }
+  
+  function pressPinBackspace() {
+    pinState.pop();
+    refreshPinBoxes();
+  }
+  
+  function refreshPinBoxes() {
+    for (let i = 0; i < 4; i++) {
+      const box = document.getElementById(`pin-box-${i}`);
+      box.textContent = '';
+      box.className = "w-12 h-14 text-center text-2xl font-bold flex items-center justify-center border-2 border-surface-border rounded-xl transition-all";
+      
+      if (i < pinState.length) {
+        box.textContent = '•';
+        box.classList.add('border-brand-primary', 'bg-brand-primary/5', 'text-brand-primary');
+      } else if (i === pinState.length) {
+        box.classList.add('border-brand-accent');
+      }
+    }
+  }
+</script>
+{% endblock %}
+
+{% block bottom_nav %}
+{% include 'partials/_bottom_nav.html' with active='smm' %}
+{% endblock %}

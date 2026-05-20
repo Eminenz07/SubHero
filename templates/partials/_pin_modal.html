@@ -1,0 +1,45 @@
+<!-- PIN Confirmation Modal Bottom Sheet -->
+<div class="sheet-backdrop" id="pin-modal-backdrop" onclick="closePinModal()"></div>
+
+<div class="bottom-sheet" id="pin-modal-sheet">
+    <div class="sheet-handle"></div>
+    
+    <div class="p-4 px-5 pb-6">
+        <h2 class="sheet-title">Confirm Transaction</h2>
+        <p class="sheet-subtitle" id="pin-modal-message">Enter your 4-digit PIN to proceed</p>
+        
+        <form id="pin-modal-form" method="post" hx-post="" hx-target="#pin-modal-result">
+            {% csrf_token %}
+            <!-- Important context data will be injected here via JS -->
+            <div id="pin-modal-hidden-inputs"></div>
+            
+            <div class="flex justify-center gap-3 mb-6" id="pin-modal-inputs">
+                <!-- Changed width and height for 56x56 box style -->
+                <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" 
+                       class="w-[58px] h-[62px] text-center text-[28px] font-bold text-brand-primary border-2 border-surface-border rounded-xl focus:border-brand-accent focus:shadow-[0_0_0_3px_rgba(0,196,106,0.15)] focus:outline-none transition-colors"
+                       data-pin-index="0" required>
+                       
+                <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" 
+                       class="w-[58px] h-[62px] text-center text-[28px] font-bold text-brand-primary border-2 border-surface-border rounded-xl focus:border-brand-accent focus:shadow-[0_0_0_3px_rgba(0,196,106,0.15)] focus:outline-none transition-colors"
+                       data-pin-index="1" required>
+                       
+                <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" 
+                       class="w-[58px] h-[62px] text-center text-[28px] font-bold text-brand-primary border-2 border-surface-border rounded-xl focus:border-brand-accent focus:shadow-[0_0_0_3px_rgba(0,196,106,0.15)] focus:outline-none transition-colors"
+                       data-pin-index="2" required>
+                       
+                <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" 
+                       class="w-[58px] h-[62px] text-center text-[28px] font-bold text-brand-primary border-2 border-surface-border rounded-xl focus:border-brand-accent focus:shadow-[0_0_0_3px_rgba(0,196,106,0.15)] focus:outline-none transition-colors"
+                       data-pin-index="3" required>
+                       
+                <!-- Hidden input that actually gets submitted -->
+                <input type="hidden" name="transaction_pin" id="pin-modal-final-value" required>
+            </div>
+            
+            <div id="pin-modal-result" class="mb-4 text-center empty:hidden"></div>
+            
+            <button type="submit" class="btn-primary btn-block" id="pin-modal-submit" disabled>
+                Confirm Payment
+            </button>
+        </form>
+    </div>
+</div>

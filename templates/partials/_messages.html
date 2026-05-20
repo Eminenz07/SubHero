@@ -1,0 +1,18 @@
+{% comment %}
+Messages partial — displays Django messages framework alerts.
+Renders inline server-side (PRD: no toast library needed).
+{% endcomment %}
+
+{% if messages %}
+<div id="messages" class="fixed top-0 inset-x-0 z-[80] px-4 pt-2 space-y-2" role="alert">
+  {% for message in messages %}
+  <div class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'error' %}alert-error{% elif message.tags == 'warning' %}alert-warning{% else %}alert-info{% endif %} flex items-center justify-between"
+       data-message>
+    <span>{{ message }}</span>
+    <button type="button" onclick="this.parentElement.remove()" class="ml-2 text-current opacity-60 hover:opacity-100 min-w-touch min-h-touch flex items-center justify-center" aria-label="Dismiss">
+      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}

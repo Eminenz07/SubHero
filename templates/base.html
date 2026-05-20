@@ -1,0 +1,68 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <title>{% block title %}SubHero{% endblock %}</title>
+
+    <!-- Google Fonts Preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Preconnect to Termii / Paystack domains later if needed -->
+
+    <meta name="description" content="Nigerian VTU and SMM Services">
+    <meta name="theme-color" content="#006B3E">
+
+    <!-- Tailwind CSS -->
+    <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2.3">
+
+    <!-- HTMX -->
+    <script src="{% static 'js/htmx.min.js' %}" defer></script>
+    
+    <!-- Feather Icons -->
+    <script src="https://unpkg.com/feather-icons" defer></script>
+
+    <!-- App JS -->
+    <script src="{% static 'js/app.js' %}" defer></script>
+</head>
+<body class="bg-slate-200 text-text-primary antialiased font-body flex items-center justify-center min-h-screen" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+    
+    <div class="app-shell">
+        {% block top_bar %}
+            <!-- Pages can include partials/_top_bar.html -->
+        {% endblock %}
+
+        <main class="page-content {% block main_extra_classes %}{% endblock %}">
+            {% include 'partials/_messages.html' %}
+            
+            {% block content %}
+            {% endblock %}
+        </main>
+
+        {% block bottom_nav %}
+            <!-- Pages can include partials/_bottom_nav.html -->
+        {% endblock %}
+        
+        {% block modals %}
+            {% include 'partials/_pin_modal.html' %}
+        {% endblock %}
+    </div>
+
+    <!-- Ensure feather icons render -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            if (typeof feather !== 'undefined') {
+                feather.replace();
+            }
+        });
+        document.body.addEventListener('htmx:afterSwap', function(evt) {
+            if (typeof feather !== 'undefined') {
+                feather.replace();
+            }
+        });
+    </script>
+</body>
+</html>

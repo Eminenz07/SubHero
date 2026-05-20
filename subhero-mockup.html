@@ -1,0 +1,1827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>SubHero — Nigerian VTU & SMM Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════
+   CSS VARIABLES — SUBHERO DESIGN SYSTEM
+═══════════════════════════════════════ */
+:root {
+  --brand-primary: #006B3E;
+  --brand-primary-light: #007A46;
+  --brand-accent: #00C46A;
+  --brand-dark: #0A1628;
+  --bg-page: #F5F7FA;
+  --bg-card: #FFFFFF;
+  --text-primary: #0A1628;
+  --text-secondary: #6B7A99;
+  --text-muted: #A0AABF;
+  --danger: #E53E3E;
+  --warning: #F6AD1E;
+  --success: #00C46A;
+  --border: #E8ECF4;
+  --shadow-card: 0 2px 12px rgba(10,22,40,0.08);
+  --shadow-elevated: 0 8px 32px rgba(10,22,40,0.12);
+  --radius-card: 16px;
+  --radius-input: 12px;
+  --radius-btn: 14px;
+  --radius-pill: 100px;
+  --bottom-nav-h: 68px;
+  --top-bar-h: 56px;
+  --font-display: 'Bricolage Grotesque', system-ui, sans-serif;
+  --font-body: 'DM Sans', system-ui, sans-serif;
+  --font-mono: 'DM Mono', monospace;
+}
+
+/* ═══ RESET ═══ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font-family: var(--font-body);
+  background: var(--bg-page);
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+button { font-family: var(--font-body); cursor: pointer; border: none; background: none; }
+input, select, textarea { font-family: var(--font-body); }
+a { text-decoration: none; color: inherit; }
+img { display: block; max-width: 100%; }
+
+/* ═══ APP SHELL ═══ */
+.app-shell {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: var(--bg-page);
+  position: relative;
+  box-shadow: 0 0 60px rgba(0,0,0,0.08);
+}
+
+/* ═══ PAGES ═══ */
+.page { display: none; min-height: 100vh; flex-direction: column; }
+.page.active { display: flex; animation: fadeIn 200ms ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ═══ TOP BAR ═══ */
+.top-bar {
+  height: var(--top-bar-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+.top-bar-title {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.top-bar-icon {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-secondary);
+  background: var(--bg-page);
+  cursor: pointer;
+  position: relative;
+}
+.notif-badge {
+  position: absolute;
+  top: 6px; right: 6px;
+  width: 8px; height: 8px;
+  background: var(--danger);
+  border-radius: 50%;
+  border: 2px solid white;
+}
+
+/* ═══ SCROLLABLE CONTENT ═══ */
+.page-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 0 calc(var(--bottom-nav-h) + 16px) 0;
+  -webkit-overflow-scrolling: touch;
+}
+.page-content.no-bottom-nav { padding-bottom: 24px; }
+.px { padding-left: 16px; padding-right: 16px; }
+
+/* ═══ BOTTOM NAV ═══ */
+.bottom-nav {
+  height: var(--bottom-nav-h);
+  background: var(--bg-card);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
+  z-index: 100;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+.nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 4px;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  transition: color 150ms;
+  position: relative;
+}
+.nav-item.active { color: var(--brand-primary); }
+.nav-item .nav-dot {
+  position: absolute;
+  top: 4px;
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: var(--brand-accent);
+  opacity: 0;
+}
+.nav-item.active .nav-dot { opacity: 1; }
+.nav-icon { width: 22px; height: 22px; }
+
+/* ═══ BUTTONS ═══ */
+.btn {
+  height: 52px;
+  border-radius: var(--radius-btn);
+  font-size: 16px;
+  font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 80ms;
+  padding: 0 20px;
+  border: none;
+}
+.btn:active { transform: scale(0.98); filter: brightness(0.92); }
+.btn-primary { background: var(--brand-accent); color: #fff; }
+.btn-secondary { background: rgba(0,196,106,0.1); color: var(--brand-primary); }
+.btn-outline { background: transparent; color: var(--brand-primary); border: 1.5px solid var(--brand-primary); }
+.btn-ghost { background: rgba(255,255,255,0.15); color: white; border: 1.5px solid rgba(255,255,255,0.4); }
+.btn-danger { background: #FEE2E2; color: var(--danger); }
+.btn-full { width: 100%; }
+.btn-sm { height: 40px; font-size: 14px; padding: 0 16px; border-radius: 10px; }
+
+/* ═══ INPUTS ═══ */
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  letter-spacing: 0.2px;
+}
+.input {
+  height: 52px;
+  border-radius: var(--radius-input);
+  border: 1.5px solid var(--border);
+  background: var(--bg-card);
+  padding: 0 16px;
+  font-size: 16px;
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 150ms, box-shadow 150ms;
+  width: 100%;
+}
+.input:focus {
+  border-color: var(--brand-accent);
+  box-shadow: 0 0 0 3px rgba(0,196,106,0.12);
+}
+.input-prefix-wrap { position: relative; }
+.input-prefix {
+  position: absolute;
+  left: 16px; top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  pointer-events: none;
+}
+.input.has-prefix { padding-left: 36px; }
+.input-error { border-color: var(--danger) !important; }
+.field-error { font-size: 12px; color: var(--danger); margin-top: 2px; }
+
+/* ═══ CARDS ═══ */
+.card {
+  background: var(--bg-card);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+.card-padding { padding: 20px; }
+
+/* ═══ WALLET CARD ═══ */
+.wallet-hero {
+  background: linear-gradient(135deg, var(--brand-primary) 0%, #004D2C 60%, var(--brand-dark) 100%);
+  border-radius: var(--radius-card);
+  padding: 24px 20px 20px;
+  margin: 0 16px;
+  position: relative;
+  overflow: hidden;
+}
+.wallet-hero::before {
+  content: '';
+  position: absolute;
+  top: -40px; right: -40px;
+  width: 180px; height: 180px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.04);
+}
+.wallet-hero::after {
+  content: '';
+  position: absolute;
+  bottom: -60px; left: -20px;
+  width: 220px; height: 220px;
+  border-radius: 50%;
+  background: rgba(0,196,106,0.08);
+}
+.wallet-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.65);
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+.wallet-balance-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.wallet-amount {
+  font-family: var(--font-mono);
+  font-size: 34px;
+  font-weight: 500;
+  color: #fff;
+  letter-spacing: -1px;
+  line-height: 1;
+}
+.wallet-eye {
+  background: rgba(255,255,255,0.12);
+  border: none;
+  border-radius: 50%;
+  width: 34px; height: 34px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  color: rgba(255,255,255,0.7);
+  flex-shrink: 0;
+}
+.wallet-actions {
+  display: flex;
+  gap: 10px;
+  position: relative;
+  z-index: 2;
+}
+.wallet-action-btn {
+  flex: 1;
+  height: 42px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  border: none;
+}
+.wallet-action-btn.primary-action {
+  background: var(--brand-accent);
+  color: white;
+}
+.wallet-action-btn.ghost-action {
+  background: rgba(255,255,255,0.12);
+  color: white;
+  border: 1px solid rgba(255,255,255,0.25);
+}
+
+/* ═══ QUICK ACTIONS GRID ═══ */
+.quick-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  padding: 0 16px;
+}
+.quick-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 8px 12px;
+  background: var(--bg-card);
+  border-radius: 14px;
+  cursor: pointer;
+  box-shadow: var(--shadow-card);
+  transition: transform 100ms;
+  border: 1px solid rgba(232,236,244,0.8);
+}
+.quick-item:active { transform: scale(0.94); }
+.quick-icon {
+  width: 46px; height: 46px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+}
+.quick-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-align: center;
+  line-height: 1.2;
+}
+
+/* ═══ SECTION HEADER ═══ */
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+}
+.section-title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.section-link {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--brand-primary);
+  cursor: pointer;
+}
+
+/* ═══ TRANSACTION ITEM ═══ */
+.txn-list { display: flex; flex-direction: column; }
+.txn-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: background 100ms;
+}
+.txn-item:active { background: var(--bg-page); }
+.txn-icon {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+.txn-info { flex: 1; min-width: 0; }
+.txn-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.txn-date {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.txn-amount-col { text-align: right; flex-shrink: 0; }
+.txn-amount {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 500;
+}
+.txn-amount.credit { color: var(--success); }
+.txn-amount.debit { color: var(--danger); }
+.txn-status {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 100px;
+  margin-top: 3px;
+  display: inline-block;
+  letter-spacing: 0.3px;
+}
+.status-success { background: #DCFCE7; color: #16A34A; }
+.status-pending { background: #FEF9C3; color: #A16207; }
+.status-failed { background: #FEE2E2; color: #DC2626; }
+
+/* ═══ DIVIDER ═══ */
+.divider { height: 1px; background: var(--border); margin: 0 16px; }
+.divider-full { height: 1px; background: var(--border); }
+
+/* ═══ SPACER ═══ */
+.sp-4 { height: 4px; }
+.sp-8 { height: 8px; }
+.sp-12 { height: 12px; }
+.sp-16 { height: 16px; }
+.sp-20 { height: 20px; }
+.sp-24 { height: 24px; }
+
+/* ═══ NETWORK TABS ═══ */
+.network-tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 0 16px;
+  -webkit-overflow-scrolling: touch;
+}
+.network-tabs::-webkit-scrollbar { display: none; }
+.network-tab {
+  flex-shrink: 0;
+  height: 38px;
+  padding: 0 18px;
+  border-radius: var(--radius-pill);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  transition: all 150ms;
+  display: flex; align-items: center; gap: 6px;
+}
+.network-tab.active-mtn { background: #FFCC00; border-color: #FFCC00; color: #1A1A1A; }
+.network-tab.active-airtel { background: #E40000; border-color: #E40000; color: white; }
+.network-tab.active-glo { background: #00AA00; border-color: #00AA00; color: white; }
+.network-tab.active-9mobile { background: #006B3E; border-color: #006B3E; color: white; }
+
+/* ═══ PLAN CARDS ═══ */
+.plan-card {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  background: var(--bg-card);
+  border-radius: 12px;
+  border: 1.5px solid var(--border);
+  cursor: pointer;
+  margin: 0 16px;
+  transition: all 100ms;
+}
+.plan-card.selected {
+  border-color: var(--brand-accent);
+  background: rgba(0,196,106,0.04);
+  border-left: 3px solid var(--brand-accent);
+}
+.plan-data { font-family: var(--font-display); font-size: 18px; font-weight: 700; color: var(--text-primary); }
+.plan-validity { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.plan-price {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--brand-primary);
+}
+
+/* ═══ PIN ENTRY ═══ */
+.pin-boxes {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+.pin-box {
+  width: 58px; height: 62px;
+  border-radius: 12px;
+  border: 2px solid var(--border);
+  background: var(--bg-card);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px;
+  color: var(--brand-primary);
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 150ms;
+}
+.pin-box.active { border-color: var(--brand-accent); box-shadow: 0 0 0 3px rgba(0,196,106,0.15); }
+.pin-box.filled::after { content: '●'; font-size: 16px; }
+
+/* ═══ BOTTOM SHEET ═══ */
+.sheet-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(10,22,40,0.5);
+  z-index: 200;
+  opacity: 0;
+  transition: opacity 250ms;
+  display: none;
+}
+.sheet-backdrop.open { display: block; opacity: 1; }
+.bottom-sheet {
+  position: fixed;
+  bottom: 0; left: 50%; transform: translateX(-50%) translateY(100%);
+  width: 100%; max-width: 480px;
+  background: var(--bg-card);
+  border-radius: 20px 20px 0 0;
+  padding: 0 0 env(safe-area-inset-bottom, 20px);
+  z-index: 201;
+  transition: transform 250ms cubic-bezier(0.16,1,0.3,1);
+  max-height: 85vh;
+  overflow-y: auto;
+}
+.bottom-sheet.open { transform: translateX(-50%) translateY(0); }
+.sheet-handle {
+  width: 40px; height: 4px;
+  background: var(--border);
+  border-radius: 100px;
+  margin: 12px auto 4px;
+}
+.sheet-content { padding: 16px 20px 24px; }
+.sheet-title {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-align: center;
+  margin-bottom: 4px;
+}
+.sheet-subtitle { font-size: 13px; color: var(--text-muted); text-align: center; margin-bottom: 24px; }
+
+/* ═══ ACCOUNT NUMBER CARD ═══ */
+.account-card {
+  background: linear-gradient(135deg, #F0FFF4 0%, #E6F7EE 100%);
+  border: 1.5px solid rgba(0,196,106,0.25);
+  border-radius: var(--radius-card);
+  padding: 16px 20px;
+  margin: 0 16px;
+}
+.account-bank { font-size: 11px; font-weight: 600; color: var(--brand-primary); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; }
+.account-number {
+  font-family: var(--font-mono);
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--text-primary);
+  letter-spacing: 2px;
+  margin-bottom: 4px;
+}
+.account-name { font-size: 12px; color: var(--text-secondary); }
+.copy-btn {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--brand-accent);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 12px;
+}
+
+/* ═══ AVATAR CIRCLE ═══ */
+.avatar {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: var(--brand-accent);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  color: white;
+  flex-shrink: 0;
+}
+
+/* ═══ SMM PLATFORM TABS ═══ */
+.platform-tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 0 16px;
+}
+.platform-tabs::-webkit-scrollbar { display: none; }
+.platform-tab {
+  flex-shrink: 0;
+  height: 36px;
+  padding: 0 16px;
+  border-radius: var(--radius-pill);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--bg-card);
+  border: 1.5px solid var(--border);
+  color: var(--text-secondary);
+  transition: all 150ms;
+}
+.platform-tab.active { background: var(--brand-primary); border-color: var(--brand-primary); color: white; }
+
+/* ═══ SMM SERVICE CARD ═══ */
+.smm-card {
+  background: var(--bg-card);
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  padding: 16px;
+  margin: 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  transition: all 100ms;
+}
+.smm-card:active { background: var(--bg-page); }
+.smm-icon-bg {
+  width: 46px; height: 46px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+.smm-info { flex: 1; }
+.smm-name { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+.smm-desc { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.smm-price { font-family: var(--font-mono); font-size: 13px; color: var(--brand-primary); font-weight: 500; flex-shrink: 0; }
+
+/* ═══ INFO ROW ═══ */
+.info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+}
+.info-row-label { font-size: 14px; color: var(--text-secondary); }
+.info-row-val { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+
+/* ═══ LANDING PAGE ═══ */
+.landing-hero {
+  background: linear-gradient(160deg, var(--brand-primary) 0%, #004D2C 55%, var(--brand-dark) 100%);
+  padding: 56px 20px 44px;
+  position: relative;
+  overflow: hidden;
+}
+.landing-hero::before {
+  content: '';
+  position: absolute;
+  top: -80px; right: -80px;
+  width: 320px; height: 320px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0,196,106,0.12) 0%, transparent 70%);
+}
+.hero-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0,196,106,0.15);
+  border: 1px solid rgba(0,196,106,0.3);
+  border-radius: var(--radius-pill);
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--brand-accent);
+  margin-bottom: 16px;
+}
+.hero-title {
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 800;
+  color: white;
+  line-height: 1.15;
+  margin-bottom: 12px;
+  letter-spacing: -0.5px;
+}
+.hero-title span { color: var(--brand-accent); }
+.hero-sub {
+  font-size: 15px;
+  color: rgba(255,255,255,0.7);
+  line-height: 1.6;
+  margin-bottom: 28px;
+}
+.hero-btns { display: flex; flex-direction: column; gap: 10px; }
+.hero-stats {
+  display: flex;
+  gap: 0;
+  margin-top: 32px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  padding-top: 20px;
+}
+.hero-stat {
+  flex: 1;
+  text-align: center;
+}
+.hero-stat-num {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 800;
+  color: white;
+}
+.hero-stat-label { font-size: 11px; color: rgba(255,255,255,0.55); margin-top: 2px; }
+
+.services-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding: 0 16px;
+}
+.service-tile {
+  background: var(--bg-card);
+  border-radius: 14px;
+  padding: 18px 12px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+.service-tile-icon { font-size: 28px; }
+.service-tile-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); text-align: center; }
+
+.feature-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-card);
+  padding: 20px;
+  box-shadow: var(--shadow-card);
+  flex-shrink: 0;
+  width: 220px;
+  border: 1px solid var(--border);
+}
+.features-scroll {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 4px 16px 4px;
+}
+.features-scroll::-webkit-scrollbar { display: none; }
+
+.step-item {
+  display: flex;
+  gap: 14px;
+  padding: 0 16px;
+  align-items: flex-start;
+}
+.step-num {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--brand-primary);
+  color: white;
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.step-connector {
+  width: 2px;
+  background: linear-gradient(to bottom, var(--brand-primary), var(--border));
+  height: 36px;
+  margin-left: 33px;
+}
+
+/* ═══ AUTH PAGES ═══ */
+.auth-wrap {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.auth-top {
+  background: linear-gradient(135deg, var(--brand-primary), #004D2C);
+  padding: 48px 24px 36px;
+  border-radius: 0 0 32px 32px;
+}
+.auth-logo {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 800;
+  color: white;
+  margin-bottom: 4px;
+}
+.auth-tagline { font-size: 13px; color: rgba(255,255,255,0.65); }
+.auth-form {
+  flex: 1;
+  padding: 28px 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.auth-title {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+.auth-sub { font-size: 13px; color: var(--text-muted); }
+.auth-footer {
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-secondary);
+  padding-bottom: 24px;
+}
+.auth-footer span { color: var(--brand-primary); font-weight: 600; cursor: pointer; }
+
+/* ═══ PROFILE PAGE ═══ */
+.profile-header {
+  background: linear-gradient(135deg, var(--brand-primary), #004D2C);
+  padding: 32px 20px 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.profile-avatar {
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  background: var(--brand-accent);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 700;
+  color: white;
+  border: 3px solid rgba(255,255,255,0.3);
+}
+.profile-name { font-family: var(--font-display); font-size: 20px; font-weight: 700; color: white; }
+.profile-phone { font-size: 13px; color: rgba(255,255,255,0.65); }
+
+.settings-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: background 100ms;
+}
+.settings-item:active { background: var(--bg-page); }
+.settings-icon {
+  width: 40px; height: 40px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+}
+.settings-label { font-size: 15px; font-weight: 500; color: var(--text-primary); flex: 1; }
+.settings-chevron { color: var(--text-muted); font-size: 18px; }
+
+/* ═══ SUCCESS SCREEN ═══ */
+.success-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 20px;
+  text-align: center;
+}
+.success-icon {
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  background: #DCFCE7;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 40px;
+  margin-bottom: 20px;
+  animation: scaleIn 400ms cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes scaleIn { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.success-title { font-family: var(--font-display); font-size: 22px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; }
+.success-sub { font-size: 14px; color: var(--text-muted); line-height: 1.6; margin-bottom: 24px; }
+
+.receipt-card {
+  background: var(--bg-page);
+  border-radius: var(--radius-card);
+  width: 100%;
+  overflow: hidden;
+  margin-bottom: 24px;
+  border: 1px solid var(--border);
+}
+
+/* ═══ GREETING ═══ */
+.greeting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 16px 4px;
+}
+.greeting-text { font-size: 14px; color: var(--text-secondary); }
+.greeting-name { font-family: var(--font-display); font-size: 22px; font-weight: 700; color: var(--text-primary); margin-top: 2px; }
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+
+<!-- ╔══════════════════════════════╗
+     ║       LANDING PAGE          ║
+     ╚══════════════════════════════╝ -->
+<div class="page active" id="page-landing">
+  <div style="overflow-y:auto;flex:1;padding-bottom:0;">
+
+    <!-- Hero -->
+    <div class="landing-hero">
+      <div class="hero-tag">🇳🇬 Built for Nigerians</div>
+      <h1 class="hero-title">Top Up Anything.<br><span>Anytime. Instantly.</span></h1>
+      <p class="hero-sub">Data bundles, airtime, electricity, cable TV and social media growth — all in one fast, affordable platform.</p>
+      <div class="hero-btns">
+        <button class="btn btn-primary" onclick="showPage('page-register')" style="font-size:15px;">Get Started Free →</button>
+        <button class="btn btn-ghost" onclick="showPage('page-login')">Login to My Account</button>
+      </div>
+      <div class="hero-stats">
+        <div class="hero-stat"><div class="hero-stat-num">142M+</div><div class="hero-stat-label">Nigerians Online</div></div>
+        <div class="hero-stat"><div class="hero-stat-num">₦0</div><div class="hero-stat-label">Transfer Fees</div></div>
+        <div class="hero-stat"><div class="hero-stat-num">99.9%</div><div class="hero-stat-label">Uptime</div></div>
+      </div>
+    </div>
+
+    <div class="sp-24"></div>
+
+    <!-- Services -->
+    <div class="section-head"><span class="section-title">Our Services</span></div>
+    <div class="sp-12"></div>
+    <div class="services-grid">
+      <div class="service-tile"><div class="service-tile-icon">📶</div><div class="service-tile-label">Data Bundles</div></div>
+      <div class="service-tile"><div class="service-tile-icon">📱</div><div class="service-tile-label">Airtime</div></div>
+      <div class="service-tile"><div class="service-tile-icon">⚡</div><div class="service-tile-label">Electricity</div></div>
+      <div class="service-tile"><div class="service-tile-icon">📺</div><div class="service-tile-label">Cable TV</div></div>
+      <div class="service-tile"><div class="service-tile-icon">📈</div><div class="service-tile-label">SMM Panel</div></div>
+      <div class="service-tile"><div class="service-tile-icon">💸</div><div class="service-tile-label">Send Money</div></div>
+    </div>
+
+    <div class="sp-24"></div>
+
+    <!-- Features -->
+    <div class="section-head"><span class="section-title">Why SubHero?</span></div>
+    <div class="sp-12"></div>
+    <div class="features-scroll">
+      <div class="feature-card">
+        <div style="font-size:28px;margin-bottom:10px;">⚡</div>
+        <div style="font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--text-primary);margin-bottom:6px;">Instant Delivery</div>
+        <div style="font-size:13px;color:var(--text-muted);line-height:1.5;">Data and airtime delivered in under 5 seconds. Electricity tokens in under 30 seconds.</div>
+      </div>
+      <div class="feature-card">
+        <div style="font-size:28px;margin-bottom:10px;">💚</div>
+        <div style="font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--text-primary);margin-bottom:6px;">Zero Transfer Fees</div>
+        <div style="font-size:13px;color:var(--text-muted);line-height:1.5;">Send money to any SubHero user completely free. No charges, no limits on friendship.</div>
+      </div>
+      <div class="feature-card">
+        <div style="font-size:28px;margin-bottom:10px;">🔒</div>
+        <div style="font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--text-primary);margin-bottom:6px;">Bank-Level Security</div>
+        <div style="font-size:13px;color:var(--text-muted);line-height:1.5;">PIN-protected transactions, encrypted wallet, and real-time fraud detection.</div>
+      </div>
+      <div class="feature-card">
+        <div style="font-size:28px;margin-bottom:10px;">💰</div>
+        <div style="font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--text-primary);margin-bottom:6px;">Cheapest Data</div>
+        <div style="font-size:13px;color:var(--text-muted);line-height:1.5;">SME and wholesale data rates. MTN, Airtel, Glo and 9mobile at prices you'll love.</div>
+      </div>
+    </div>
+
+    <div class="sp-24"></div>
+
+    <!-- How it Works -->
+    <div class="section-head"><span class="section-title">How It Works</span></div>
+    <div class="sp-16"></div>
+    <div class="step-item">
+      <div class="step-num">1</div>
+      <div><div style="font-size:15px;font-weight:700;color:var(--text-primary);margin-bottom:4px;">Create Your Account</div><div style="font-size:13px;color:var(--text-muted);line-height:1.5;">Register with your phone number. No CAC, no paperwork. Takes 2 minutes.</div></div>
+    </div>
+    <div class="step-connector"></div>
+    <div class="step-item">
+      <div class="step-num">2</div>
+      <div><div style="font-size:15px;font-weight:700;color:var(--text-primary);margin-bottom:4px;">Fund Your Wallet</div><div style="font-size:13px;color:var(--text-muted);line-height:1.5;">Transfer money to your personal SubHero bank account. Instant credit.</div></div>
+    </div>
+    <div class="step-connector"></div>
+    <div class="step-item">
+      <div class="step-num">3</div>
+      <div><div style="font-size:15px;font-weight:700;color:var(--text-primary);margin-bottom:4px;">Buy What You Need</div><div style="font-size:13px;color:var(--text-muted);line-height:1.5;">Data, airtime, electricity, cable or social media growth. Always affordable.</div></div>
+    </div>
+
+    <div class="sp-24"></div>
+
+    <!-- CTA Footer -->
+    <div style="background:linear-gradient(135deg,var(--brand-primary),#004D2C);padding:32px 20px;margin:0 16px;border-radius:var(--radius-card);text-align:center;">
+      <div style="font-family:var(--font-display);font-size:22px;font-weight:800;color:white;margin-bottom:8px;">Start Saving Today</div>
+      <div style="font-size:13px;color:rgba(255,255,255,0.65);margin-bottom:20px;">Join thousands of Nigerians who already use SubHero</div>
+      <button class="btn btn-primary btn-full" onclick="showPage('page-register')">Create Free Account</button>
+    </div>
+
+    <div style="padding:24px 20px;text-align:center;">
+      <div style="font-family:var(--font-display);font-size:18px;font-weight:800;color:var(--brand-primary);margin-bottom:4px;">SubHero</div>
+      <div style="font-size:12px;color:var(--text-muted);">Part of the SubVerse Suite · © 2026</div>
+      <div style="margin-top:12px;font-size:12px;color:var(--text-muted);">Already have an account? <span style="color:var(--brand-primary);font-weight:600;cursor:pointer;" onclick="showPage('page-login')">Login</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ╔══════════════════════════════╗
+     ║        LOGIN PAGE           ║
+     ╚══════════════════════════════╝ -->
+<div class="page" id="page-login">
+  <div class="auth-wrap">
+    <div class="auth-top">
+      <div class="auth-logo">SubHero</div>
+      <div class="auth-tagline">Nigeria's smartest top-up platform</div>
+    </div>
+    <div class="auth-form">
+      <div>
+        <div class="auth-title">Welcome back 👋</div>
+        <div class="auth-sub">Login to your SubHero account</div>
+      </div>
+      <div class="field">
+        <label>Phone Number</label>
+        <input class="input" type="tel" placeholder="08012345678" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input class="input" type="password" placeholder="Enter your password">
+        <div style="text-align:right;margin-top:4px;"><span style="font-size:13px;color:var(--brand-primary);font-weight:600;cursor:pointer;">Forgot Password?</span></div>
+      </div>
+      <button class="btn btn-primary btn-full" onclick="showPage('page-dashboard')">Login to SubHero</button>
+    </div>
+    <div class="auth-footer">Don't have an account? <span onclick="showPage('page-register')">Register Free</span></div>
+  </div>
+</div>
+
+<!-- ╔══════════════════════════════╗
+     ║       REGISTER PAGE         ║
+     ╚══════════════════════════════╝ -->
+<div class="page" id="page-register">
+  <div class="auth-wrap">
+    <div class="auth-top">
+      <div class="auth-logo">SubHero</div>
+      <div class="auth-tagline">Create your free account in 2 minutes</div>
+    </div>
+    <div class="auth-form">
+      <div>
+        <div class="auth-title">Create Account</div>
+        <div class="auth-sub">Fill in your details below</div>
+      </div>
+      <div class="field">
+        <label>Full Name</label>
+        <input class="input" type="text" placeholder="Eminence Okafor">
+      </div>
+      <div class="field">
+        <label>Phone Number</label>
+        <input class="input" type="tel" placeholder="08012345678" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label>Email Address</label>
+        <input class="input" type="email" placeholder="you@email.com">
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input class="input" type="password" placeholder="Min. 8 characters">
+      </div>
+      <div class="field">
+        <label>Confirm Password</label>
+        <input class="input" type="password" placeholder="Repeat password">
+      </div>
+      <button class="btn btn-primary btn-full" onclick="showPage('page-dashboard')">Create My Account →</button>
+    </div>
+    <div class="auth-footer">Already have an account? <span onclick="showPage('page-login')">Login</span></div>
+  </div>
+</div>
+
+<!-- ╔══════════════════════════════╗
+     ║       DASHBOARD PAGE        ║
+     ╚══════════════════════════════╝ -->
+<div class="page" id="page-dashboard">
+  <!-- Top Bar -->
+  <div class="top-bar">
+    <div>
+      <div class="greeting-text">Good morning 🌤</div>
+      <div style="font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--text-primary);">Eminence 👋</div>
+    </div>
+    <div class="top-bar-icon" onclick="showPage('page-notifications')">
+      <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      <div class="notif-badge"></div>
+    </div>
+  </div>
+
+  <div class="page-content">
+    <div class="sp-16"></div>
+
+    <!-- Wallet Card -->
+    <div class="wallet-hero">
+      <div class="wallet-label">WALLET BALANCE</div>
+      <div class="wallet-balance-row">
+        <div class="wallet-amount" id="balance-display">₦12,450.00</div>
+        <button class="wallet-eye" onclick="toggleBalance()">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+      <div class="wallet-actions">
+        <button class="wallet-action-btn primary-action" onclick="showPage('page-fund')">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Fund Wallet
+        </button>
+        <button class="wallet-action-btn ghost-action" onclick="showPage('page-transfer')">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          Send Money
+        </button>
+      </div>
+    </div>
+
+    <div class="sp-20"></div>
+
+    <!-- Quick Actions -->
+    <div class="section-head"><span class="section-title">Quick Top-Up</span></div>
+    <div class="sp-12"></div>
+    <div class="quick-grid">
+      <div class="quick-item" onclick="showPage('page-data')">
+        <div class="quick-icon" style="background:#EFF6FF;">📶</div>
+        <div class="quick-label">Buy Data</div>
+      </div>
+      <div class="quick-item" onclick="showPage('page-airtime')">
+        <div class="quick-icon" style="background:#FFF7ED;">📱</div>
+        <div class="quick-label">Airtime</div>
+      </div>
+      <div class="quick-item">
+        <div class="quick-icon" style="background:#FFFBEB;">⚡</div>
+        <div class="quick-label">Electricity</div>
+      </div>
+      <div class="quick-item">
+        <div class="quick-icon" style="background:#FDF4FF;">📺</div>
+        <div class="quick-label">Cable TV</div>
+      </div>
+    </div>
+
+    <div class="sp-20"></div>
+
+    <!-- SMM Section -->
+    <div class="section-head"><span class="section-title">Social Media Growth</span><span class="section-link" onclick="showPage('page-smm')">See All</span></div>
+    <div class="sp-12"></div>
+    <div class="network-tabs" style="gap:8px;">
+      <div class="network-tab active-9mobile">📸 Instagram</div>
+      <div class="network-tab">🎵 TikTok</div>
+      <div class="network-tab">▶️ YouTube</div>
+      <div class="network-tab">🐦 Twitter</div>
+    </div>
+
+    <div class="sp-20"></div>
+
+    <!-- Recent Transactions -->
+    <div class="section-head"><span class="section-title">Recent Transactions</span><span class="section-link" onclick="showPage('page-transactions')">View All</span></div>
+    <div class="sp-8"></div>
+    <div class="card" style="margin:0 16px;overflow:hidden;">
+      <div class="txn-list">
+        <div class="txn-item">
+          <div class="txn-icon" style="background:#EFF6FF;">📶</div>
+          <div class="txn-info"><div class="txn-name">MTN 5GB Data</div><div class="txn-date">Today, 9:14 AM</div></div>
+          <div class="txn-amount-col"><div class="txn-amount debit">-₦2,000</div><div class="txn-status status-success">Success</div></div>
+        </div>
+        <div class="divider-full"></div>
+        <div class="txn-item">
+          <div class="txn-icon" style="background:#F0FFF4;">💰</div>
+          <div class="txn-info"><div class="txn-name">Wallet Funded</div><div class="txn-date">Today, 7:32 AM</div></div>
+          <div class="txn-amount-col"><div class="txn-amount credit">+₦10,000</div><div class="txn-status status-success">Success</div></div>
+        </div>
+        <div class="divider-full"></div>
+        <div class="txn-item">
+          <div class="txn-icon" style="background:#FFF7ED;">📸</div>
+          <div class="txn-info"><div class="txn-name">IG Followers ×500</div><div class="txn-date">Yesterday, 4:22 PM</div></div>
+          <div class="txn-amount-col"><div class="txn-amount debit">-₦1,500</div><div class="txn-status status-pending">Pending</div></div>
+        </div>
+        <div class="divider-full"></div>
+        <div class="txn-item">
+          <div class="txn-icon" style="background:#FDF4FF;">⚡</div>
+          <div class="txn-info"><div class="txn-name">Electricity — IKEDC</div><div class="txn-date">Yesterday, 2:10 PM</div></div>
+          <div class="txn-amount-col"><div class="txn-amount debit">-₦3,000</div><div class="txn-status status-success">Success</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sp-24"></div>
+  </div>
+
+  <!-- Bottom Nav -->
+  <nav class="bottom-nav">
+    <div class="nav-item active" onclick="showPage('page-dashboard')">
+      <div class="nav-dot"></div>
+      <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span>Home</span>
+    </div>
+    <div class="nav-item" onclick="showPage('page-data')">
+      <div class="nav-dot"></div>
+      <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+      <span>VTU</span>
+    </div>
+    <div class="nav-item" onclick="showPage('page-smm')">
+      <div class="nav-dot"></div>
+      <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <span>SMM</span>
+    </div>
+    <div class="nav-item" onclick="showPage('page-wallet')">
+      <div class="nav-dot"></div>
+      <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+      <span>Wallet</span>
+    </div>
+    <div class="nav-item" onclick="showPage('page-profile')">
+      <div class="nav-dot"></div>
+      <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span>Profile</span>
+    </div>
+  </nav>
+</div>
+
+<!-- ╔══════════════════════════════╗
+     ║      BUY DATA PAGE          ║
+     ╚══════════════════════════════╝ -->
+<div class="page" id="page-data">
+  <div class="top-bar">
+    <button onclick="showPage('page-dashboard')" style="color:var(--text-secondary);display:flex;align-items:center;gap:6px;font-size:14px;font-weight:600;">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      Back
+    </button>
+    <div class="top-bar-title">Buy Data</div>
+    <div style="width:44px;"></div>
+  </div>
+  <div class="page-content no-bottom-nav">
+    <div class="sp-16"></div>
+
+    <!-- Network Selector -->
+    <div class="section-head"><span style="font-size:13px;color:var(--text-muted);font-weight:500;">Select Network</span></div>
+    <div class="sp-8"></div>
+    <div class="network-tabs">
+      <div class="network-tab active-mtn" id="tab-mtn" onclick="selectNetwork('mtn')">MTN</div>
+      <div class="network-tab" id="tab-airtel" onclick="selectNetwork('airtel')">Airtel</div>
+      <div class="network-tab" id="tab-glo" onclick="selectNetwork('glo')">Glo</div>
+      <div class="network-tab" id="tab-9mobile" onclick="selectNetwork('9mobile')">9mobile</div>
+    </div>
+
+    <div class="sp-20"></div>
+
+    <!-- Phone Number -->
+    <div class="px">
+      <div class="field">
+        <label>Phone Number</label>
+        <input class="input" type="tel" value="08012345678" inputmode="numeric">
+      </div>
+    </div>
+
+    <div class="sp-20"></div>
+
+    <!-- Plans -->
+    <div class="section-head"><span style="font-size:13px;color:var(--text-muted);font-weight:500;">Select Data Plan</span></div>
+    <div class="sp-10"></div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div class="plan-card selected" onclick="selectPlan(this)">
+        <div><div class="plan-data">1GB</div><div class="plan-validity">30 Days</div></div>
+        <div class="plan-price">₦350</div>
+      </div>
+      <div class="plan-card" onclick="selectPlan(this)">
+        <div><div class="plan-data">2GB</div><div class="plan-validity">30 Days</div></div>
+        <div class="plan-price">₦650</div>
+      </div>
+      <div class="plan-card" onclick="selectPlan(this)">
+        <div><div class="plan-data">5GB</div><div class="plan-validity">30 Days</div></div>
+        <div class="plan-price">₦1,500</div>
+      </div>
+      <div class="plan-card" onclick="selectPlan(this)">
+        <div><div class="plan-data">10GB</div><div class="plan-validity">30 Days</div></div>
+        <div class="plan-price">₦2,800</div>
+      </div>
+      <div class="plan-card" onclick="selectPlan(this)">
+        <div><div class="plan-data">20GB</div><div class="plan-validity">30 Days</div></div>
+        <div class="plan-price">₦5,000</div>
+      </div>
+      <div class="plan-card" onclick="selectPlan(this)">
+        <div><div class="plan-data">50GB</div><div class="plan-validity">30 Days</div></div>
+        <div class="plan-price">₦10,500</div>
+      </div>
+    </div>
+
+    <div class="sp-24"></div>
+
+    <!-- Sticky CTA -->
+    <div style="position:sticky;bottom:0;background:white;padding:12px 16px;border-top:1px solid var(--border);">
+      <button class="btn btn-primary btn-full" onclick="openSheet('sheet-pin', 'Data Purchase')">Continue — ₦350 →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ╔══════════════════════════════╗
+     ║       WALLET PAGE           ║
+     ╚══════════════════════════════╝ -->
+<div class="page" id="page-wallet">
+  <div class="top-bar">
+    <div class="top-bar-title">My Wallet</div>
+    <div style="width:44px;"></div>
+  </div>
+  <div class="page-content">
+    <div class="sp-16"></div>
+
+    <div class="wallet-hero">
+      <div class="wallet-label">AVAILABLE BALANCE</div>
+      <div class="wallet-balance-row">
+        <div class="wallet-amount">₦12,450.00</div>
+        <button class="wallet-eye">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+      <div class="wallet-actions">
+        <button class="wallet-action-btn primary-action" onclick="showPage('page-fund')">+ Fund Wallet</button>
+        <button class="wallet-action-btn ghost-action" onclick="showPage('page-transfer')">↗ Send Money</button>
+      </div>
+    </div>
+
+    <div class="sp-20"></div>
+
+    <!-- Virtual Account -->
+    <div class="section-head"><span class="section-title">Fund via Bank Transfer</span></div>
+    <div class="sp-12"></div>
+    <div class="account-card">
+      <div class="account-bank">Providus Bank</div>
+      <div class="account-number">5200 4312 78</div>
+      <div class="account-name">SUBHERO / EMINENCE OKAFOR</div>
+      <button class="copy-btn" onclick="this.textContent='✓ Copied!'">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Copy Account Number
+      </button>
+    </div>
+    <div class="sp-8"></div>
+    <div class="px" style="font-size:12px;color:var(--text-muted);line-height:1.6;">
+      Transfer any amount to this account number. Your wallet is credited within seconds. Sender pays standard NIP charges.
+    </div>
+
+    <div class="sp-20"></div>
+
+    <!-- Transaction History Shortcut -->
+    <div class="section-head"><span class="section-title">Wallet Transactions</span><span class="section-link" onclick="showPage('page-transactions')">View All</span></div>
+    <div class="sp-8"></div>
+    <div class="card" style="margin:0 16px;overflow:hidden;">
+      <div class="txn-list">
+        <div class="txn-item">
+          <div class="txn-icon" style="background:#F0FFF4;">💰</div>
+          <div class="txn-info"><div class="txn-name">Wallet Funded</div><div class="txn-date">Today, 7:32 AM</div></div>
+          <div class="txn-amount-col"><div class="txn-amount credit">+₦10,000</div><div class="txn-status status-success">Success</div></div>
+        </div>
+        <div class="divider-full"></div>
+        <div class="txn-item">
+          <div class="txn-icon" style="background:#FEF2F2;">💸</div>
+          <div class="txn-info"><div class="txn-name">Sent to Chukwu</div><div class="txn-date">Yesterday</div></div>
+          <div class="txn-amount-col"><div class="txn-amount debit">-₦2,000</div><div class="txn-status status-success">Success</div></div>
+        </div>
+        <div class="divider-full"></div>
+        <div class="txn-item">
+          <div class="txn-icon" style="background:#F0FFF4;">💰</div>
+          <div class="txn-info"><div class="txn-name">Wallet Funded</div><div class="txn-date">Apr 20</div></div>
+          <div class="txn-amount-col"><div class="txn-amount credit">+₦5,000</div><div class="txn-status status-success">Success</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="sp-24"></div>
+  </div>
+  <nav class="bottom-nav">
+    <div class="nav-item" onclick="showPage('page-dashboard')"><svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>Home</span></div>
+    <div class="nav-item" onclick="showPage('page-data')"><svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg><span>VTU</span></div>
+    <div class="nav-item" onclick="showPage('page-smm')"><svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>SMM</span></div>
+    <div class="nav-item active"><div class="nav-dot"></div><svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg><span>Wallet</span></div>
+    <div class="nav-item" onclick="showPage('page-profile')"><svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Profile</span></div>
+  </nav>
+</div>
+
+<!-- ╔══════════════════════════════╗
+     ║       P2P TRANSFER          ║
+     ╚══════════════════════════════╝ -->
+<div class="page" id="page-transfer">
+  <div class="top-bar">
+    <button onclick="showPage('page-wallet')" style="color:var(--text-secondary);display:flex;align-items:center;gap:6px;font-size:14px;font-weight:600;">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> Back
+    </button>
+    <div class="top-bar-title">Send Money</div>
+    <div style="width:44px;"></div>
+  </div>
+  <div class="page-content no-bottom-nav">
+    <div class="sp-24"></div>
+    <div class="px">
+      <div class="field">
+        <label>Recipient Phone Number</label>
+        <div style="position:relative;">
+          <input class="input" type="tel" placeholder="08012345678" inputmode="numeric" id="recipient-phone" oninput="lookupRecipient(this.value)">
+        </div>
+      </div>
+
+      <div class="sp-12"></div>
+
+      <!-- Recipient Preview (shown after lookup) -->
+      <div id="recipient-preview" style="display:none;background:var(--bg-page);border-radius:12px;padding:14px 16px;border:1.5px solid var(--brand-accent);display:flex;align-items:center;gap:12px;">
+        <div class="avatar">CO</div>
+        <div>
+          <div style="font-size:15px;font-weight:700;color:var(--text-primary);">Chukwuemeka Obi</div>
+          <div style="font-size:12px;color:var(--text-muted);">SubHero Member</div>
+        </div>
+        <svg style="margin-left:auto;color:var(--success);" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+
+      <div class="sp-20"></div>
+
+      <div class="field">
+        <label>Amount</label>
+        <div class="input-prefix-wrap">
+          <span class="input-prefix">₦</span>
+          <input class="input has-prefix" type="number" placeholder="0.00" inputmode="decimal" style="font-family:var(--font-mono);font-size:22px;font-weight:600;">
+        </div>
+      </div>
+
+      <div class="sp-8"></div>
+      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;">
+        <button class="btn btn-secondary btn-sm">₦500</button>
+        <button class="btn btn-secondary btn-sm">₦1,000</button>
+        <button class="btn btn-secondary btn-sm">₦2,000</button>
+        <button class="btn btn-secondary btn-sm">₦5,000</button>
+      </div>
+
+      <div class="sp-16"></div>
+
+      <div class="field">
+        <label>Note (optional)</label>
+        <input class="input" type="text" placeholder="What's this for?">
+      </div>
+
+      <div class="sp-12"></div>
+
+      <div style="background:rgba(0,196,106,0.07);border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:10px;border:1px solid rgba(0,196,106,0.2);">
+        <span style="font-size:18px;">💚</span>
+        <span style="font-size:13px;color:var(--brand-primary);font-weight:500;">Transfers between SubHero users are <strong>100% fee-free</strong></span>
+      </div>
+
+      <div class="sp-20"></div>
+
+      <button class="btn btn-primary btn-full" onclick="openSheet('sheet-pin', 'Money Transfer')">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        Send Money
+      </button>
+    </div>
+    <div class="sp-24"></div>
+  </div>
+</div>
+
+<!-- ╔══════════════════════════════╗
+     ║        SMM PAGE             ║
+     ╚══════════════════════════════╝ -->
+<div class="page" id="page-smm">
+  <div class="top-bar">
+    <div class="top-bar-title">Social Media Growth</div>
+    <div style="width:44px;"></div>
+  </div>
+  <div class="page-content">
+    <div class="sp-16"></div>
+    <div class="platform-tabs">
+      <div class="platform-tab active">📸 Instagram</div>
+      <div class="platform-tab">🎵 TikTok</div>
+      <div class="platform-tab">▶️ YouTube</div>
+      <div class="platform-tab">🐦 Twitter</div>
+      <div class="platform-tab">✈️ Telegram</div>
+      <div class="platform-tab">🎧 Spotify</div>
+    </div>
+    <div class="sp-16"></div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div class="smm-card" onclick="openSheet('sheet-smm-order', 'Instagram Followers')">
+        <div class="smm-icon-bg" style="background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);">👥</div>
+        <div class="smm-info"><div class="smm-name">Instagram Followers</div><div class="smm-desc">Real-looking, fast delivery, 30-day refill</div></div>
+        <div class="smm-price">₦800/1K</div>
+      </div>
+      <div class="smm-card">
+        <div class="smm-icon-bg" style="background:#FEE2E2;">❤️</div>
+        <div class="smm-info"><div class="smm-name">Instagram Likes</div><div class="smm-desc">Instant start, high quality</div></div>
+        <div class="smm-price">₦200/1K</div>
+      </div>
+      <div class="smm-card">
+        <div class="smm-icon-bg" style="background:#EFF6FF;">👁️</div>
+        <div class="smm-info"><div class="smm-name">Instagram Views</div><div class="smm-desc">Video & reel views, fast delivery</div></div>
+        <div class="smm-price">₦100/1K</div>
+      </div>
+      <div class="smm-card">
+        <div class="smm-icon-bg" style="background:#F5F3FF;">📖</div>
+        <div class="smm-info"><div class="smm-name">Story Views</div><div class="smm-desc">24-hour story boost</div></div>
+        <div class="smm-price">₦150/1K</div>
+      </div>
+      <div class="smm-card">
+        <div class="smm-icon-bg" style="background:#FFFBEB;">💬</div>
+        <div class="smm-info"><div class="smm-name">Post Comments</div><div class="smm-desc">Custom comments, real-looking</div></div>
+        <div class="smm-price">₦1,200/100</div>
+      </div>
+    </div>
+    <div class="sp-24"></div>
+  </div>
+  <nav class="bottom-nav">
+    <div class="nav-item" onclick="showPage('page-dashboard')"><svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>Home</span></div>
+    <div class="nav-item" onclick="showPage('page-data')"><svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg><span>VTU</span></div>
+    <div class="nav-item active"><div class="nav-dot"></div><svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>SMM</span></div>
+    <div class="nav-item" onclick="showPage('page-wallet')"><svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg><span>Wallet</span></div>
+    <div class="nav-item" onclick="showPage('page-profile')"><svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Profile</span></div>
+  </nav>
+</div>
+
+<!-- ╔══════════════════════════════╗
+     ║     TRANSACTION HISTORY     ║
+     ╚══════════════════════════════╝ -->
+<div class="page" id="page-transactions">
+  <div class="top-bar">
+    <button onclick="showPage('page-dashboard')" style="color:var(--text-secondary);display:flex;align-items:center;gap:6px;font-size:14px;font-weight:600;"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> Back</button>
+    <div class="top-bar-title">Transactions</div>
+    <div style="width:44px;"></div>
+  </div>
+  <div class="page-content no-bottom-nav">
+    <div class="sp-12"></div>
+    <!-- Filter Tabs -->
+    <div class="network-tabs">
+      <div class="network-tab active-9mobile">All</div>
+      <div class="network-tab">VTU</div>
+      <div class="network-tab">SMM</div>
+      <div class="network-tab">Transfers</div>
+      <div class="network-tab">Funding</div>
+    </div>
+    <div class="sp-16"></div>
+    <div style="padding:0 16px;font-size:12px;font-weight:600;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;">Today</div>
+    <div class="card" style="margin:0 16px;overflow:hidden;">
+      <div class="txn-list">
+        <div class="txn-item"><div class="txn-icon" style="background:#EFF6FF;">📶</div><div class="txn-info"><div class="txn-name">MTN 5GB Data</div><div class="txn-date">9:14 AM · 08012345678</div></div><div class="txn-amount-col"><div class="txn-amount debit">-₦1,500</div><div class="txn-status status-success">Success</div></div></div>
+        <div class="divider-full"></div>
+        <div class="txn-item"><div class="txn-icon" style="background:#F0FFF4;">💰</div><div class="txn-info"><div class="txn-name">Wallet Funded</div><div class="txn-date">7:32 AM · Via Bank Transfer</div></div><div class="txn-amount-col"><div class="txn-amount credit">+₦10,000</div><div class="txn-status status-success">Success</div></div></div>
+      </div>
+    </div>
+    <div class="sp-16"></div>
+    <div style="padding:0 16px;font-size:12px;font-weight:600;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;">Yesterday</div>
+    <div class="card" style="margin:0 16px;overflow:hidden;">
+      <div class="txn-list">
+        <div class="txn-item"><div class="txn-icon" style="background:#FFF7ED;">📸</div><div class="txn-info"><div class="txn-name">IG Followers ×500</div><div class="txn-date">4:22 PM · @hero_brand</div></div><div class="txn-amount-col"><div class="txn-amount debit">-₦400</div><div class="txn-status status-pending">Pending</div></div></div>
+        <div class="divider-full"></div>
+        <div class="txn-item"><div class="txn-icon" style="background:#FDF4FF;">⚡</div><div class="txn-info"><div class="txn-name">Electricity — IKEDC</div><div class="txn-date">2:10 PM · Meter: 4510023...</div></div><div class="txn-amount-col"><div class="txn-amount debit">-₦3,000</div><div class="txn-status status-success">Success</div></div></div>
+        <div class="divider-full"></div>
+        <div class="txn-item"><div class="txn-icon" style="background:#FEF2F2;">💸</div><div class="txn-info"><div class="txn-name">Sent to Chukwu</div><div class="txn-date">11:00 AM · P2P Transfer</div></div><div class="txn-amount-col"><div class="txn-amount debit">-₦2,000</div><div class="txn-status status-success">Success</div></div></div>
+      </div>
+    </div>
+    <div class="sp-24"></div>
+  </div>
+</div>
+
+<!-- ╔══════════════════════════════╗
+     ║       PROFILE PAGE          ║
+     ╚══════════════════════════════╝ -->
+<div class="page" id="page-profile">
+  <div class="profile-header">
+    <div class="profile-avatar">EO</div>
+    <div class="profile-name">Eminence Okafor</div>
+    <div class="profile-phone">+234 801 234 5678</div>
+  </div>
+  <div class="page-content" style="padding-bottom:calc(var(--bottom-nav-h) + 16px);">
+    <div class="sp-8"></div>
+
+    <div class="card" style="margin:16px;overflow:hidden;">
+      <div class="settings-item">
+        <div class="settings-icon" style="background:#EFF6FF;">🔑</div>
+        <div class="settings-label">Change Password</div>
+        <svg class="settings-chevron" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+      <div class="divider-full"></div>
+      <div class="settings-item">
+        <div class="settings-icon" style="background:#F0FFF4;">🔒</div>
+        <div class="settings-label">Change Transaction PIN</div>
+        <svg class="settings-chevron" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+      <div class="divider-full"></div>
+      <div class="settings-item">
+        <div class="settings-icon" style="background:#FFF7ED;">🔔</div>
+        <div class="settings-label">Notifications</div>
+        <svg class="settings-chevron" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+    </div>
+
+    <div class="card" style="margin:0 16px;overflow:hidden;">
+      <div class="settings-item">
+        <div class="settings-icon" style="background:#F5F3FF;">📋</div>
+        <div class="settings-label">About SubHero</div>
+        <svg class="settings-chevron" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+      <div class="divider-full"></div>
+      <div class="settings-item">
+        <div class="settings-icon" style="background:#FFFBEB;">💬</div>
+        <div class="settings-label">Contact Support</div>
+        <svg class="settings-chevron" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+      <div class="divider-full"></div>
+      <div class="settings-item" onclick="showPage('page-landing')">
+        <div class="settings-icon" style="background:#FEE2E2;">🚪</div>
+        <div class="settings-label" style="color:var(--danger);">Logout</div>
+        <svg class="settings-chevron" style="color:var(--danger);" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+    </div>
+
+    <div class="sp-16"></div>
+    <div style="text-align:center;font-size:12px;color:var(--text-muted);">SubHero v1.0 · Part of SubVerse Suite</div>
+    <div class="sp-24"></div>
+  </div>
+  <nav class="bottom-nav">
+    <div class="nav-item" onclick="showPage('page-dashboard')"><svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>Home</span></div>
+    <div class="nav-item" onclick="showPage('page-data')"><svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg><span>VTU</span></div>
+    <div class="nav-item" onclick="showPage('page-smm')"><svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>SMM</span></div>
+    <div class="nav-item" onclick="showPage('page-wallet')"><svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg><span>Wallet</span></div>
+    <div class="nav-item active"><div class="nav-dot"></div><svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Profile</span></div>
+  </nav>
+</div>
+
+<!-- ╔══════════════════════════════╗
+     ║    SUCCESS / RECEIPT        ║
+     ╚══════════════════════════════╝ -->
+<div class="page" id="page-success">
+  <div class="top-bar" style="border:none;background:transparent;position:relative;">
+    <div style="width:44px;"></div>
+    <div class="top-bar-title">Order Complete</div>
+    <div style="width:44px;"></div>
+  </div>
+  <div class="page-content no-bottom-nav">
+    <div class="success-screen">
+      <div class="success-icon">✅</div>
+      <div class="success-title">Purchase Successful!</div>
+      <div class="success-sub" id="success-desc">Your MTN 1GB data has been delivered to 08012345678</div>
+      <div class="receipt-card">
+        <div class="info-row" style="border-bottom:1px solid var(--border);"><div class="info-row-label">Service</div><div class="info-row-val">MTN 1GB Data</div></div>
+        <div class="info-row" style="border-bottom:1px solid var(--border);"><div class="info-row-label">Phone Number</div><div class="info-row-val">080 1234 5678</div></div>
+        <div class="info-row" style="border-bottom:1px solid var(--border);"><div class="info-row-label">Amount Paid</div><div class="info-row-val" style="color:var(--danger);">₦350.00</div></div>
+        <div class="info-row" style="border-bottom:1px solid var(--border);"><div class="info-row-label">New Balance</div><div class="info-row-val" style="color:var(--success);">₦12,100.00</div></div>
+        <div class="info-row"><div class="info-row-label">Reference</div><div class="info-row-val" style="font-family:var(--font-mono);font-size:12px;">SH-20260424-00932</div></div>
+      </div>
+      <button class="btn btn-primary btn-full" onclick="showPage('page-dashboard')">Back to Dashboard</button>
+      <div class="sp-12"></div>
+      <button class="btn btn-secondary btn-full" onclick="showPage('page-data')">Buy Again</button>
+    </div>
+  </div>
+</div>
+
+<!-- ╔══════════════════════════════╗
+     ║      GLOBAL BOTTOM SHEETS   ║
+     ╚══════════════════════════════╝ -->
+
+<!-- Backdrop -->
+<div class="sheet-backdrop" id="backdrop" onclick="closeSheet()"></div>
+
+<!-- PIN Entry Sheet -->
+<div class="bottom-sheet" id="sheet-pin">
+  <div class="sheet-handle"></div>
+  <div class="sheet-content">
+    <div class="sheet-title">Confirm Transaction</div>
+    <div class="sheet-subtitle" id="sheet-pin-subtitle">Enter your 4-digit PIN to confirm</div>
+    <div class="pin-boxes" id="pin-boxes">
+      <div class="pin-box active" data-index="0"></div>
+      <div class="pin-box" data-index="1"></div>
+      <div class="pin-box" data-index="2"></div>
+      <div class="pin-box" data-index="3"></div>
+    </div>
+    <div class="sp-20"></div>
+    <!-- Numpad -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+      <button class="btn" style="height:56px;background:var(--bg-page);border-radius:12px;font-size:22px;font-family:var(--font-display);font-weight:700;" onclick="pinKey('1')">1</button>
+      <button class="btn" style="height:56px;background:var(--bg-page);border-radius:12px;font-size:22px;font-family:var(--font-display);font-weight:700;" onclick="pinKey('2')">2</button>
+      <button class="btn" style="height:56px;background:var(--bg-page);border-radius:12px;font-size:22px;font-family:var(--font-display);font-weight:700;" onclick="pinKey('3')">3</button>
+      <button class="btn" style="height:56px;background:var(--bg-page);border-radius:12px;font-size:22px;font-family:var(--font-display);font-weight:700;" onclick="pinKey('4')">4</button>
+      <button class="btn" style="height:56px;background:var(--bg-page);border-radius:12px;font-size:22px;font-family:var(--font-display);font-weight:700;" onclick="pinKey('5')">5</button>
+      <button class="btn" style="height:56px;background:var(--bg-page);border-radius:12px;font-size:22px;font-family:var(--font-display);font-weight:700;" onclick="pinKey('6')">6</button>
+      <button class="btn" style="height:56px;background:var(--bg-page);border-radius:12px;font-size:22px;font-family:var(--font-display);font-weight:700;" onclick="pinKey('7')">7</button>
+      <button class="btn" style="height:56px;background:var(--bg-page);border-radius:12px;font-size:22px;font-family:var(--font-display);font-weight:700;" onclick="pinKey('8')">8</button>
+      <button class="btn" style="height:56px;background:var(--bg-page);border-radius:12px;font-size:22px;font-family:var(--font-display);font-weight:700;" onclick="pinKey('9')">9</button>
+      <div></div>
+      <button class="btn" style="height:56px;background:var(--bg-page);border-radius:12px;font-size:22px;font-family:var(--font-display);font-weight:700;" onclick="pinKey('0')">0</button>
+      <button class="btn" style="height:56px;background:var(--bg-page);border-radius:12px;" onclick="pinBackspace()">⌫</button>
+    </div>
+    <div class="sp-12"></div>
+    <button class="btn btn-outline btn-full" onclick="closeSheet()">Cancel</button>
+  </div>
+</div>
+
+<!-- SMM Order Sheet -->
+<div class="bottom-sheet" id="sheet-smm-order">
+  <div class="sheet-handle"></div>
+  <div class="sheet-content">
+    <div class="sheet-title" id="smm-sheet-title">Instagram Followers</div>
+    <div class="sheet-subtitle">Enter your profile link and quantity</div>
+    <div class="field">
+      <label>Profile / Post URL</label>
+      <input class="input" type="url" placeholder="https://instagram.com/yourusername">
+    </div>
+    <div class="sp-12"></div>
+    <div class="field">
+      <label>Quantity</label>
+      <input class="input" type="number" placeholder="500" inputmode="numeric">
+    </div>
+    <div class="sp-8"></div>
+    <div style="background:var(--bg-page);border-radius:10px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;">
+      <div style="font-size:13px;color:var(--text-secondary);">Estimated Cost</div>
+      <div style="font-family:var(--font-mono);font-size:16px;font-weight:600;color:var(--brand-primary);">₦400.00</div>
+    </div>
+    <div class="sp-16"></div>
+    <button class="btn btn-primary btn-full" onclick="closeSheet();openSheet('sheet-pin','SMM Order')">Proceed to PIN →</button>
+    <div class="sp-8"></div>
+    <button class="btn btn-secondary btn-full" onclick="closeSheet()">Cancel</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     VANILLA JS — ROUTER + UI LOGIC
+══════════════════════════════ -->
+<script>
+// ─── PAGE ROUTER ───
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const target = document.getElementById(id);
+  if (target) {
+    target.classList.add('active');
+    target.scrollTop = 0;
+  }
+}
+
+// ─── BOTTOM SHEETS ───
+function openSheet(sheetId, context) {
+  if (context) {
+    const sub = document.getElementById('sheet-pin-subtitle');
+    if (sub) sub.textContent = `Enter your PIN to confirm ${context}`;
+    const title = document.getElementById('smm-sheet-title');
+    if (title && sheetId === 'sheet-smm-order') title.textContent = context;
+  }
+  document.getElementById('backdrop').classList.add('open');
+  document.getElementById(sheetId).classList.add('open');
+  pinState = [];
+  refreshPinBoxes();
+}
+
+function closeSheet() {
+  document.getElementById('backdrop').classList.remove('open');
+  document.querySelectorAll('.bottom-sheet').forEach(s => s.classList.remove('open'));
+}
+
+// ─── PIN LOGIC ───
+let pinState = [];
+
+function pinKey(digit) {
+  if (pinState.length >= 4) return;
+  pinState.push(digit);
+  refreshPinBoxes();
+  if (pinState.length === 4) {
+    setTimeout(() => {
+      closeSheet();
+      setTimeout(() => showPage('page-success'), 200);
+    }, 300);
+  }
+}
+
+function pinBackspace() {
+  pinState.pop();
+  refreshPinBoxes();
+}
+
+function refreshPinBoxes() {
+  document.querySelectorAll('.pin-box').forEach((box, i) => {
+    box.classList.remove('active', 'filled');
+    box.textContent = '';
+    if (i < pinState.length) {
+      box.classList.add('filled');
+    } else if (i === pinState.length) {
+      box.classList.add('active');
+    }
+  });
+}
+
+// ─── BALANCE TOGGLE ───
+let balanceVisible = true;
+function toggleBalance() {
+  balanceVisible = !balanceVisible;
+  const el = document.getElementById('balance-display');
+  if (el) el.textContent = balanceVisible ? '₦12,450.00' : '₦ ••••••';
+}
+
+// ─── NETWORK TABS ───
+function selectNetwork(network) {
+  const tabs = document.querySelectorAll('[id^="tab-"]');
+  tabs.forEach(t => t.className = 'network-tab');
+  const active = document.getElementById(`tab-${network}`);
+  if (active) active.classList.add(`active-${network}`);
+}
+
+// ─── PLAN SELECTION ───
+function selectPlan(el) {
+  document.querySelectorAll('.plan-card').forEach(p => p.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+// ─── RECIPIENT LOOKUP SIMULATION ───
+function lookupRecipient(val) {
+  const preview = document.getElementById('recipient-preview');
+  if (preview) preview.style.display = val.length >= 11 ? 'flex' : 'none';
+}
+
+// ─── PLATFORM TABS ───
+document.querySelectorAll('.platform-tab').forEach(tab => {
+  tab.addEventListener('click', function() {
+    document.querySelectorAll('.platform-tab').forEach(t => t.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+
+// ─── FILTER TABS (generic) ───
+document.querySelectorAll('.network-tabs .network-tab').forEach(tab => {
+  tab.addEventListener('click', function() {
+    const siblings = this.closest('.network-tabs').querySelectorAll('.network-tab');
+    siblings.forEach(t => { t.className = 'network-tab'; });
+    this.className = 'network-tab active-9mobile';
+  });
+});
+</script>
+
+</div><!-- end app-shell -->
+</body>
+</html>

@@ -1,0 +1,4 @@
+# SubHero — Development Dependencies
+-r base.txt
+
+django-debug-toolbar>=4.3,<5.0

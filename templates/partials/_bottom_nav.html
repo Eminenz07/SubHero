@@ -1,0 +1,38 @@
+<!-- Bottom Nav Partial -->
+{% url 'dashboard' as dashboard_url %}
+{% url 'vtu:buy_data' as vtu_url %}
+{% url 'smm:index' as smm_url %}
+{% url 'wallet:index' as wallet_url %}
+{% url 'accounts:profile' as profile_url %}
+
+<nav class="bottom-nav">
+    <a href="{{ dashboard_url }}" class="nav-item {% if request.path == dashboard_url %}active{% endif %}">
+        <span class="nav-dot"></span>
+        <i data-feather="home" class="nav-icon"></i>
+        <span>Home</span>
+    </a>
+    
+    <a href="{{ vtu_url }}" class="nav-item {% if request.path == vtu_url %}active{% endif %}">
+        <span class="nav-dot"></span>
+        <i data-feather="smartphone" class="nav-icon"></i>
+        <span>VTU</span>
+    </a>
+    
+    <a href="{{ smm_url }}" class="nav-item {% if request.path == smm_url %}active{% endif %}">
+        <span class="nav-dot"></span>
+        <i data-feather="thumbs-up" class="nav-icon"></i>
+        <span>SMM</span>
+    </a>
+    
+    <a href="{{ wallet_url }}" class="nav-item {% if request.path == wallet_url %}active{% endif %}">
+        <span class="nav-dot"></span>
+        <i data-feather="credit-card" class="nav-icon"></i>
+        <span>Wallet</span>
+    </a>
+    
+    <a href="{{ profile_url }}" class="nav-item {% if request.path == profile_url %}active{% endif %}">
+        <span class="nav-dot"></span>
+        <i data-feather="user" class="nav-icon"></i>
+        <span>Profile</span>
+    </a>
+</nav>

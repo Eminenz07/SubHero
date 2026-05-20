@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+
+{% block title %}Transaction Detail — SubHero{% endblock %}
+
+{% block top_bar %}
+{% include 'partials/_top_bar.html' with title="Transaction" show_back=True %}
+{% endblock %}
+
+{% block content %}
+<div class="px-4 pt-5 pb-10">
+    <!-- Status Header -->
+    <div class="text-center mb-6">
+        <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3
+            {% if txn.status == 'SUCCESS' %}
+                bg-status-success-bg text-status-success-text
+            {% elif txn.status == 'PENDING' %}
+                bg-status-warning-bg text-status-warning-text
+            {% elif txn.status == 'FAILED' %}
+                bg-status-danger-bg text-status-danger-text
+            {% else %}
+                bg-[#E0F2FE] text-[#0369A1]
+            {% endif %}">
+            {% if txn.status == 'SUCCESS' %}
+                <i data-feather="check" class="w-8 h-8"></i>
+            {% elif txn.status == 'PENDING' %}
+                <i data-feather="clock" class="w-8 h-8"></i>
+            {% elif txn.status == 'FAILED' %}
+                <i data-feather="x" class="w-8 h-8"></i>
+            {% else %}
+                <i data-feather="refresh-cw" class="w-8 h-8"></i>
+            {% endif %}
+        </div>
+        
+        <div class="font-mono text-[28px] font-bold tracking-[-1px]
+            {% if txn.txn_type == 'FUND' or txn.txn_type == 'P2P_RECEIVE' or txn.txn_type == 'REFUND' %}
+                text-status-success-text
+            {% else %}
+                text-text-primary
+            {% endif %}">
+            {% if txn.txn_type == 'FUND' or txn.txn_type == 'P2P_RECEIVE' or txn.txn_type == 'REFUND' %}+{% else %}-{% endif %}₦{{ txn.amount|floatformat:2 }}
+        </div>
+        
+        <div class="text-[10px] font-semibold px-3 py-1 rounded-pill inline-block tracking-[0.3px] mt-2
+            {% if txn.status == 'SUCCESS' %}
+                bg-status-success-bg text-status-success-text
+            {% elif txn.status == 'PENDING' %}
+                bg-status-warning-bg text-status-warning-text
+            {% elif txn.status == 'FAILED' %}
+                bg-status-danger-bg text-status-danger-text
+            {% else %}
+                bg-[#E0F2FE] text-[#0369A1]
+            {% endif %}">{{ txn.get_status_display }}</div>
+    </div>
+
+    <!-- Details Card -->
+    <div class="card card-padding">
+        <div class="space-y-4">
+            <div class="flex items-center justify-between">
+                <span class="text-[13px] text-text-muted">Type</span>
+                <span class="text-[13px] font-semibold text-text-primary">{{ txn.get_txn_type_display }}</span>
+            </div>
+            <div class="h-[1px] bg-surface-border"></div>
+            
+            {% if txn.description %}
+            <div class="flex items-center justify-between">
+                <span class="text-[13px] text-text-muted">Description</span>
+                <span class="text-[13px] font-semibold text-text-primary text-right max-w-[200px]">{{ txn.description }}</span>
+            </div>
+            <div class="h-[1px] bg-surface-border"></div>
+            {% endif %}
+            
+            <div class="flex items-center justify-between">
+                <span class="text-[13px] text-text-muted">Reference</span>
+                <span class="text-[12px] font-mono text-text-secondary">{{ txn.reference }}</span>
+            </div>
+            <div class="h-[1px] bg-surface-border"></div>
+            
+            <div class="flex items-center justify-between">
+                <span class="text-[13px] text-text-muted">Balance Before</span>
+                <span class="text-[13px] font-mono font-semibold text-text-primary">₦{{ txn.balance_before|floatformat:2 }}</span>
+            </div>
+            <div class="h-[1px] bg-surface-border"></div>
+            
+            <div class="flex items-center justify-between">
+                <span class="text-[13px] text-text-muted">Balance After</span>
+                <span class="text-[13px] font-mono font-semibold text-text-primary">₦{{ txn.balance_after|floatformat:2 }}</span>
+            </div>
+            <div class="h-[1px] bg-surface-border"></div>
+            
+            <div class="flex items-center justify-between">
+                <span class="text-[13px] text-text-muted">Date</span>
+                <span class="text-[13px] font-semibold text-text-primary">{{ txn.created_at|date:"M d, Y" }}</span>
+            </div>
+            <div class="h-[1px] bg-surface-border"></div>
+            
+            <div class="flex items-center justify-between">
+                <span class="text-[13px] text-text-muted">Time</span>
+                <span class="text-[13px] font-semibold text-text-primary">{{ txn.created_at|date:"g:i:s A" }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Back to History -->
+    <a href="{% url 'wallet:transactions' %}" class="btn btn-secondary btn-block mt-6 no-underline">
+        <i data-feather="arrow-left" class="w-4 h-4"></i>
+        Back to History
+    </a>
+</div>
+{% endblock %}
+
+{% block bottom_nav %}
+{% include 'partials/_bottom_nav.html' with active='wallet' %}
+{% endblock %}

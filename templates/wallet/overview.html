@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+
+{% block title %}Wallet — SubHero{% endblock %}
+
+{% block top_bar %}
+{% include 'partials/_top_bar.html' with title="Wallet" %}
+{% endblock %}
+
+{% block content %}
+<!-- Wallet Hero Card -->
+<div class="bg-gradient-to-br from-brand-primary via-[#004D2C] to-brand-dark rounded-card p-6 mx-4 mb-6 relative overflow-hidden shadow-elevated">
+    <!-- Decorative overlays -->
+    <div class="absolute -top-10 -right-10 w-[180px] h-[180px] rounded-full bg-white/5"></div>
+    <div class="absolute -bottom-14 -left-5 w-[220px] h-[220px] rounded-full bg-brand-accent/10"></div>
+    
+    <div class="relative z-10">
+        <div class="text-[12px] font-medium text-white/65 tracking-[0.5px] mb-1.5">Total Balance</div>
+        
+        <div class="flex items-center gap-3 mb-5">
+            <div class="font-mono text-[34px] font-medium text-white tracking-[-1px] leading-none" id="balance-display">
+                <span class="text-2xl mr-0.5">₦</span>{{ wallet.balance|floatformat:2|default:"0.00" }}
+            </div>
+            <button class="w-[34px] h-[34px] rounded-full bg-white/10 text-white/70 flex items-center justify-center shrink-0 border-none outline-none"
+                    onclick="toggleBalance()" id="toggle-balance-btn">
+                <i data-feather="eye" class="w-[18px] h-[18px]"></i>
+            </button>
+        </div>
+        
+        <div class="flex gap-2.5">
+            <a href="{% url 'wallet:fund' %}" class="flex-1 h-[42px] rounded-[10px] bg-brand-accent text-white text-[14px] font-semibold flex items-center justify-center gap-1.5 border-none no-underline">
+                <i data-feather="plus" class="w-4 h-4"></i> Fund
+            </a>
+            <a href="{% url 'wallet:transfer' %}" class="flex-1 h-[42px] rounded-[10px] bg-white/10 text-white border border-white/25 text-[14px] font-semibold flex items-center justify-center gap-1.5 no-underline">
+                <i data-feather="send" class="w-4 h-4"></i> Send
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Virtual Account Info -->
+{% if wallet.virtual_account_number %}
+<div class="mx-4 mb-6 card card-padding">
+    <div class="text-[12px] font-medium text-text-muted mb-2 tracking-[0.3px]">YOUR ACCOUNT NUMBER</div>
+    <div class="flex items-center justify-between">
+        <div>
+            <div class="font-mono text-lg font-bold text-text-primary tracking-tight" id="acct-number">{{ wallet.virtual_account_number }}</div>
+            <div class="text-[13px] text-text-secondary mt-0.5">{{ wallet.virtual_account_bank }}</div>
+        </div>
+        <button onclick="copyAccountNumber()" class="h-[36px] px-4 rounded-[10px] bg-brand-accent/10 text-brand-primary text-[13px] font-semibold flex items-center gap-1.5 border-none cursor-pointer active:scale-95 transition-transform" id="copy-btn">
+            <i data-feather="copy" class="w-4 h-4"></i>
+            <span id="copy-text">Copy</span>
+        </button>
+    </div>
+</div>
+{% endif %}
+
+<!-- Recent Transactions -->
+<div class="bg-white border-t border-surface-border py-4 min-h-[200px]">
+    <div class="flex items-center justify-between px-4 mb-2">
+        <h2 class="font-display text-[16px] font-bold text-text-primary">Recent Activity</h2>
+        <a href="{% url 'wallet:transactions' %}" class="text-[13px] font-semibold text-brand-primary no-underline">View All</a>
+    </div>
+    
+    <div class="flex flex-col">
+        {% for txn in recent_txns %}
+        <a href="{% url 'wallet:transaction_detail' txn_id=txn.id %}" class="flex items-center gap-[14px] py-3.5 px-4 active:bg-surface-page transition-colors no-underline">
+            <div class="w-[44px] h-[44px] rounded-xl flex items-center justify-center shrink-0
+                {% if txn.txn_type == 'FUND' or txn.txn_type == 'P2P_RECEIVE' or txn.txn_type == 'REFUND' %}
+                    bg-green-50 text-status-success-text
+                {% elif txn.txn_type == 'VTU' %}
+                    bg-blue-50 text-blue-500
+                {% elif txn.txn_type == 'SMM' %}
+                    bg-purple-50 text-purple-500
+                {% else %}
+                    bg-yellow-50 text-yellow-600
+                {% endif %}">
+                {% if txn.txn_type == 'FUND' or txn.txn_type == 'P2P_RECEIVE' %}
+                    <i data-feather="arrow-down-left" class="w-5 h-5"></i>
+                {% elif txn.txn_type == 'P2P_SEND' %}
+                    <i data-feather="arrow-up-right" class="w-5 h-5"></i>
+                {% elif txn.txn_type == 'VTU' %}
+                    <i data-feather="wifi" class="w-5 h-5"></i>
+                {% elif txn.txn_type == 'SMM' %}
+                    <i data-feather="trending-up" class="w-5 h-5"></i>
+                {% else %}
+                    <i data-feather="refresh-cw" class="w-5 h-5"></i>
+                {% endif %}
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="text-[14px] font-semibold text-text-primary whitespace-nowrap overflow-hidden text-ellipsis">{{ txn.get_txn_type_display }}</div>
+                <div class="text-[12px] text-text-muted mt-[2px]">{{ txn.created_at|date:"M d, g:i A" }}</div>
+            </div>
+            <div class="text-right shrink-0">
+                <div class="font-mono text-[14px] font-medium
+                    {% if txn.txn_type == 'FUND' or txn.txn_type == 'P2P_RECEIVE' or txn.txn_type == 'REFUND' %}
+                        text-status-success-text
+                    {% else %}
+                        text-text-primary
+                    {% endif %}">
+                    {% if txn.txn_type == 'FUND' or txn.txn_type == 'P2P_RECEIVE' or txn.txn_type == 'REFUND' %}+{% else %}-{% endif %}₦{{ txn.amount|floatformat:2 }}
+                </div>
+                <div class="text-[10px] font-semibold px-[7px] py-[2px] rounded-pill inline-block tracking-[0.3px] mt-[3px]
+                    {% if txn.status == 'SUCCESS' %}
+                        bg-status-success-bg text-status-success-text
+                    {% elif txn.status == 'PENDING' %}
+                        bg-status-warning-bg text-status-warning-text
+                    {% elif txn.status == 'FAILED' %}
+                        bg-status-danger-bg text-status-danger-text
+                    {% else %}
+                        bg-[#E0F2FE] text-[#0369A1]
+                    {% endif %}">{{ txn.get_status_display }}</div>
+            </div>
+        </a>
+        {% if not forloop.last %}
+        <div class="h-[1px] bg-surface-border ml-[74px]"></div>
+        {% endif %}
+        {% empty %}
+        <div class="text-center py-12 px-6">
+            <div class="text-text-muted text-[14px]">No transactions yet</div>
+            <div class="text-text-muted text-[12px] mt-1">Fund your wallet to get started</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+function copyAccountNumber() {
+    const number = document.getElementById('acct-number').textContent.trim();
+    navigator.clipboard.writeText(number).then(() => {
+        const btn = document.getElementById('copy-text');
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+    });
+}
+
+let balanceHidden = false;
+function toggleBalance() {
+    const el = document.getElementById('balance-display');
+    if (balanceHidden) {
+        el.innerHTML = '<span class="text-2xl mr-0.5">₦</span>{{ wallet.balance|floatformat:2|default:"0.00" }}';
+    } else {
+        el.innerHTML = '<span class="text-2xl mr-0.5">₦</span>****';
+    }
+    balanceHidden = !balanceHidden;
+}
+</script>
+{% endblock %}
+
+{% block bottom_nav %}
+{% include 'partials/_bottom_nav.html' with active='wallet' %}
+{% endblock %}

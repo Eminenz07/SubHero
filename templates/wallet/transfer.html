@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+
+{% block title %}Send Money — SubHero{% endblock %}
+
+{% block top_bar %}
+{% include 'partials/_top_bar.html' with title="Send Money" show_back=True %}
+{% endblock %}
+
+{% block content %}
+<div class="px-4 pt-5 pb-10">
+    <!-- Balance Info -->
+    <div class="card card-padding mb-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <div class="text-[11px] font-medium text-text-muted tracking-[0.3px]">Available Balance</div>
+                <div class="font-mono text-xl font-bold text-text-primary mt-0.5">₦{{ wallet.balance|floatformat:2 }}</div>
+            </div>
+            <div class="w-[46px] h-[46px] rounded-xl bg-brand-accent/15 text-brand-primary flex items-center justify-center">
+                <i data-feather="send" class="w-[22px] h-[22px]"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Messages -->
+    {% if messages %}
+    <div class="mb-4">
+        {% for message in messages %}
+        <div class="alert{% if message.tags == 'error' %}-error{% elif message.tags == 'success' %}-success{% elif message.tags == 'warning' %}-warning{% else %}-info{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Transfer Form -->
+    <form method="post" class="space-y-5" id="transfer-form">
+        {% csrf_token %}
+        
+        <!-- Recipient Phone -->
+        <div class="form-group">
+            <label class="form-label" for="id_recipient_phone">Recipient Phone Number</label>
+            <input type="tel"
+                   name="recipient_phone"
+                   id="id_recipient_phone"
+                   class="form-input {% if form.recipient_phone.errors %}form-input--error{% endif %}"
+                   placeholder="e.g. 08012345678"
+                   inputmode="tel"
+                   autocomplete="off"
+                   value="{{ form.recipient_phone.value|default:'' }}"
+                   hx-post="{% url 'wallet:lookup_recipient' %}"
+                   hx-trigger="keyup changed delay:500ms"
+                   hx-target="#recipient-result"
+                   hx-include="[name='recipient_phone']">
+            <div id="recipient-result"></div>
+            {% for error in form.recipient_phone.errors %}
+            <div class="form-error">{{ error }}</div>
+            {% endfor %}
+        </div>
+
+        <!-- Amount -->
+        <div class="form-group">
+            <label class="form-label" for="id_amount">Amount (₦)</label>
+            <div class="relative">
+                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted font-semibold text-[15px]">₦</span>
+                <input type="number"
+                       name="amount"
+                       id="id_amount"
+                       class="form-input pl-9 {% if form.amount.errors %}form-input--error{% endif %}"
+                       placeholder="0.00"
+                       inputmode="decimal"
+                       step="0.01"
+                       min="50"
+                       max="100000"
+                       autocomplete="off"
+                       value="{{ form.amount.value|default:'' }}">
+            </div>
+            <div class="text-[11px] text-text-muted mt-1">Min: ₦50 · Max: ₦100,000 · Daily limit: ₦200,000</div>
+            {% for error in form.amount.errors %}
+            <div class="form-error">{{ error }}</div>
+            {% endfor %}
+        </div>
+
+        <!-- Transaction PIN -->
+        <div class="form-group">
+            <label class="form-label" for="id_pin">Transaction PIN</label>
+            <input type="password"
+                   name="pin"
+                   id="id_pin"
+                   class="form-input text-center tracking-[0.5em] font-mono text-xl {% if form.pin.errors %}form-input--error{% endif %}"
+                   placeholder="••••"
+                   inputmode="numeric"
+                   maxlength="4"
+                   autocomplete="off">
+            {% for error in form.pin.errors %}
+            <div class="form-error">{{ error }}</div>
+            {% endfor %}
+        </div>
+
+        <!-- Submit -->
+        <button type="submit" class="btn btn-primary btn-block">
+            <span class="htmx-hide-on-request">Send Money</span>
+            <span class="htmx-indicator spinner"></span>
+        </button>
+    </form>
+</div>
+{% endblock %}
+
+{% block bottom_nav %}
+{% include 'partials/_bottom_nav.html' with active='wallet' %}
+{% endblock %}

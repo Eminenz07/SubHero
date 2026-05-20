@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+
+{% block main_extra_classes %}no-bottom-nav p-0{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+    <div class="auth-top">
+        <div class="auth-logo">Sub<span>Hero</span></div>
+        <div class="auth-tagline">Security Verification.</div>
+    </div>
+    
+    <div class="auth-form flex flex-col">
+        <h2 class="auth-title mb-2">Verify OTP</h2>
+        <p class="text-[14px] text-text-secondary mb-8 leading-relaxed text-center">
+            We sent a 6-digit code to <strong class="text-text-primary">{{ masked_phone }}</strong>.
+        </p>
+        
+        {% if debug %}
+        <div class="bg-status-warning-bg text-status-warning-text p-3 rounded-xl text-sm mb-6 text-center font-medium border border-status-warning/20">
+            <i data-feather="terminal" class="inline-block w-4 h-4 mr-1 mb-0.5"></i>
+            Dev Mode: Check your terminal for the OTP code.
+        </div>
+        {% endif %}
+        
+        <form method="post" id="otp-form" class="flex flex-col flex-1">
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+                <div class="alert-error">
+                    {% for error in form.non_field_errors %}
+                        <p>{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            
+            {% if form.otp_code.errors %}
+                <div class="alert-error">
+                    <p>{{ form.otp_code.errors.0 }}</p>
+                </div>
+            {% endif %}
+            
+            <input type="hidden" name="{{ form.otp_code.name }}" id="hidden-otp-input">
+            
+            <div class="flex justify-center gap-2 sm:gap-3 mb-8" id="otp-inputs">
+                {% for i in "123456" %}
+                <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code"
+                       class="w-12 h-14 sm:w-[52px] sm:h-[60px] text-center text-2xl font-mono font-bold text-text-primary
+                              bg-surface-page border-[1.5px] border-surface-border rounded-xl
+                              focus:outline-none focus:border-brand-accent focus:bg-white focus:ring-4 focus:ring-brand-accent/10 transition-all
+                              shadow-sm" 
+                       data-otp-index="{{ forloop.counter0 }}">
+                {% endfor %}
+            </div>
+
+            <div class="mt-auto pt-6">
+                <button type="submit" id="otp-submit" class="btn-primary btn-block mb-6" disabled>
+                    Verify Code
+                </button>
+            </div>
+        </form>
+        
+        <div class="text-center pb-4">
+            <p class="text-[13px] text-text-secondary mb-1">Didn't receive the code?</p>
+            <form method="post" action="{% url 'accounts:resend_otp' %}">
+                {% csrf_token %}
+                <button type="submit" class="text-[14px] font-bold text-brand-primary bg-transparent border-none p-2 active:opacity-70">
+                    Resend Code
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

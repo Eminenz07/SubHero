@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+
+{% block title %}Transactions — SubHero{% endblock %}
+
+{% block top_bar %}
+{% include 'partials/_top_bar.html' with title="Transactions" show_back=True %}
+{% endblock %}
+
+{% block content %}
+<!-- Filter Chips -->
+<div class="flex gap-2 overflow-x-auto px-4 py-3 [scrollbar-width:none]">
+    {% for value, label in type_choices %}
+    <a href="?type={{ value }}"
+       class="shrink-0 h-[36px] px-4 rounded-pill text-[13px] font-semibold flex items-center border no-underline
+              {% if active_type == value %}bg-brand-primary text-white border-brand-primary{% else %}bg-surface-card text-text-secondary border-surface-border{% endif %}">
+        {{ label }}
+    </a>
+    {% endfor %}
+</div>
+
+<!-- Transaction List -->
+<div class="bg-white min-h-[400px]">
+    <div class="flex flex-col">
+        {% for txn in page_obj %}
+        <a href="{% url 'wallet:transaction_detail' txn_id=txn.id %}" class="flex items-center gap-[14px] py-3.5 px-4 active:bg-surface-page transition-colors no-underline">
+            <div class="w-[44px] h-[44px] rounded-xl flex items-center justify-center shrink-0
+                {% if txn.txn_type == 'FUND' or txn.txn_type == 'P2P_RECEIVE' or txn.txn_type == 'REFUND' %}
+                    bg-green-50 text-status-success-text
+                {% elif txn.txn_type == 'VTU' %}
+                    bg-blue-50 text-blue-500
+                {% elif txn.txn_type == 'SMM' %}
+                    bg-purple-50 text-purple-500
+                {% else %}
+                    bg-yellow-50 text-yellow-600
+                {% endif %}">
+                {% if txn.txn_type == 'FUND' or txn.txn_type == 'P2P_RECEIVE' %}
+                    <i data-feather="arrow-down-left" class="w-5 h-5"></i>
+                {% elif txn.txn_type == 'P2P_SEND' %}
+                    <i data-feather="arrow-up-right" class="w-5 h-5"></i>
+                {% elif txn.txn_type == 'VTU' %}
+                    <i data-feather="wifi" class="w-5 h-5"></i>
+                {% elif txn.txn_type == 'SMM' %}
+                    <i data-feather="trending-up" class="w-5 h-5"></i>
+                {% else %}
+                    <i data-feather="refresh-cw" class="w-5 h-5"></i>
+                {% endif %}
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="text-[14px] font-semibold text-text-primary whitespace-nowrap overflow-hidden text-ellipsis">{{ txn.get_txn_type_display }}</div>
+                <div class="text-[12px] text-text-muted mt-[2px]">{{ txn.created_at|date:"M d, g:i A" }}</div>
+            </div>
+            <div class="text-right shrink-0">
+                <div class="font-mono text-[14px] font-medium
+                    {% if txn.txn_type == 'FUND' or txn.txn_type == 'P2P_RECEIVE' or txn.txn_type == 'REFUND' %}
+                        text-status-success-text
+                    {% else %}
+                        text-text-primary
+                    {% endif %}">
+                    {% if txn.txn_type == 'FUND' or txn.txn_type == 'P2P_RECEIVE' or txn.txn_type == 'REFUND' %}+{% else %}-{% endif %}₦{{ txn.amount|floatformat:2 }}
+                </div>
+                <div class="text-[10px] font-semibold px-[7px] py-[2px] rounded-pill inline-block tracking-[0.3px] mt-[3px]
+                    {% if txn.status == 'SUCCESS' %}
+                        bg-status-success-bg text-status-success-text
+                    {% elif txn.status == 'PENDING' %}
+                        bg-status-warning-bg text-status-warning-text
+                    {% elif txn.status == 'FAILED' %}
+                        bg-status-danger-bg text-status-danger-text
+                    {% else %}
+                        bg-[#E0F2FE] text-[#0369A1]
+                    {% endif %}">{{ txn.get_status_display }}</div>
+            </div>
+        </a>
+        {% if not forloop.last %}
+        <div class="h-[1px] bg-surface-border ml-[74px]"></div>
+        {% endif %}
+        {% empty %}
+        <div class="text-center py-16 px-6">
+            <div class="w-16 h-16 rounded-full bg-surface-page flex items-center justify-center mx-auto mb-4">
+                <i data-feather="inbox" class="w-8 h-8 text-text-muted"></i>
+            </div>
+            <div class="text-text-secondary text-[14px] font-medium">No transactions found</div>
+            <div class="text-text-muted text-[12px] mt-1">Your transaction history will appear here</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="flex items-center justify-center gap-2 py-6 px-4">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}{% if active_type %}&type={{ active_type }}{% endif %}"
+           class="h-[40px] px-4 rounded-[10px] bg-surface-card text-text-secondary text-[13px] font-semibold flex items-center border border-surface-border no-underline">
+            Previous
+        </a>
+        {% endif %}
+        
+        <span class="text-[13px] text-text-muted px-3">
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+        </span>
+        
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if active_type %}&type={{ active_type }}{% endif %}"
+           class="h-[40px] px-4 rounded-[10px] bg-brand-primary text-white text-[13px] font-semibold flex items-center no-underline">
+            Next
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block bottom_nav %}
+{% include 'partials/_bottom_nav.html' with active='wallet' %}
+{% endblock %}
