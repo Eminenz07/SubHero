@@ -1,0 +1,52 @@
+# ==========================================
+# SubHero — Production Dockerfile
+# Multi-stage build for optimal image size
+# ==========================================
+
+# Stage 1: Build dependency wheels
+FROM python:3.12-slim AS builder
+
+WORKDIR /app
+
+# Install build dependencies for C-extensions (like psycopg or argon2-cffi)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements/base.txt requirements/production.txt ./
+RUN pip install --no-cache-dir --user -r production.txt
+
+# Stage 2: Clean minimal runtime image
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Install runtime library dependencies (libpq for PostgreSQL connection)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy installed Python packages from builder stage
+COPY --from=builder /root/.local /root/.local
+ENV PATH=/root/.local/bin:$PATH
+
+# Copy application source code
+COPY . .
+
+# Create logs directory
+RUN mkdir -p logs
+
+# Environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    DJANGO_SETTINGS_MODULE=config.settings.production
+
+# Pre-compile static files during build using a dummy SECRET_KEY
+RUN SECRET_KEY=build-dummy-key-for-collectstatic python manage.py collectstatic --noinput
+
+# Expose server port
+EXPOSE 8000
+
+# Start Gunicorn server
+CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--threads", "2"]

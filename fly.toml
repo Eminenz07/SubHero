@@ -1,0 +1,43 @@
+# ==========================================
+# SubHero — Fly.io Deployment Configuration
+# ==========================================
+
+app = "subhero"
+primary_region = "los"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[deploy]
+  # Runs database migrations securely as a separate release phase before scaling
+  release_command = "python manage.py migrate --noinput"
+
+[env]
+  DJANGO_SETTINGS_MODULE = "config.settings.production"
+  PORT = "8000"
+
+[[services]]
+  internal_port = 8000
+  processes = ["app"]
+  protocol = "tcp"
+
+  [services.concurrency]
+    hard_limit = 25
+    soft_limit = 20
+    type = "connections"
+
+  [[services.ports]]
+    force_https = true
+    handlers = ["http"]
+    port = 80
+
+  [[services.ports]]
+    handlers = ["tls", "http"]
+    port = 443
+
+  [[services.tcp_checks]]
+    grace_period = "15s"
+    interval = "15s"
+    port = 8000
+    restart_limit = 0
+    timeout = "2s"
