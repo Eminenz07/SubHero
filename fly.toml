@@ -3,7 +3,7 @@
 # ==========================================
 
 app = "subhero"
-primary_region = "los"
+primary_region = "ams"
 
 [build]
   dockerfile = "Dockerfile"
