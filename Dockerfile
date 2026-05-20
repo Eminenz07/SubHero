@@ -42,8 +42,8 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     DJANGO_SETTINGS_MODULE=config.settings.production
 
-# Pre-compile static files during build using a dummy SECRET_KEY
-RUN SECRET_KEY=build-dummy-key-for-collectstatic python manage.py collectstatic --noinput
+# Pre-compile static files during build using a dummy SECRET_KEY and DATABASE_URL
+RUN SECRET_KEY=build-dummy-key-for-collectstatic DATABASE_URL=sqlite:///:memory: python manage.py collectstatic --noinput
 
 # Expose server port
 EXPOSE 8000
