@@ -39,7 +39,7 @@
      ============================================================= */
   .app-shell {
     @apply w-full sm:max-w-md md:max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto 
-           h-[100dvh] md:h-[94vh] md:max-h-[900px] md:my-[3vh] md:rounded-[32px] md:overflow-hidden
+           h-[100dvh] md:h-[94vh] md:max-h-[900px] md:my-[3vh] md:rounded-[32px] overflow-hidden
            bg-surface-page relative shadow-[0_20px_60px_rgba(0,0,0,0.12)] md:ring-1 md:ring-black/5
            flex flex-col;
   }
