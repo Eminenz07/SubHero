@@ -47,6 +47,12 @@
   .page-content {
     @apply flex-1 overflow-y-auto;
     -webkit-overflow-scrolling: touch;
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+
+  .page-content::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
   }
 
   .page-content.no-bottom-nav {
@@ -206,6 +212,12 @@
            pb-safe-bottom z-[201] translate-y-full
            transition-transform duration-[250ms] ease-[cubic-bezier(0.16,1,0.3,1)]
            max-h-[85%] overflow-y-auto;
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+
+  .bottom-sheet::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
   }
 
   .bottom-sheet.active {
