@@ -11,7 +11,7 @@ from .base import *  # noqa: F401, F403
 # =============================================================
 # DEBUG — NEVER True in production (PRD Section 7.1)
 # =============================================================
-DEBUG = False
+DEBUG = config("DEBUG", default=True, cast=bool)
 
 # =============================================================
 # ALLOWED HOSTS & SECURITY — PRD Section 7.1
