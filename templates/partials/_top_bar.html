@@ -12,12 +12,12 @@
 
     <div class="flex items-center gap-2">
         {% block top_bar_actions %}
-        <button class="top-bar-icon" aria-label="Notifications">
+        <a href="{% url 'notifications:list' %}" class="top-bar-icon relative flex items-center justify-center no-underline text-text-secondary" aria-label="Notifications">
             <i data-feather="bell" class="w-5 h-5"></i>
-            {% if unread_notifications %}
-            <span class="absolute top-[6px] right-[6px] w-2 h-2 bg-status-danger rounded-full border-2 border-surface-card"></span>
+            {% if unread_notifications_count and unread_notifications_count > 0 %}
+            <span class="absolute top-[6px] right-[6px] w-2.5 h-2.5 bg-status-danger rounded-full border-2 border-surface-card"></span>
             {% endif %}
-        </button>
+        </a>
         {% endblock %}
     </div>
 </header>

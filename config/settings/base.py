@@ -66,6 +66,7 @@ CSRF_TRUSTED_ORIGINS = config(
     default="https://localhost",
     cast=Csv(),
 )
+CSRF_FAILURE_VIEW = "apps.core.views.csrf_failure"
 
 # =============================================================
 # APPLICATIONS
@@ -129,6 +130,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "apps.notifications.context_processors.unread_notifications",
             ],
         },
     },
@@ -324,3 +326,39 @@ MAX_LOGIN_ATTEMPTS = 5
 LOGIN_LOCKOUT_SECONDS = 900  # 15 minutes
 MAX_PIN_ATTEMPTS = 3
 PIN_LOCKOUT_SECONDS = 1800  # 30 minutes
+
+# =============================================================
+# CHEAPDATAHUB — Outbound VTU API
+# =============================================================
+CHEAPDATAHUB_API_KEY = config("CHEAPDATAHUB_API_KEY", default="")
+CHEAPDATAHUB_BASE_URL = config("CHEAPDATAHUB_BASE_URL", default="https://www.cheapdatahub.ng")
+
+# =============================================================
+# JUSTANOTHERPANEL (JAP) — Outbound SMM API
+# =============================================================
+JAP_API_KEY = config("JAP_API_KEY", default="")
+JAP_API_URL = config("JAP_API_URL", default="https://justanotherpanel.com/api/v2")
+
+# =============================================================
+# CELERY BEAT SCHEDULE
+# =============================================================
+from celery.schedules import crontab
+
+CELERY_BEAT_SCHEDULE = {
+    'sync-vtu-plans': {
+        'task': 'apps.vtu.tasks.sync_vtu_plans',
+        'schedule': crontab(minute=0, hour='*/6'),
+    },
+    'sync-smm-catalogue': {
+        'task': 'apps.smm.tasks.sync_smm_catalogue',
+        'schedule': crontab(minute=0, hour=3),
+    },
+    'poll-smm-orders': {
+        'task': 'apps.smm.tasks.poll_smm_orders',
+        'schedule': crontab(minute='*/30'),
+    },
+    'check-api-wallet-balance': {
+        'task': 'apps.vtu.tasks.check_api_wallet_balance',
+        'schedule': crontab(minute=0, hour='*/2'),
+    },
+}

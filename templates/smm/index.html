@@ -48,6 +48,9 @@
     cursor: pointer;
     transition: all 0.2s ease;
   }
+  .smm-card.hidden {
+    display: none !important;
+  }
   .smm-card:active {
     transform: scale(0.98);
   }
@@ -116,7 +119,7 @@
     <div class="flex items-center justify-between">
       <div>
         <div class="text-[11px] font-medium text-text-muted tracking-[0.3px]">Available Balance</div>
-        <div class="font-mono text-xl font-bold text-text-primary mt-0.5">₦{{ wallet.balance|floatformat:2 }}</div>
+        <div class="font-mono text-xl font-bold text-text-primary mt-0.5"><span class="mr-0.5">₦</span><span class="balance-display-amount" data-raw-balance="{{ wallet.balance|floatformat:2 }}">{{ wallet.balance|floatformat:2 }}</span></div>
       </div>
       <div class="w-[46px] h-[46px] rounded-xl bg-brand-accent/15 text-brand-primary flex items-center justify-center">
         <i data-feather="zap" class="w-[22px] h-[22px]"></i>
@@ -124,52 +127,28 @@
     </div>
   </div>
 
+  <!-- Category Selector -->
+  <div class="card card-padding mb-4">
+    <div class="form-group">
+      <label class="form-label" for="smm-category-select">Select Category</label>
+      <select class="form-select bg-white border border-surface-border rounded-xl px-4 py-3 text-sm font-semibold w-full" 
+              id="smm-category-select"
+              name="subcategory"
+              hx-get="{% url 'smm:ajax_services' %}"
+              hx-trigger="change"
+              hx-vals="js:{platform: activePlatform}"
+              hx-target="#smm-cards-container"
+              hx-swap="innerHTML">
+        <option value="" disabled selected>-- Select SMM Category --</option>
+      </select>
+    </div>
+  </div>
+
   <!-- SMM Platform Services Card List -->
   <div class="space-y-3" id="smm-cards-container">
-    {% for platform, services in rates.items %}
-      {% for service_name, rate in services.items %}
-        <div class="smm-card {% if platform != 'instagram' %}hidden{% endif %}" 
-             data-platform="{{ platform }}"
-             data-service="{{ service_name }}"
-             data-rate="{{ rate }}"
-             onclick="selectService('{{ platform }}', '{{ service_name }}', '{{ rate }}')">
-          
-          {% if service_name == "Instagram Followers" or service_name == "TikTok Followers" or service_name == "Twitter Followers" or service_name == "Spotify Followers" %}
-            <div class="smm-icon-bg" style="background: {% if platform == 'instagram' %}linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888){% elif platform == 'tiktok' %}#000000{% elif platform == 'twitter' %}#1DA1F2{% else %}#1DB954{% endif %};">👥</div>
-          {% elif service_name == "Instagram Likes" or service_name == "TikTok Likes" or service_name == "YouTube Likes" or service_name == "Twitter Likes" %}
-            <div class="smm-icon-bg" style="background: #FEE2E2; color: #EF4444;">❤️</div>
-          {% elif service_name == "Instagram Views" or service_name == "TikTok Views" or service_name == "YouTube Views" or service_name == "Telegram Post Views" or service_name == "Spotify Plays" %}
-            <div class="smm-icon-bg" style="background: #EFF6FF; color: #3B82F6;">👁️</div>
-          {% elif service_name == "Story Views" %}
-            <div class="smm-icon-bg" style="background: #F5F3FF; color: #8B5CF6;">📖</div>
-          {% elif service_name == "Post Comments" %}
-            <div class="smm-icon-bg" style="background: #FFFBEB; color: #F59E0B;">💬</div>
-          {% else %}
-            <div class="smm-icon-bg" style="background: var(--brand-primary); color: #FFFFFF;">✨</div>
-          {% endif %}
-
-          <div class="smm-info">
-            <div class="smm-name">{{ service_name }}</div>
-            <div class="smm-desc">
-              {% if service_name == "Instagram Followers" %}
-                Real-looking, fast delivery, 30-day refill
-              {% elif service_name == "Instagram Likes" %}
-                Instant start, high quality
-              {% elif service_name == "Instagram Views" %}
-                Video & reel views, fast delivery
-              {% elif service_name == "Story Views" %}
-                24-hour story boost
-              {% elif service_name == "Post Comments" %}
-                Custom comments, real-looking
-              {% else %}
-                High quality service, automated fulfillment
-              {% endif %}
-            </div>
-          </div>
-          <div class="smm-price">₦{{ rate }}/unit</div>
-        </div>
-      {% endfor %}
-    {% endfor %}
+    <div class="text-center py-8 text-text-muted">
+      Select a category from the dropdown above to view services.
+    </div>
   </div>
 </div>
 
@@ -182,7 +161,9 @@
   <input type="hidden" name="quantity" id="id_hidden_quantity">
   <input type="hidden" name="pin" id="id_hidden_pin">
 </form>
+{% endblock %}
 
+{% block modals %}
 <!-- Bottom Sheets -->
 <div class="sheet-backdrop" id="custom-backdrop" onclick="closeCustomSheets()"></div>
 
@@ -257,6 +238,22 @@
   const urlInput = document.getElementById('smm-url-input');
   const quantityInput = document.getElementById('smm-quantity-input');
   const costDisplay = document.getElementById('smm-cost-display');
+
+  // Auto-filter based on query parameters on load
+  document.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    let platform = urlParams.get('platform');
+    if (!platform) {
+      platform = 'instagram';
+    }
+    filterPlatform(platform.toLowerCase());
+    
+    // Smoothly scroll active tab into view
+    const activeTab = document.querySelector(`.platform-tab[data-platform="${platform.toLowerCase()}"]`);
+    if (activeTab) {
+      activeTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  });
   
   // Platform Filter tabs
   function filterPlatform(platform) {
@@ -274,14 +271,20 @@
     // Update hidden form
     document.getElementById('id_platform').value = platform;
     
-    // Show/hide SMM Cards
-    document.querySelectorAll('.smm-card').forEach(card => {
-      if (card.getAttribute('data-platform') === platform) {
-        card.classList.remove('hidden');
-      } else {
-        card.classList.add('hidden');
-      }
-    });
+    const selectEl = document.getElementById('smm-category-select');
+    const containerEl = document.getElementById('smm-cards-container');
+    
+    // Reset container and select options
+    containerEl.innerHTML = '<div class="text-center py-8 text-text-muted">Select a category from the dropdown above to view services.</div>';
+    selectEl.innerHTML = '<option value="" disabled selected>Loading categories...</option>';
+    
+    fetch(`/smm/ajax/categories/?platform=${platform}`)
+      .then(response => response.text())
+      .then(html => {
+        selectEl.innerHTML = html;
+        // Process new elements with HTMX
+        htmx.process(selectEl);
+      });
   }
   
   // Service selection

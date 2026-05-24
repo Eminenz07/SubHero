@@ -12,7 +12,7 @@
     <div class="text-center mb-8">
         <div class="text-[12px] font-medium text-text-muted tracking-[0.5px] mb-1">Current Balance</div>
         <div class="font-mono text-[28px] font-medium text-text-primary tracking-[-1px]">
-            <span class="text-xl">₦</span>{{ wallet.balance|floatformat:2|default:"0.00" }}
+            <span class="text-xl">₦</span><span class="balance-display-amount" data-raw-balance="{{ wallet.balance|floatformat:2|default:"0.00" }}">{{ wallet.balance|floatformat:2|default:"0.00" }}</span>
         </div>
     </div>
 

@@ -16,4 +16,5 @@ urlpatterns = [
     path("verify/resend/", views.ResendOTPView.as_view(), name="resend_otp"),
     path("set-pin/", views.SetPINView.as_view(), name="set_pin"),
     path("logout/", views.LogoutView.as_view(), name="logout"),
+    path("profile/", views.ProfileView.as_view(), name="profile"),
 ]

@@ -36,6 +36,9 @@ urlpatterns = [
 
     # Payments webhooks (Phase 2)
     path("payments/", include("apps.payments.urls", namespace="payments")),
+
+    # Notifications (Phase 3)
+    path("notifications/", include("apps.notifications.urls", namespace="notifications")),
 ]
 
 # Debug toolbar — dev only

@@ -1,0 +1,16 @@
+{% for plan in plans %}
+  <div class="plan-card" 
+       id="plan-{{ plan.plan_id }}"
+       data-plan-id="{{ plan.plan_id }}"
+       data-price="{{ plan.subhero_price }}"
+       data-network="{{ plan.network }}"
+       onclick="selectPlan('{{ plan.plan_id }}')">
+    <div>
+      <div class="plan-data">{{ plan.name }}</div>
+      <div class="plan-validity">{% if plan.validity %}{{ plan.validity }}{% else %}30 Days{% endif %} validity</div>
+    </div>
+    <div class="plan-price">₦{{ plan.subhero_price|floatformat:0 }}</div>
+  </div>
+{% empty %}
+  <div class="text-center py-6 text-text-muted">No active plans found for this network.</div>
+{% endfor %}

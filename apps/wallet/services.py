@@ -134,6 +134,26 @@ def credit_wallet(wallet_id, amount, txn_type, reference, description="",
         wallet_id, amount, txn_type, reference, wallet.balance,
     )
 
+    # Notifications for active funding and refund logging
+    try:
+        from apps.notifications.models import Notification
+        if txn_type == WalletTransaction.TxnType.FUND:
+            Notification.add(
+                user=wallet.user,
+                title="Wallet Funded Successfully",
+                description=f"Your wallet has been credited with ₦{amount:,.2f}. Reference: {reference}.",
+                level="financial"
+            )
+        elif txn_type == WalletTransaction.TxnType.REFUND:
+            Notification.add(
+                user=wallet.user,
+                title="Refund Issued",
+                description=f"A refund of ₦{amount:,.2f} has been credited to your wallet for: {description}.",
+                level="warning"
+            )
+    except Exception as ex:
+        logger.error("Credit notification creation failed: %s", str(ex))
+
     return txn
 
 
@@ -180,6 +200,26 @@ def debit_wallet(wallet_id, amount, txn_type, reference, description="",
         "Wallet debited: wallet=%s, amount=%s, type=%s, ref=%s, balance=%s",
         wallet_id, amount, txn_type, reference, wallet.balance,
     )
+
+    # Notifications for active VTU purchase and SMM orders
+    try:
+        from apps.notifications.models import Notification
+        if txn_type == WalletTransaction.TxnType.VTU:
+            Notification.add(
+                user=wallet.user,
+                title="VTU Purchase Successful",
+                description=f"You purchased a VTU service for ₦{amount:,.2f}. Details: {description}.",
+                level="financial"
+            )
+        elif txn_type == WalletTransaction.TxnType.SMM:
+            Notification.add(
+                user=wallet.user,
+                title="SMM Order Placed",
+                description=f"Your SMM order has been placed for ₦{amount:,.2f}. Details: {description}.",
+                level="financial"
+            )
+    except Exception as ex:
+        logger.error("Debit notification creation failed: %s", str(ex))
 
     return txn
 
@@ -320,5 +360,25 @@ def transfer_p2p(sender_user, recipient_phone, amount, ip_address=None):
         "P2P transfer: sender=%s → recipient=%s, amount=%s, send_ref=%s",
         sender_user.id, recipient.id, amount, send_ref,
     )
+
+    # Notifications for active P2P transfers
+    try:
+        from apps.notifications.models import Notification
+        # Sender Notification
+        Notification.add(
+            user=sender_user,
+            title="Transfer Sent",
+            description=f"You successfully sent ₦{amount:,.2f} to {recipient.full_name} ({recipient.phone_number}).",
+            level="financial"
+        )
+        # Recipient Notification
+        Notification.add(
+            user=recipient,
+            title="Transfer Received",
+            description=f"You received ₦{amount:,.2f} from {sender_user.full_name} ({sender_user.phone_number}).",
+            level="financial"
+        )
+    except Exception as ex:
+        logger.error("P2P transfer notification creation failed: %s", str(ex))
 
     return send_txn, recv_txn

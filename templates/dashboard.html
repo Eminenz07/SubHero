@@ -13,10 +13,12 @@
     </div>
 
     <div class="flex items-center gap-2">
-        <button class="top-bar-icon bg-white shadow-sm" aria-label="Notifications">
+        <a href="{% url 'notifications:list' %}" class="top-bar-icon bg-white shadow-sm relative flex items-center justify-center no-underline text-text-secondary" aria-label="Notifications">
             <i data-feather="bell" class="w-5 h-5"></i>
+            {% if unread_notifications_count and unread_notifications_count > 0 %}
             <span class="absolute top-[6px] right-[6px] w-2 h-2 bg-status-danger rounded-full border-2 border-white"></span>
-        </button>
+            {% endif %}
+        </a>
     </div>
 </header>
 {% endblock %}
@@ -33,9 +35,9 @@
         
         <div class="flex items-center gap-3 mb-5">
             <div class="font-mono text-[34px] font-medium text-white tracking-[-1px] leading-none">
-                <span class="text-2xl mr-0.5">₦</span>{% if request.user.wallet %}{{ request.user.wallet.balance|floatformat:2 }}{% else %}0.00{% endif %}
+                <span class="text-2xl mr-0.5">₦</span><span class="balance-display-amount" data-raw-balance="{% if request.user.wallet %}{{ request.user.wallet.balance|floatformat:2 }}{% else %}0.00{% endif %}">{% if request.user.wallet %}{{ request.user.wallet.balance|floatformat:2 }}{% else %}0.00{% endif %}</span>
             </div>
-            <button class="w-[34px] h-[34px] rounded-full bg-white/10 text-white/70 flex items-center justify-center shrink-0 border-none outline-none">
+            <button id="balance-toggle" class="w-[34px] h-[34px] rounded-full bg-white/10 text-white/70 flex items-center justify-center shrink-0 border-none outline-none" aria-label="Toggle Balance Visibility">
                 <i data-feather="eye" class="w-[18px] h-[18px]"></i>
             </button>
         </div>
@@ -86,12 +88,12 @@
 <div class="flex items-center justify-between px-4 mb-3">
     <h2 class="font-display text-[16px] font-bold text-text-primary">Boost Socials</h2>
 </div>
-<a href="{% url 'smm:index' %}" class="flex gap-2 overflow-x-auto px-4 pb-2 [scrollbar-width:none] no-underline">
-    <div class="shrink-0 h-[36px] px-4 rounded-pill bg-brand-primary text-white text-[13px] font-semibold flex items-center border border-brand-primary">Instagram</div>
-    <div class="shrink-0 h-[36px] px-4 rounded-pill bg-surface-card text-text-secondary text-[13px] font-semibold flex items-center border border-surface-border">TikTok</div>
-    <div class="shrink-0 h-[36px] px-4 rounded-pill bg-surface-card text-text-secondary text-[13px] font-semibold flex items-center border border-surface-border">YouTube</div>
-    <div class="shrink-0 h-[36px] px-4 rounded-pill bg-surface-card text-text-secondary text-[13px] font-semibold flex items-center border border-surface-border">Twitter</div>
-</a>
+<div class="flex gap-2 overflow-x-auto px-4 pb-2 [scrollbar-width:none]">
+    <a href="{% url 'smm:index' %}?platform=instagram" class="shrink-0 h-[36px] px-4 rounded-pill bg-brand-primary text-white text-[13px] font-semibold flex items-center border border-brand-primary no-underline active:scale-95 transition-all">Instagram</a>
+    <a href="{% url 'smm:index' %}?platform=tiktok" class="shrink-0 h-[36px] px-4 rounded-pill bg-surface-card text-text-secondary text-[13px] font-semibold flex items-center border border-surface-border no-underline active:scale-95 transition-all">TikTok</a>
+    <a href="{% url 'smm:index' %}?platform=youtube" class="shrink-0 h-[36px] px-4 rounded-pill bg-surface-card text-text-secondary text-[13px] font-semibold flex items-center border border-surface-border no-underline active:scale-95 transition-all">YouTube</a>
+    <a href="{% url 'smm:index' %}?platform=twitter" class="shrink-0 h-[36px] px-4 rounded-pill bg-surface-card text-text-secondary text-[13px] font-semibold flex items-center border border-surface-border no-underline active:scale-95 transition-all">Twitter</a>
+</div>
 
 <!-- Recent Transactions -->
 <div class="mt-6 bg-white border-t border-surface-border py-4 min-h-[300px]">

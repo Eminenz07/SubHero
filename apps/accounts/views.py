@@ -13,6 +13,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.core.cache import cache
 from django.shortcuts import redirect, render
 from django.views import View
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django_ratelimit.decorators import ratelimit
 from django.utils.decorators import method_decorator
 
@@ -180,6 +181,18 @@ class LoginView(View):
         login(request, user, backend="apps.accounts.backends.PhoneAuthBackend")
         request.session.cycle_key()
 
+        # Login notification
+        try:
+            from apps.notifications.models import Notification
+            Notification.add(
+                user,
+                "New Login Detected",
+                f"Your account was logged in from IP address {client_ip}. If this wasn't you, please secure your account immediately.",
+                level="info"
+            )
+        except Exception as ex:
+            logger.error("Login notification creation failed: %s", str(ex))
+
         # Remember me: 30 days (PRD Section 6.1.2)
         if remember_me:
             request.session.set_expiry(30 * 24 * 60 * 60)  # 30 days
@@ -271,6 +284,18 @@ class VerifyOTPView(View):
                                 user.id, str(e),
                             )
 
+                        # Welcome notification
+                        try:
+                            from apps.notifications.models import Notification
+                            Notification.add(
+                                user,
+                                "Welcome to SubHero!",
+                                f"Hi {user.full_name}, your account has been successfully verified. Fund your wallet to start purchasing VTU and SMM services!",
+                                level="success"
+                            )
+                        except Exception as ex:
+                            logger.error("Welcome notification creation failed: %s", str(ex))
+
                         messages.success(request, "Phone verified! Please set your transaction PIN.")
                         return redirect("accounts:set_pin")
                     else:
@@ -336,6 +361,18 @@ class SetPINView(View):
                 get_client_ip(request),
             )
 
+            # Security notification for setting PIN
+            try:
+                from apps.notifications.models import Notification
+                Notification.add(
+                    request.user,
+                    "Transaction PIN Configured",
+                    "Your secure transaction PIN has been successfully set. You can now perform transactions and secure orders.",
+                    level="security"
+                )
+            except Exception as ex:
+                logger.error("PIN set notification creation failed: %s", str(ex))
+
             messages.success(request, "Transaction PIN set successfully! Welcome to SubHero.")
             return redirect("dashboard")
 
@@ -358,3 +395,135 @@ class LogoutView(View):
     def get(self, request):
         # Allow GET for convenience but prefer POST
         return self.post(request)
+
+
+class ProfileView(LoginRequiredMixin, View):
+    """
+    PRD Section 6.1: User Profile and Settings page.
+    Renders personal information, bank account details, and security configurations.
+    Allows editing full name, email, changing password, and resetting transaction PIN.
+    Rate limit: 10 attempts per minute per IP to prevent PIN/password brute force.
+    """
+    template_name = "accounts/profile.html"
+
+    @method_decorator(ratelimit(key="ip", rate="10/m", method="POST", block=True))
+    def post(self, request, *args, **kwargs):
+        action = request.POST.get("action")
+        
+        if action == "update_profile":
+            full_name = request.POST.get("full_name", "").strip()
+            email = request.POST.get("email", "").strip()
+            
+            if not full_name or not email:
+                messages.error(request, "Name and Email are required.")
+                return render(request, self.template_name)
+                
+            request.user.full_name = full_name
+            request.user.email = email
+            request.user.save()
+            
+            # Profile update notification
+            try:
+                from apps.notifications.models import Notification
+                Notification.add(
+                    request.user,
+                    "Profile Information Updated",
+                    "Your profile contact details (name and/or email address) have been successfully updated.",
+                    level="info"
+                )
+            except Exception as ex:
+                logger.error("Profile update notification creation failed: %s", str(ex))
+
+            messages.success(request, "Profile updated successfully.")
+            return redirect("accounts:profile")
+            
+        elif action == "change_password":
+            current_password = request.POST.get("current_password", "")
+            new_password = request.POST.get("new_password", "")
+            confirm_password = request.POST.get("confirm_password", "")
+            
+            if not current_password or not new_password or not confirm_password:
+                messages.error(request, "All password fields are required.")
+                return render(request, self.template_name)
+                
+            if not request.user.check_password(current_password):
+                messages.error(request, "Current password is incorrect.")
+                return render(request, self.template_name)
+                
+            if new_password != confirm_password:
+                messages.error(request, "New passwords do not match.")
+                return render(request, self.template_name)
+                
+            if len(new_password) < 8:
+                messages.error(request, "Password must be at least 8 characters long.")
+                return render(request, self.template_name)
+                
+            request.user.set_password(new_password)
+            request.user.save()
+            
+            # Password changed notification
+            try:
+                from apps.notifications.models import Notification
+                Notification.add(
+                    request.user,
+                    "Account Password Changed",
+                    "Your account login password has been changed. Use your new password for subsequent logins.",
+                    level="security"
+                )
+            except Exception as ex:
+                logger.error("Password change notification creation failed: %s", str(ex))
+
+            # Since password changed, log user in again to maintain session
+            from django.contrib.auth import update_session_auth_hash
+            update_session_auth_hash(request, request.user)
+            messages.success(request, "Password changed successfully.")
+            return redirect("accounts:profile")
+            
+        elif action == "change_pin":
+            current_pin = request.POST.get("current_pin", "")
+            new_pin = request.POST.get("new_pin", "")
+            confirm_pin = request.POST.get("confirm_pin", "")
+            
+            if not new_pin or not confirm_pin:
+                messages.error(request, "New PIN and confirmation are required.")
+                return render(request, self.template_name)
+                
+            if request.user.has_pin:
+                if not current_pin:
+                    messages.error(request, "Current transaction PIN is required.")
+                    return render(request, self.template_name)
+                if not request.user.check_pin(current_pin):
+                    messages.error(request, "Current transaction PIN is incorrect.")
+                    return render(request, self.template_name)
+                    
+            if new_pin != confirm_pin:
+                messages.error(request, "New PINs do not match.")
+                return render(request, self.template_name)
+                
+            if len(new_pin) != 4 or not new_pin.isdigit():
+                messages.error(request, "PIN must be exactly 4 digits.")
+                return render(request, self.template_name)
+                
+            request.user.set_pin(new_pin)
+            
+            # PIN change notification
+            try:
+                from apps.notifications.models import Notification
+                Notification.add(
+                    request.user,
+                    "Transaction PIN Updated",
+                    "Your secure transaction PIN has been successfully updated. Use this new PIN for subsequent transfers and VTU/SMM orders.",
+                    level="security"
+                )
+            except Exception as ex:
+                logger.error("PIN change notification creation failed: %s", str(ex))
+
+            messages.success(request, "Transaction PIN updated successfully.")
+            return redirect("accounts:profile")
+            
+        else:
+            messages.error(request, "Invalid action.")
+            return render(request, self.template_name)
+
+    def get(self, request):
+        return render(request, self.template_name)

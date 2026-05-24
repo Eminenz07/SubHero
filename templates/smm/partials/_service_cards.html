@@ -1,0 +1,30 @@
+{% for service in services %}
+<div class="smm-card" 
+     data-platform="{{ service.category }}"
+     data-service="{{ service.name }}"
+     data-rate="{{ service.unit_price }}"
+     onclick="selectService('{{ service.category }}', '{{ service.name|escapejs }}', '{{ service.unit_price }}')">
+  
+  {% if "Follower" in service.name %}
+    <div class="smm-icon-bg" style="background: {% if service.category == 'instagram' %}linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888){% elif service.category == 'tiktok' %}#000000{% elif service.category == 'twitter' %}#1DA1F2{% else %}#1DB954{% endif %};">👥</div>
+  {% elif "Like" in service.name %}
+    <div class="smm-icon-bg" style="background: #FEE2E2; color: #EF4444;">❤️</div>
+  {% elif "View" in service.name or "Play" in service.name %}
+    <div class="smm-icon-bg" style="background: #EFF6FF; color: #3B82F6;">👁️</div>
+  {% elif "Comment" in service.name %}
+    <div class="smm-icon-bg" style="background: #FFFBEB; color: #F59E0B;">💬</div>
+  {% else %}
+    <div class="smm-icon-bg" style="background: var(--brand-primary); color: #FFFFFF;">✨</div>
+  {% endif %}
+
+  <div class="smm-info">
+    <div class="smm-name">{{ service.name }}</div>
+    <div class="smm-desc">
+      Min limit: {{ service.provider_min }} | Max: {{ service.provider_max }}
+    </div>
+  </div>
+  <div class="smm-price">₦{{ service.subhero_price_per_1k }}/1k</div>
+</div>
+{% empty %}
+<div class="text-center py-8 text-text-muted">No active services found in this category.</div>
+{% endfor %}

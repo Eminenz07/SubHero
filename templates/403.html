@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Access Denied — SubHero{% endblock %}
+
+{% block main_extra_classes %}no-bottom-nav flex items-center justify-center p-6 bg-surface-page{% endblock %}
+
+{% block content %}
+<div class="w-full max-w-sm text-center flex flex-col items-center my-auto">
+    <div class="w-20 h-20 rounded-full bg-status-danger-bg text-status-danger flex items-center justify-center mb-6">
+        <i data-feather="shield-off" class="w-10 h-10"></i>
+    </div>
+    
+    <h1 class="font-display text-2xl font-bold text-text-primary mb-3">
+        {% if is_csrf %}Security Check Failed{% else %}Access Denied{% endif %}
+    </h1>
+    
+    <p class="text-[14px] text-text-secondary leading-relaxed mb-8">
+        {% if is_csrf %}
+            Your session could not be verified securely. This usually happens if you left the page open for too long or submitted a form after a timeout.
+        {% else %}
+            You do not have permission to access this page. Please make sure you are logged in with the correct credentials.
+        {% endif %}
+    </p>
+
+    <div class="flex flex-col gap-2.5 w-full">
+        {% if request.user.is_authenticated %}
+            <a href="{% url 'dashboard' %}" class="btn-primary btn-block text-[15px] no-underline">
+                Return to Dashboard
+            </a>
+        {% else %}
+            <a href="{% url 'accounts:login' %}" class="btn-primary btn-block text-[15px] no-underline">
+                Return to Login
+            </a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

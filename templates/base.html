@@ -7,6 +7,9 @@
     
     <title>{% block title %}SubHero{% endblock %}</title>
 
+    <!-- Favicon -->
+    <link rel="shortcut icon" type="image/png" href="{% static 'favicon.png' %}">
+
     <!-- Google Fonts Preconnect -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,7 +20,7 @@
     <meta name="theme-color" content="#006B3E">
 
     <!-- Tailwind CSS -->
-    <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2.3">
+    <link rel="stylesheet" href="{% static 'css/app.css' %}?v={% now 'U' %}">
 
     <!-- HTMX -->
     <script src="{% static 'js/htmx.min.js' %}" defer></script>
@@ -28,7 +31,7 @@
     <!-- App JS -->
     <script src="{% static 'js/app.js' %}" defer></script>
 </head>
-<body class="bg-slate-200 text-text-primary antialiased font-body flex items-center justify-center min-h-screen" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+<body class="bg-slate-200 text-text-primary antialiased font-body flex justify-center items-start md:items-center min-h-screen" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
     
     <div class="app-shell">
         {% block top_bar %}
@@ -41,6 +44,8 @@
             {% block content %}
             {% endblock %}
         </main>
+
+        {% block page_cta %}{% endblock %}
 
         {% block bottom_nav %}
             <!-- Pages can include partials/_bottom_nav.html -->

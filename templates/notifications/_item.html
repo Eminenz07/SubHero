@@ -1,0 +1,42 @@
+<div class="card relative p-4 border border-surface-border/50 flex gap-4 items-start shadow-sm transition-all duration-300 {% if n.is_read %}opacity-70{% else %}bg-white border-brand-accent/20{% endif %}"
+     {% if not n.is_read %}
+     hx-post="{% url 'notifications:mark_read' pk=n.pk %}"
+     hx-trigger="click"
+     hx-swap="none"
+     onclick="markRead(this)"
+     style="cursor: pointer;"
+     {% endif %}>
+    
+    <!-- Unread dot -->
+    {% if not n.is_read %}
+    <div class="unread-dot absolute top-3.5 right-3.5 w-2 h-2 bg-brand-accent rounded-full"></div>
+    {% endif %}
+
+    <!-- Icon Badge -->
+    <div class="w-11 h-11 rounded-xl shrink-0 flex items-center justify-center font-semibold text-lg {{ n.icon_bg }}">
+        <i data-feather="{{ n.icon }}" class="w-5 h-5"></i>
+    </div>
+
+    <!-- Details -->
+    <div class="flex-1 min-w-0">
+        <div class="flex justify-between items-center mb-1 pr-4">
+            <h3 class="text-[14px] font-bold text-text-primary whitespace-nowrap overflow-hidden text-ellipsis">{{ n.title }}</h3>
+            <span class="text-[10px] text-text-muted shrink-0">{{ n.created_at|date:"g:i A" }}</span>
+        </div>
+        <p class="text-[13px] text-text-secondary leading-normal">{{ n.description }}</p>
+    </div>
+</div>
+
+<script>
+    if (typeof markRead !== 'function') {
+        function markRead(el) {
+            el.classList.add('opacity-70');
+            el.classList.remove('border-brand-accent/20');
+            const dot = el.querySelector('.unread-dot');
+            if (dot) {
+                dot.style.opacity = '0';
+                setTimeout(() => dot.remove(), 300);
+            }
+        }
+    }
+</script>

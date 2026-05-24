@@ -1,0 +1,330 @@
+{% extends 'base.html' %}
+
+{% block title %}Profile & Settings — SubHero{% endblock %}
+
+{% block top_bar %}
+<header class="top-bar border-b border-surface-border bg-surface-card px-4 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+        <button class="w-10 h-10 flex items-center justify-center rounded-full bg-surface-page text-text-secondary hover:bg-slate-100 active:scale-95 transition-all border-none outline-none">
+            <i data-feather="menu" class="w-5 h-5"></i>
+        </button>
+        <h1 class="top-bar-title text-brand-primary">Profile</h1>
+    </div>
+    
+    <a href="{% url 'notifications:list' %}" class="w-10 h-10 flex items-center justify-center rounded-full bg-surface-page text-text-secondary hover:bg-slate-100 active:scale-95 transition-all relative">
+        <i data-feather="bell" class="w-5 h-5"></i>
+        {% if unread_notifications_count and unread_notifications_count > 0 %}
+        <span class="absolute top-[8px] right-[8px] w-2.5 h-2.5 bg-brand-accent rounded-full border-2 border-white"></span>
+        {% endif %}
+    </a>
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="py-6 px-4 space-y-6">
+    <!-- Messages Alert -->
+    {% if messages %}
+    <div class="space-y-2">
+      {% for message in messages %}
+      <div class="alert{% if message.tags == 'error' %}-error{% elif message.tags == 'success' %}-success{% else %}-info{% endif %}">
+        {{ message }}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- User Profile Summary Card -->
+    <section class="profile-gradient rounded-card p-6 text-white shadow-elevated relative overflow-hidden">
+        <!-- Abstract Pattern Background -->
+        <div class="absolute inset-0 opacity-10 pointer-events-none">
+            <div class="absolute -top-10 -right-10 w-40 h-40 bg-white rounded-full"></div>
+            <div class="absolute bottom-0 left-0 w-32 h-32 bg-brand-accent rounded-full"></div>
+        </div>
+        
+        <div class="flex flex-col items-center gap-3 relative z-10 text-center">
+            <div class="w-20 h-20 rounded-full bg-brand-accent text-white flex items-center justify-center border-4 border-white/20 shadow-md font-display text-2xl font-bold">
+                {{ request.user.full_name|slice:":2"|upper|default:"SH" }}
+            </div>
+            
+            <div>
+                <h2 class="font-display text-xl font-bold text-white">{{ request.user.full_name }}</h2>
+                <div class="flex items-center justify-center gap-1.5 mt-1">
+                    <span class="text-[13px] text-white/80 font-mono">{{ request.user.phone_number }}</span>
+                    <span class="w-4 h-4 rounded-full bg-brand-accent flex items-center justify-center text-white" title="Verified">
+                        <i data-feather="check" class="w-2.5 h-2.5 stroke-[4]"></i>
+                    </span>
+                </div>
+            </div>
+            
+            <button onclick="openSheet('sheet-edit-profile')" class="mt-2 px-4 py-1.5 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 rounded-pill text-[12px] font-semibold transition-all active:scale-95 text-white outline-none cursor-pointer">
+                Edit Profile
+            </button>
+        </div>
+    </section>
+
+    <!-- Account Details -->
+    <section class="space-y-2">
+        <h3 class="px-1 text-[11px] font-bold text-text-secondary tracking-[0.5px] uppercase">Account</h3>
+        <div class="space-y-2">
+            <!-- Personal Info -->
+            <button onclick="openSheet('sheet-edit-profile')" class="w-full bg-white flex items-center justify-between p-4 rounded-card border border-surface-border/50 hover:bg-slate-50 transition-all group text-left outline-none cursor-pointer">
+                <div class="flex items-center gap-3.5">
+                    <div class="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center text-brand-primary">
+                        <i data-feather="user" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <span class="block text-[14px] font-bold text-text-primary">Personal Information</span>
+                        <span class="block text-[11px] text-text-secondary">Edit account name, email & details</span>
+                    </div>
+                </div>
+                <i data-feather="chevron-right" class="w-4 h-4 text-text-muted group-hover:translate-x-1 transition-transform"></i>
+            </button>
+            
+            <!-- Bank Details -->
+            <button onclick="alert('Virtual Account Number: {% if request.user.wallet and request.user.wallet.account_number %}{{ request.user.wallet.account_number }}{% else %}Not Assigned{% endif %}\nBank: Providus/Wema Bank')" class="w-full bg-white flex items-center justify-between p-4 rounded-card border border-surface-border/50 hover:bg-slate-50 transition-all group text-left outline-none cursor-pointer">
+                <div class="flex items-center gap-3.5">
+                    <div class="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center text-brand-primary">
+                        <i data-feather="briefcase" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <span class="block text-[14px] font-bold text-text-primary">Bank Account Details</span>
+                        <span class="block text-[11px] text-text-secondary">Your auto-funding bank transfer virtual accounts</span>
+                    </div>
+                </div>
+                <i data-feather="chevron-right" class="w-4 h-4 text-text-muted group-hover:translate-x-1 transition-transform"></i>
+            </button>
+        </div>
+    </section>
+
+    <!-- Security & Settings -->
+    <section class="space-y-2">
+        <h3 class="px-1 text-[11px] font-bold text-text-secondary tracking-[0.5px] uppercase">Security & Privacy</h3>
+        <div class="space-y-2">
+            <!-- Change Password -->
+            <button onclick="openSheet('sheet-change-password')" class="w-full bg-white flex items-center justify-between p-4 rounded-card border border-surface-border/50 hover:bg-slate-50 transition-all group text-left outline-none cursor-pointer">
+                <div class="flex items-center gap-3.5">
+                    <div class="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center text-brand-primary">
+                        <i data-feather="lock" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <span class="block text-[14px] font-bold text-text-primary">Change Password</span>
+                        <span class="block text-[11px] text-text-secondary">Update account password settings</span>
+                    </div>
+                </div>
+                <i data-feather="chevron-right" class="w-4 h-4 text-text-muted group-hover:translate-x-1 transition-transform"></i>
+            </button>
+            
+            <!-- Change Transaction PIN -->
+            <button onclick="openSheet('sheet-change-pin')" class="w-full bg-white flex items-center justify-between p-4 rounded-card border border-surface-border/50 hover:bg-slate-50 transition-all group text-left outline-none cursor-pointer">
+                <div class="flex items-center gap-3.5">
+                    <div class="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center text-brand-primary">
+                        <i data-feather="key" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <span class="block text-[14px] font-bold text-text-primary">Transaction PIN</span>
+                        <span class="block text-[11px] text-text-secondary">Reset or configure 4-digit transfer PIN</span>
+                    </div>
+                </div>
+                <i data-feather="chevron-right" class="w-4 h-4 text-text-muted group-hover:translate-x-1 transition-transform"></i>
+            </button>
+            
+            <!-- 2FA -->
+            <div class="w-full bg-white flex items-center justify-between p-4 rounded-card border border-surface-border/50 transition-all group text-left">
+                <div class="flex items-center gap-3.5">
+                    <div class="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center text-brand-primary">
+                        <i data-feather="shield" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <span class="block text-[14px] font-bold text-text-primary">Two-Factor Authentication</span>
+                        <span class="block text-[11px] text-text-secondary">Keep your balance highly secure</span>
+                    </div>
+                </div>
+                <span class="text-brand-accent text-xs font-bold px-2.5 py-1.5 rounded-pill bg-brand-accent/10">ON</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Support Section -->
+    <section class="space-y-2">
+        <h3 class="px-1 text-[11px] font-bold text-text-secondary tracking-[0.5px] uppercase">Support</h3>
+        <div class="space-y-2">
+            <!-- Help Center -->
+            <button onclick="alert('Help center system will be online in the next release.')" class="w-full bg-white flex items-center justify-between p-4 rounded-card border border-surface-border/50 hover:bg-slate-50 transition-all group text-left outline-none cursor-pointer">
+                <div class="flex items-center gap-3.5">
+                    <div class="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center text-brand-primary">
+                        <i data-feather="help-circle" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <span class="block text-[14px] font-bold text-text-primary">Help Center</span>
+                        <span class="block text-[11px] text-text-secondary">Read FAQs and VTU/SMM guidelines</span>
+                    </div>
+                </div>
+                <i data-feather="chevron-right" class="w-4 h-4 text-text-muted group-hover:translate-x-1 transition-transform"></i>
+            </button>
+            
+            <!-- Contact Support -->
+            <button onclick="alert('Reach us on WhatsApp: +234 812 345 6789')" class="w-full bg-white flex items-center justify-between p-4 rounded-card border border-surface-border/50 hover:bg-slate-50 transition-all group text-left outline-none cursor-pointer">
+                <div class="flex items-center gap-3.5">
+                    <div class="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center text-brand-primary">
+                        <i data-feather="message-circle" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <span class="block text-[14px] font-bold text-text-primary">Contact Support</span>
+                        <span class="block text-[11px] text-text-secondary">Direct support channel line via WhatsApp</span>
+                    </div>
+                </div>
+                <i data-feather="chevron-right" class="w-4 h-4 text-text-muted group-hover:translate-x-1 transition-transform"></i>
+            </button>
+        </div>
+    </section>
+
+    <!-- Logout -->
+    <section class="pt-4 flex flex-col items-center">
+        <a href="{% url 'accounts:logout' %}" class="w-full h-[52px] rounded-btn bg-status-danger-bg text-status-danger-text font-bold flex items-center justify-center gap-2 active:scale-95 transition-all no-underline">
+            <i data-feather="log-out" class="w-5 h-5"></i>
+            Logout Account
+        </a>
+        <div class="text-center mt-6 opacity-40">
+            <p class="text-[10px] font-bold text-text-secondary tracking-[1px] uppercase">SubHero v1.0.0</p>
+        </div>
+    </section>
+</div>
+
+<style>
+    .profile-gradient {
+        background: linear-gradient(135deg, #006B3E 0%, #004D2C 60%, #0A1628 100%);
+    }
+</style>
+{% endblock %}
+
+{% block modals %}
+<!-- Bottom Sheet Backdrop -->
+<div class="sheet-backdrop" id="custom-backdrop" onclick="closeAllSheets()"></div>
+
+<!-- 1. Edit Profile Bottom Sheet -->
+<div class="bottom-sheet shadow-2xl" id="sheet-edit-profile">
+  <div class="sheet-handle"></div>
+  <div class="p-5 pb-6">
+    <h2 class="sheet-title text-text-primary text-[18px] font-bold mb-1">Edit Personal Details</h2>
+    <p class="text-xs text-text-secondary mb-4">Edit your account name and email address below.</p>
+    
+    <form method="post" class="space-y-4">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="update_profile">
+      
+      <div class="form-group">
+        <label class="form-label" for="profile-phone">Phone Number (Read-Only)</label>
+        <input class="form-input bg-slate-100 text-text-muted border-surface-border" type="text" id="profile-phone" value="{{ request.user.phone_number }}" disabled>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="profile-name">Full Name</label>
+        <input class="form-input" type="text" name="full_name" id="profile-name" value="{{ request.user.full_name }}" required>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="profile-email">Email Address</label>
+        <input class="form-input" type="email" name="email" id="profile-email" value="{{ request.user.email }}" required>
+      </div>
+      
+      <div class="pt-2 flex gap-3">
+        <button type="button" class="btn btn-secondary flex-1" onclick="closeAllSheets()">Cancel</button>
+        <button type="submit" class="btn btn-primary flex-1">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 2. Change Password Bottom Sheet -->
+<div class="bottom-sheet shadow-2xl" id="sheet-change-password">
+  <div class="sheet-handle"></div>
+  <div class="p-5 pb-6">
+    <h2 class="sheet-title text-text-primary text-[18px] font-bold mb-1">Change Account Password</h2>
+    <p class="text-xs text-text-secondary mb-4">Update your password security credentials below.</p>
+    
+    <form method="post" class="space-y-4">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="change_password">
+      
+      <div class="form-group">
+        <label class="form-label" for="pwd-current">Current Password</label>
+        <input class="form-input" type="password" name="current_password" id="pwd-current" placeholder="••••••••" required>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="pwd-new">New Password (Min 8 characters)</label>
+        <input class="form-input" type="password" name="new_password" id="pwd-new" placeholder="••••••••" required>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="pwd-confirm">Confirm New Password</label>
+        <input class="form-input" type="password" name="confirm_password" id="pwd-confirm" placeholder="••••••••" required>
+      </div>
+      
+      <div class="pt-2 flex gap-3">
+        <button type="button" class="btn btn-secondary flex-1" onclick="closeAllSheets()">Cancel</button>
+        <button type="submit" class="btn btn-primary flex-1">Update Password</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 3. Change Transaction PIN Bottom Sheet -->
+<div class="bottom-sheet shadow-2xl" id="sheet-change-pin">
+  <div class="sheet-handle"></div>
+  <div class="p-5 pb-6">
+    <h2 class="sheet-title text-text-primary text-[18px] font-bold mb-1">Transaction PIN Setup</h2>
+    <p class="text-xs text-text-secondary mb-4">Change or configure your 4-digit transaction safety PIN.</p>
+    
+    <form method="post" class="space-y-4">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="change_pin">
+      
+      {% if request.user.has_pin %}
+      <div class="form-group">
+        <label class="form-label" for="pin-current">Current Transaction PIN</label>
+        <input class="form-input font-mono text-center tracking-[10px]" type="password" name="current_pin" id="pin-current" placeholder="••••" maxlength="4" pattern="\d{4}" inputmode="numeric" required>
+      </div>
+      {% endif %}
+
+      <div class="form-group">
+        <label class="form-label" for="pin-new">New 4-Digit PIN</label>
+        <input class="form-input font-mono text-center tracking-[10px]" type="password" name="new_pin" id="pin-new" placeholder="••••" maxlength="4" pattern="\d{4}" inputmode="numeric" required>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="pin-confirm">Confirm New 4-Digit PIN</label>
+        <input class="form-input font-mono text-center tracking-[10px]" type="password" name="confirm_pin" id="pin-confirm" placeholder="••••" maxlength="4" pattern="\d{4}" inputmode="numeric" required>
+      </div>
+      
+      <div class="pt-2 flex gap-3">
+        <button type="button" class="btn btn-secondary flex-1" onclick="closeAllSheets()">Cancel</button>
+        <button type="submit" class="btn btn-primary flex-1">Update PIN</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  const backdrop = document.getElementById('custom-backdrop');
+  
+  function openSheet(id) {
+    const sheet = document.getElementById(id);
+    backdrop.classList.add('active');
+    sheet.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+  
+  function closeAllSheets() {
+    backdrop.classList.remove('active');
+    document.querySelectorAll('.bottom-sheet').forEach(sheet => {
+      sheet.classList.remove('active');
+    });
+    document.body.style.overflow = '';
+  }
+</script>
+{% endblock %}
+
+{% block bottom_nav %}
+{% include 'partials/_bottom_nav.html' with active='profile' %}
+{% endblock %}

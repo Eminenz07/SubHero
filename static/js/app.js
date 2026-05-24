@@ -34,6 +34,51 @@
         }, 300);
       }, 5000);
     });
+
+    // =============================================================
+    // Balance Masking Controller
+    // =============================================================
+    var balanceToggles = document.querySelectorAll("#balance-toggle");
+    var balanceAmounts = document.querySelectorAll(".balance-display-amount");
+    
+    if (balanceAmounts.length > 0) {
+      var isHidden = localStorage.getItem("hideBalance") === "true";
+
+      var updateBalanceUI = function (hidden) {
+        balanceAmounts.forEach(function (amountEl) {
+          var rawBalance = amountEl.getAttribute("data-raw-balance") || "0.00";
+          if (hidden) {
+            amountEl.textContent = "••••";
+          } else {
+            amountEl.textContent = rawBalance;
+          }
+        });
+
+        balanceToggles.forEach(function (toggleBtn) {
+          if (hidden) {
+            toggleBtn.innerHTML = '<i data-feather="eye-off" class="w-[18px] h-[18px]"></i>';
+          } else {
+            toggleBtn.innerHTML = '<i data-feather="eye" class="w-[18px] h-[18px]"></i>';
+          }
+        });
+
+        if (typeof feather !== "undefined") {
+          feather.replace();
+        }
+      };
+
+      // Apply initial state
+      updateBalanceUI(isHidden);
+
+      balanceToggles.forEach(function (toggleBtn) {
+        toggleBtn.addEventListener("click", function (e) {
+          e.preventDefault();
+          isHidden = !isHidden;
+          localStorage.setItem("hideBalance", isHidden);
+          updateBalanceUI(isHidden);
+        });
+      });
+    }
   });
 
   // =============================================================

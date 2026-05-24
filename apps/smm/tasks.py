@@ -1,0 +1,347 @@
+import logging
+import requests
+from decimal import Decimal
+from django.db import transaction
+from django.conf import settings
+from django.utils import timezone
+from celery import shared_task
+from celery.exceptions import MaxRetriesExceededError
+
+from apps.smm.models import SMMService, SMMOrder
+from apps.wallet.models import Wallet, WalletTransaction
+from apps.wallet.services import debit_wallet, credit_wallet, InsufficientBalanceError, WalletFrozenError
+from apps.notifications.tasks import send_transaction_sms
+
+logger = logging.getLogger(__name__)
+
+@shared_task(bind=True, max_retries=2)
+def process_smm_order(self, order_id):
+    """
+    PRD Section 6.4: Processes a customer SMM order atomically.
+    1. Debits the customer's wallet.
+    2. Sends the order request to JustAnotherPanel API.
+    3. Handles failure retries and auto-refunds.
+    """
+    try:
+        order = SMMOrder.objects.get(id=order_id)
+    except SMMOrder.DoesNotExist:
+        logger.error("SMM order not found: %s", order_id)
+        return
+
+    if order.status != SMMOrder.Status.PROCESSING:
+        logger.warning("SMM order %s is not in PROCESSING state (current status: %s).", order_id, order.status)
+        return
+
+    # STEP 2: Call JAP SMM API
+    api_key = settings.JAP_API_KEY
+    if not api_key:
+        logger.warning("JAP API Key is not configured. Simulating SMM order placement.")
+        order.provider_order_id = "MOCK-JAP-ORDER-12345"
+        order.status = SMMOrder.Status.PROCESSING
+        order.save(update_fields=["status", "provider_order_id"])
+        return
+
+    url = settings.JAP_API_URL
+    payload = {
+        "key": api_key,
+        "action": "add",
+        "service": order.service.provider_service_id,
+        "link": order.target_url,
+        "quantity": order.quantity
+    }
+
+    try:
+        response = requests.post(url, data=payload, timeout=30)
+        response_data = response.json()
+
+        if response.status_code in [200, 201] and "order" in response_data:
+            order.provider_order_id = str(response_data["order"])
+            order.status = SMMOrder.Status.PROCESSING
+            order.save(update_fields=["status", "provider_order_id"])
+
+            logger.info("JAP SMM order placed successfully: provider_id=%s", order.provider_order_id)
+        else:
+            error_msg = response_data.get("error", "API returned error")
+            raise Exception(f"JAP API error: {error_msg}")
+
+    except Exception as exc:
+        if settings.DEBUG:
+            logger.warning("SMM API call failed. DEBUG mode is ON. Simulating success fallback: %s", str(exc))
+            order.provider_order_id = "MOCK-JAP-ORDER-12345"
+            order.status = SMMOrder.Status.PROCESSING
+            order.save(update_fields=["status", "provider_order_id"])
+            return
+
+        logger.warning("SMM order %s API call failed. Retrying... Error: %s", order_id, str(exc))
+        try:
+            self.retry(exc=exc, countdown=30)
+        except MaxRetriesExceededError:
+            logger.error("SMM order %s exceeded all retries. Initiating refund.", order_id)
+            order.status = SMMOrder.Status.FAILED
+            order.provider_order_id = f"Failed: {str(exc)}"[:100]
+            order.save(update_fields=["status", "provider_order_id"])
+            refund_smm_order.delay(order_id)
+
+
+@shared_task
+def refund_smm_order(order_id):
+    """
+    Restores the client's debited wallet balance when an SMM order fails permanently.
+    """
+    try:
+        with transaction.atomic():
+            order = SMMOrder.objects.select_for_update().get(id=order_id)
+            
+            # Skip if already refunded
+            if order.status == SMMOrder.Status.FAILED and WalletTransaction.objects.filter(reference=f"REFUND-{order.reference}").exists():
+                logger.warning("SMM Order %s is already refunded.", order_id)
+                return
+
+            wallet = Wallet.objects.select_for_update().get(user=order.user)
+            balance_before = wallet.balance
+            wallet.balance += order.amount
+            wallet.save(update_fields=["balance"])
+
+            order.status = SMMOrder.Status.FAILED
+            order.save(update_fields=["status"])
+
+            # Create Refund Transaction log
+            WalletTransaction.objects.create(
+                wallet=wallet,
+                txn_type=WalletTransaction.TxnType.REFUND,
+                amount=order.amount,
+                balance_before=balance_before,
+                balance_after=wallet.balance,
+                reference=f"REFUND-{order.reference}",
+                status=WalletTransaction.Status.SUCCESS,
+                description=f"Refund for failed SMM booster order: {order.service.name}"
+            )
+
+            # Warning Notification
+            try:
+                from apps.notifications.models import Notification
+                reason = "Provider API error"
+                if order.provider_order_id and order.provider_order_id.startswith("Failed:"):
+                    reason = order.provider_order_id.replace("Failed: ", "")
+                
+                Notification.add(
+                    user=order.user,
+                    title="SMM Order Failed - Refunded",
+                    description=f"Your SMM booster request for {order.service.name} failed (Reason: {reason}). ₦{order.amount:,.2f} has been fully refunded.",
+                    level="warning"
+                )
+            except Exception as e:
+                logger.error("Notification creation failed: %s", str(e))
+
+            logger.info("SMM Refund success: ₦%s restored to User %s", order.amount, order.user.id)
+
+    except Exception as err:
+        logger.exception("SMM Refund execution failure: %s", str(err))
+        return
+
+    try:
+        send_transaction_sms.delay(
+            order.user.phone_number,
+            f"SubHero: ₦{order.amount:,.0f} refunded. SMM Order {order.reference} could not be completed."
+        )
+    except Exception as sms_err:
+        logger.error("SMM Refund SMS delivery failed: %s", str(sms_err))
+
+
+@shared_task
+def poll_smm_orders():
+    """
+    Periodic task running every 30 minutes to check status of running SMM orders.
+    Triggers refunds for failed/canceled orders, or updates completed statuses.
+    """
+    logger.info("SMM orders polling triggered.")
+    api_key = settings.JAP_API_KEY
+    if not api_key:
+        logger.info("JAP API Key is not set. Skipping SMM polling.")
+        return
+
+    processing_orders = SMMOrder.objects.filter(status=SMMOrder.Status.PROCESSING)
+    url = settings.JAP_API_URL
+
+    for order in processing_orders:
+        if not order.provider_order_id or order.provider_order_id.startswith("MOCK"):
+            # Mock success simulation for testing
+            order.status = SMMOrder.Status.SUCCESS
+            order.save(update_fields=["status"])
+            logger.info("Mock SMM order completed successfully.")
+            continue
+
+        try:
+            response = requests.post(url, data={
+                "key": api_key,
+                "action": "status",
+                "order": order.provider_order_id
+            }, timeout=15)
+            data = response.json()
+
+            status = data.get("status")
+            if status == "Completed":
+                order.status = SMMOrder.Status.SUCCESS
+                order.save(update_fields=["status"])
+                
+                # In-app Success Alert
+                try:
+                    from apps.notifications.models import Notification
+                    Notification.add(
+                        user=order.user,
+                        title="SMM Order Completed",
+                        description=f"Your SMM request for {order.service.name} has been successfully delivered.",
+                        level="financial"
+                    )
+                except Exception as e:
+                    logger.error("Notification creation failed: %s", str(e))
+
+                # Send SMS
+                send_transaction_sms.delay(
+                    order.user.phone_number,
+                    f"SubHero: Your SMM order {order.reference} has been completed! Thank you."
+                )
+
+            elif status == "Partial":
+                remains = data.get("remains", 0)
+                try:
+                    remains_int = int(remains)
+                except ValueError:
+                    remains_int = 0
+
+                if remains_int > 0 and remains_int < order.quantity:
+                    refund_qty = remains_int
+                    refund_amount = (Decimal(refund_qty) / Decimal(order.quantity)) * order.amount
+
+                    # Perform atomic partial refund
+                    with transaction.atomic():
+                        wallet = Wallet.objects.select_for_update().get(user=order.user)
+                        balance_before = wallet.balance
+                        wallet.balance += refund_amount
+                        wallet.save(update_fields=["balance"])
+
+                        order.status = SMMOrder.Status.PARTIAL
+                        order.save(update_fields=["status"])
+
+                        WalletTransaction.objects.create(
+                            wallet=wallet,
+                            txn_type=WalletTransaction.TxnType.REFUND,
+                            amount=refund_amount,
+                            balance_before=balance_before,
+                            balance_after=wallet.balance,
+                            reference=f"PARTIAL-{order.reference}",
+                            status=WalletTransaction.Status.SUCCESS,
+                            description=f"Partial Refund: {refund_qty} remains for SMM Order {order.reference}"
+                        )
+
+                        # In-app Warning Alert
+                        try:
+                            from apps.notifications.models import Notification
+                            Notification.add(
+                                user=order.user,
+                                title="SMM Order Partially Delivered",
+                                description=f"SMM order {order.reference} partially completed. ₦{refund_amount:,.2f} refunded for {refund_qty} undelivered items.",
+                                level="warning"
+                            )
+                        except Exception as e:
+                            logger.error("Notification creation failed: %s", str(e))
+
+                    # Send SMS
+                    send_transaction_sms.delay(
+                        order.user.phone_number,
+                        f"SubHero: SMM order partially completed. ₦{refund_amount:,.0f} has been refunded to your wallet."
+                    )
+
+            elif status in ["Failed", "Canceled", "Cancelled"]:
+                logger.warning("JAP SMM Order %s returned status: %s. Reversing payment.", order.reference, status)
+                refund_smm_order.delay(order.id)
+
+        except Exception as e:
+            logger.error("Failed to poll status for JAP SMM Order %s: %s", order.provider_order_id, str(e))
+
+
+@shared_task
+def sync_smm_catalogue():
+    """
+    Synchronizes JAP active services. Applied daily at 3:00 AM (Celery Beat).
+    """
+    logger.info("Synchronizing SMM Catalogue from JAP Panel...")
+    api_key = settings.JAP_API_KEY
+    if not api_key:
+        # Pre-populate catalogue for local manual developer verification
+        pre_populated = [
+            {"service": "1001", "name": "Instagram Followers (Real & Active)", "category": "instagram", "min": "100", "max": "10000", "rate": Decimal("0.80")},
+            {"service": "1002", "name": "Instagram Likes (High Quality)", "category": "instagram", "min": "50", "max": "5000", "rate": Decimal("0.20")},
+            {"service": "2001", "name": "TikTok Followers", "category": "tiktok", "min": "100", "max": "20000", "rate": Decimal("1.20")},
+            {"service": "2002", "name": "TikTok Likes", "category": "tiktok", "min": "100", "max": "10000", "rate": Decimal("0.30")},
+        ]
+        for s in pre_populated:
+            # For mock data, rate is already normalized in Naira.
+            markup_price = s["rate"] * Decimal("1.50")
+            SMMService.objects.update_or_create(
+                provider_service_id=s["service"],
+                defaults={
+                    "name": s["name"],
+                    "category": s["category"],
+                    "subcategory": s["category"].capitalize() + " Default",
+                    "provider_min": int(s["min"]),
+                    "provider_max": int(s["max"]),
+                    "provider_rate": s["rate"],
+                    "subhero_price_per_1k": markup_price,
+                    "is_active": True
+                }
+            )
+        logger.info("Mock SMM service catalogue loaded successfully.")
+        return
+
+    url = settings.JAP_API_URL
+    try:
+        response = requests.post(url, data={"key": api_key, "action": "services"}, timeout=30)
+        services = response.json()
+
+        count = 0
+        for s in services:
+            category_lower = s["category"].lower()
+            
+            # Map JAP categories to our 6 core frontend platform tabs
+            platform = "other"
+            if "instagram" in category_lower:
+                platform = "instagram"
+            elif "tiktok" in category_lower:
+                platform = "tiktok"
+            elif "youtube" in category_lower:
+                platform = "youtube"
+            elif "twitter" in category_lower or "x.com" in category_lower or "threads" in category_lower:
+                platform = "twitter"
+            elif "telegram" in category_lower:
+                platform = "telegram"
+            elif "spotify" in category_lower:
+                platform = "spotify"
+
+            # Skip unsupported categories to keep the catalogue curated and high quality
+            if platform == "other":
+                continue
+
+            rate_usd = Decimal(str(s["rate"]))
+            # USD to Naira exchange rate (e.g. ₦1600 per USD)
+            provider_rate_naira = rate_usd * Decimal("1600.00")
+            # Apply 50% profit markup
+            subhero_price = provider_rate_naira * Decimal("1.50")
+
+            SMMService.objects.update_or_create(
+                provider_service_id=str(s["service"]),
+                defaults={
+                    "name": s["name"],
+                    "category": platform,
+                    "subcategory": s.get("category", "").strip(),
+                    "provider_min": int(s["min"]),
+                    "provider_max": int(s["max"]),
+                    "provider_rate": rate_usd,
+                    "subhero_price_per_1k": subhero_price,
+                    "is_active": True
+                }
+            )
+            count += 1
+        logger.info("JAP SMM catalog synced successfully. Mapped and updated %d services.", count)
+    except Exception as e:
+        logger.error("Failed to sync SMM catalogue from JAP API: %s", str(e))

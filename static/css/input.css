@@ -15,6 +15,25 @@
     font-size: 16px;
   }
 
+  html, body {
+    overflow: hidden;
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  /* Hide scrollbars globally for a premium native app experience */
+  *, *::before, *::after {
+    -ms-overflow-style: none !important;  /* IE and Edge */
+    scrollbar-width: none !important;  /* Firefox */
+  }
+  
+  *::-webkit-scrollbar {
+    display: none !important; /* Chrome, Safari, Opera */
+    width: 0 !important;
+    height: 0 !important;
+    background: transparent !important;
+  }
+
   body {
     @apply font-body text-text-primary bg-slate-200 antialiased;
     -webkit-tap-highlight-color: transparent;
@@ -209,8 +228,8 @@
 
   .bottom-sheet {
     @apply absolute bottom-0 left-0 w-full bg-surface-card rounded-t-[20px]
-           pb-safe-bottom z-[201] translate-y-full
-           transition-transform duration-[250ms] ease-[cubic-bezier(0.16,1,0.3,1)]
+           pb-safe-bottom z-[201] translate-y-full invisible opacity-0 pointer-events-none
+           transition-all duration-[250ms] ease-[cubic-bezier(0.16,1,0.3,1)]
            max-h-[85%] overflow-y-auto;
     -ms-overflow-style: none;  /* IE and Edge */
     scrollbar-width: none;  /* Firefox */
@@ -221,7 +240,7 @@
   }
 
   .bottom-sheet.active {
-    @apply translate-y-0;
+    @apply translate-y-0 visible opacity-100 pointer-events-auto;
   }
 
   .sheet-handle {

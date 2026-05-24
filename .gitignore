@@ -45,3 +45,6 @@ PRD_tables.txt
 htmlcov/
 .coverage
 .coverage.*
+
+# CSV catalogs
+*.csv

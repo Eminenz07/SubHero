@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SubHero — Product Requirements Document v1.0</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green: #16A34A;
+    --green-light: #DCFCE7;
+    --green-mid: #22C55E;
+    --red: #DC2626;
+    --red-light: #FEE2E2;
+    --yellow: #D97706;
+    --yellow-light: #FEF3C7;
+    --blue: #1D4ED8;
+    --blue-light: #DBEAFE;
+    --gray-50: #F9FAFB;
+    --gray-100: #F3F4F6;
+    --gray-200: #E5E7EB;
+    --gray-300: #D1D5DB;
+    --gray-400: #9CA3AF;
+    --gray-500: #6B7280;
+    --gray-600: #4B5563;
+    --gray-700: #374151;
+    --gray-800: #1F2937;
+    --gray-900: #111827;
+    --border: #E5E7EB;
+    --text: #111827;
+    --text-muted: #6B7280;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    color: var(--text);
+    background: #fff;
+    line-height: 1.6;
+  }
+
+  /* COVER PAGE */
+  .cover {
+    background: var(--gray-900);
+    color: #fff;
+    padding: 80px 60px;
+    min-height: 260px;
+    position: relative;
+    overflow: hidden;
+    border-bottom: 4px solid var(--green);
+  }
+  .cover::after {
+    content: '';
+    position: absolute;
+    bottom: -60px; right: -60px;
+    width: 300px; height: 300px;
+    background: radial-gradient(circle, rgba(22,163,74,0.15) 0%, transparent 70%);
+  }
+  .cover-logo {
+    font-size: 11px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--green-mid);
+    margin-bottom: 16px;
+    font-weight: 600;
+  }
+  .cover h1 {
+    font-size: 42px;
+    font-weight: 700;
+    line-height: 1.15;
+    margin-bottom: 12px;
+  }
+  .cover h1 span { color: var(--green-mid); }
+  .cover-sub {
+    font-size: 15px;
+    color: #9CA3AF;
+    max-width: 600px;
+    margin-bottom: 32px;
+  }
+  .cover-meta {
+    display: flex;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+  .cover-meta-item { display: flex; flex-direction: column; gap: 2px; }
+  .cover-meta-item .label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: #6B7280; }
+  .cover-meta-item .val { font-size: 13px; color: #E5E7EB; font-weight: 500; }
+
+  /* LAYOUT */
+  .page { max-width: 960px; margin: 0 auto; padding: 0 40px 80px; }
+
+  /* TOC */
+  .toc {
+    background: var(--gray-50);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 32px;
+    margin: 40px 0;
+  }
+  .toc h2 { font-size: 13px; letter-spacing: 3px; text-transform: uppercase; color: var(--green); margin-bottom: 20px; font-weight: 600; }
+  .toc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 40px; }
+  .toc-item {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; color: var(--gray-700);
+    padding: 4px 0; border-bottom: 1px dashed var(--gray-200);
+  }
+  .toc-num { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--green); font-weight: 500; min-width: 24px; }
+
+  /* SECTIONS */
+  .section { margin-top: 52px; }
+  .section-header {
+    display: flex; align-items: center; gap: 12px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--gray-900);
+    margin-bottom: 24px;
+  }
+  .section-num-badge {
+    background: var(--gray-900); color: #fff;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; font-weight: 500;
+    padding: 3px 8px; border-radius: 3px;
+  }
+  .section-title { font-size: 22px; font-weight: 700; }
+
+  h3 {
+    font-size: 16px; font-weight: 600;
+    color: var(--gray-800);
+    margin: 28px 0 12px;
+    padding-left: 12px;
+    border-left: 3px solid var(--green);
+  }
+  h4 {
+    font-size: 13px; font-weight: 600;
+    color: var(--gray-700);
+    margin: 16px 0 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  p { margin-bottom: 12px; color: var(--gray-700); font-size: 14px; }
+
+  /* SECURITY BLOCK */
+  .security-block {
+    background: #FFFBEB;
+    border: 1px solid #FDE68A;
+    border-left: 4px solid #D97706;
+    border-radius: 0 6px 6px 0;
+    padding: 20px 24px;
+    margin: 16px 0 24px;
+  }
+  .security-block .sec-title {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; letter-spacing: 2px; text-transform: uppercase;
+    color: #92400E; font-weight: 600; margin-bottom: 12px;
+  }
+  .security-block .sec-title::before {
+    content: '🔒';
+    font-size: 14px;
+  }
+
+  .sec-item {
+    display: flex; gap: 10px;
+    padding: 6px 0;
+    border-bottom: 1px solid #FDE68A;
+    font-size: 13px;
+    color: var(--gray-700);
+  }
+  .sec-item:last-child { border-bottom: none; }
+  .sec-item .sec-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; font-weight: 500;
+    color: #92400E;
+    min-width: 160px;
+    padding-top: 1px;
+  }
+
+  /* FEATURE BLOCK */
+  .feature-block {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 20px 0;
+  }
+  .feature-header {
+    background: var(--gray-50);
+    padding: 14px 20px;
+    display: flex; align-items: center; gap: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .feature-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; font-weight: 500;
+    padding: 2px 8px; border-radius: 3px;
+  }
+  .tag-vtu { background: #DBEAFE; color: #1D4ED8; }
+  .tag-smm { background: #F3E8FF; color: #7C3AED; }
+  .tag-wallet { background: #DCFCE7; color: #16A34A; }
+  .tag-auth { background: #FEE2E2; color: #DC2626; }
+  .tag-transfer { background: #FEF3C7; color: #D97706; }
+  .tag-system { background: var(--gray-200); color: var(--gray-700); }
+
+  .feature-name { font-size: 15px; font-weight: 600; }
+  .feature-body { padding: 20px; }
+
+  /* TABLES */
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
+  th {
+    background: var(--gray-800); color: #fff;
+    padding: 10px 14px; text-align: left;
+    font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
+  }
+  td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tr:nth-child(even) td { background: var(--gray-50); }
+
+  /* BADGES */
+  .badge {
+    display: inline-block; font-size: 10px; font-weight: 600;
+    padding: 2px 7px; border-radius: 3px; letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .badge-critical { background: #FEE2E2; color: #DC2626; }
+  .badge-high { background: #FEF3C7; color: #D97706; }
+  .badge-medium { background: #DBEAFE; color: #1D4ED8; }
+  .badge-low { background: #DCFCE7; color: #16A34A; }
+  .badge-mvp { background: var(--gray-900); color: #fff; }
+  .badge-phase2 { background: var(--gray-200); color: var(--gray-600); }
+
+  /* CODE */
+  code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    background: var(--gray-100);
+    padding: 2px 6px;
+    border-radius: 3px;
+    color: var(--gray-800);
+  }
+  .code-block {
+    background: var(--gray-900);
+    color: #E5E7EB;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    padding: 20px;
+    border-radius: 6px;
+    margin: 16px 0;
+    overflow-x: auto;
+    line-height: 1.7;
+  }
+  .code-block .comment { color: #6B7280; }
+  .code-block .key { color: #93C5FD; }
+  .code-block .val { color: #86EFAC; }
+  .code-block .type { color: #F9A8D4; }
+
+  /* CALLOUT */
+  .callout {
+    display: flex; gap: 12px;
+    padding: 14px 18px;
+    border-radius: 6px;
+    margin: 16px 0;
+    font-size: 13px;
+  }
+  .callout-danger { background: #FEF2F2; border: 1px solid #FECACA; color: #991B1B; }
+  .callout-info { background: #EFF6FF; border: 1px solid #BFDBFE; color: #1E40AF; }
+  .callout-success { background: #F0FDF4; border: 1px solid #BBF7D0; color: #15803D; }
+  .callout-warn { background: #FFFBEB; border: 1px solid #FDE68A; color: #92400E; }
+  .callout-icon { font-size: 16px; flex-shrink: 0; }
+
+  /* DATA MODEL */
+  .model-block {
+    background: var(--gray-900);
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 16px 0;
+  }
+  .model-title {
+    background: var(--green);
+    color: #fff;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; font-weight: 600;
+    padding: 8px 16px;
+    letter-spacing: 1px;
+  }
+  .model-body {
+    padding: 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: #E5E7EB;
+    line-height: 1.8;
+  }
+  .model-field { color: #93C5FD; }
+  .model-type { color: #F9A8D4; }
+  .model-comment { color: #6B7280; }
+
+  /* FLOW DIAGRAM */
+  .flow {
+    display: flex; align-items: center;
+    gap: 0; flex-wrap: wrap;
+    margin: 16px 0; padding: 16px;
+    background: var(--gray-50);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 12px;
+  }
+  .flow-step {
+    background: var(--gray-800); color: #fff;
+    padding: 8px 14px; border-radius: 4px;
+    font-weight: 500; white-space: nowrap;
+    font-size: 12px;
+  }
+  .flow-step.green { background: var(--green); }
+  .flow-step.red { background: var(--red); }
+  .flow-step.blue { background: var(--blue); }
+  .flow-arrow { color: var(--gray-400); padding: 0 6px; font-size: 16px; }
+
+  /* DIVIDER */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+
+  /* FOOTER */
+  .doc-footer {
+    background: var(--gray-900); color: #9CA3AF;
+    padding: 24px 40px;
+    font-size: 12px;
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 12px;
+    margin-top: 60px;
+  }
+  .doc-footer strong { color: #fff; }
+
+  ul { padding-left: 20px; margin: 8px 0 12px; }
+  ul li { margin-bottom: 5px; color: var(--gray-700); font-size: 13px; }
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<div class="cover">
+  <div class="cover-logo">SubVerse Suite · Product Document</div>
+  <h1><span>SubHero</span> Platform<br>Product Requirements Document</h1>
+  <p class="cover-sub">MVP specification covering all features, data models, and the full security architecture for a production-grade VTU + SMM platform serving thousands of Nigerian users.</p>
+  <div class="cover-meta">
+    <div class="cover-meta-item"><span class="label">Version</span><span class="val">1.0 — MVP</span></div>
+    <div class="cover-meta-item"><span class="label">Date</span><span class="val">April 2026</span></div>
+    <div class="cover-meta-item"><span class="label">Stack</span><span class="val">Django · PostgreSQL · Tailwind CSS</span></div>
+    <div class="cover-meta-item"><span class="label">Classification</span><span class="val">Internal · Confidential</span></div>
+    <div class="cover-meta-item"><span class="label">Author</span><span class="val">SubHero Dev Team</span></div>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- TOC -->
+  <div class="toc">
+    <h2>Table of Contents</h2>
+    <div class="toc-grid">
+      <div class="toc-item"><span class="toc-num">01</span> Project Overview & Goals</div>
+      <div class="toc-item"><span class="toc-num">06</span> Module 3 — VTU Services</div>
+      <div class="toc-item"><span class="toc-num">02</span> Tech Stack & Architecture</div>
+      <div class="toc-item"><span class="toc-num">07</span> Module 4 — SMM Panel</div>
+      <div class="toc-item"><span class="toc-num">03</span> Security Architecture Overview</div>
+      <div class="toc-item"><span class="toc-num">08</span> Module 5 — User-to-User Transfers</div>
+      <div class="toc-item"><span class="toc-num">04</span> Module 1 — Auth & Accounts</div>
+      <div class="toc-item"><span class="toc-num">09</span> Module 6 — Dashboard & History</div>
+      <div class="toc-item"><span class="toc-num">05</span> Module 2 — Wallet & Funding</div>
+      <div class="toc-item"><span class="toc-num">10</span> Data Models & Django App Structure</div>
+      <div class="toc-item"><span class="toc-num">11</span> Global Security Measures</div>
+      <div class="toc-item"><span class="toc-num">12</span> Infrastructure & Deployment Security</div>
+    </div>
+  </div>
+
+  <!-- SECTION 01 -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num-badge">01</span>
+      <span class="section-title">Project Overview & Goals</span>
+    </div>
+
+    <p><strong>SubHero</strong> is a multi-service digital top-up platform targeting the Nigerian market. It is part of the SubVerse product suite alongside SubScalp (trading bot) and SubMart (e-commerce). SubHero enables users to purchase VTU services (data, airtime, electricity, cable TV) and SMM services (social media followers, likes, views) from a single wallet-based platform.</p>
+
+    <h3>MVP Scope</h3>
+    <table>
+      <tr><th>Module</th><th>Description</th><th>Phase</th></tr>
+      <tr><td>Authentication & Accounts</td><td>Register, login, profile, OTP verification, transaction PIN</td><td><span class="badge badge-mvp">MVP</span></td></tr>
+      <tr><td>Wallet System</td><td>Balance management, virtual account funding, ledger</td><td><span class="badge badge-mvp">MVP</span></td></tr>
+      <tr><td>VTU Services</td><td>Data bundles, airtime, electricity tokens, cable TV</td><td><span class="badge badge-mvp">MVP</span></td></tr>
+      <tr><td>SMM Panel</td><td>Social media followers, likes, views via API reselling</td><td><span class="badge badge-mvp">MVP</span></td></tr>
+      <tr><td>User-to-User Transfer</td><td>Fee-free wallet transfers between SubHero users</td><td><span class="badge badge-mvp">MVP</span></td></tr>
+      <tr><td>Dashboard & History</td><td>Balance overview, quick-buy, full transaction log</td><td><span class="badge badge-mvp">MVP</span></td></tr>
+      <tr><td>Reseller / Agent System</td><td>Sub-agent network with commission tiers</td><td><span class="badge badge-phase2">Phase 2</span></td></tr>
+      <tr><td>Referral Program</td><td>Earn on referrals</td><td><span class="badge badge-phase2">Phase 2</span></td></tr>
+      <tr><td>Admin Dashboard</td><td>Custom admin panel (Django admin covers MVP)</td><td><span class="badge badge-phase2">Phase 2</span></td></tr>
+    </table>
+
+    <h3>Non-Functional Requirements</h3>
+    <ul>
+      <li>System must handle <strong>concurrent transactions</strong> without race conditions or double-spending</li>
+      <li>All financial operations must be <strong>atomic and idempotent</strong></li>
+      <li>All API endpoints must be <strong>authenticated and rate-limited</strong></li>
+      <li>Zero tolerance for wallet balance exploits — every debit/credit is locked at the database level</li>
+      <li>Full audit trail on every financial event — immutable and tamper-evident</li>
+      <li>System must degrade gracefully — failed third-party API calls trigger refunds automatically</li>
+    </ul>
+  </div>
+
+  <!-- SECTION 02 -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num-badge">02</span>
+      <span class="section-title">Tech Stack & Architecture</span>
+    </div>
+
+    <table>
+      <tr><th>Layer</th><th>Technology</th><th>Reason</th></tr>
+      <tr><td>Backend Framework</td><td>Django 5.x</td><td>Batteries-included, ORM, built-in admin, battle-tested</td></tr>
+      <tr><td>Database</td><td>PostgreSQL 16</td><td>ACID transactions, row-level locking, reliable for financial data</td></tr>
+      <tr><td>Frontend</td><td>Django Templates + Tailwind CSS + HTMX</td><td>No JS framework needed, server-side rendering, fast to build</td></tr>
+      <tr><td>Task Queue</td><td>Celery + Redis</td><td>Async processing for VTU/SMM API calls, webhook handling</td></tr>
+      <tr><td>Cache</td><td>Redis</td><td>Rate limiting, session storage, idempotency key storage</td></tr>
+      <tr><td>Virtual Accounts</td><td>Providus Bank API / Squad (GTB)</td><td>No CAC required for Squad; Providus for virtual account issuance</td></tr>
+      <tr><td>VTU API</td><td>VTUPass API</td><td>Aggregator supporting all Nigerian networks + PHCN + Cable</td></tr>
+      <tr><td>SMM API</td><td>JustAnotherPanel (JAP) API</td><td>Wholesale SMM reseller with full REST API</td></tr>
+      <tr><td>OTP / SMS</td><td>Termii</td><td>Nigerian-focused SMS gateway, reliable delivery</td></tr>
+      <tr><td>Email</td><td>SendGrid or AWS SES</td><td>Transactional email for receipts and alerts</td></tr>
+      <tr><td>File Storage</td><td>AWS S3 or Cloudinary</td><td>Profile avatars, receipt documents</td></tr>
+      <tr><td>Web Server</td><td>Gunicorn + Nginx</td><td>Production-grade WSGI serving</td></tr>
+      <tr><td>Deployment</td><td>VPS (DigitalOcean / Hetzner) or Railway</td><td>Cost-effective for Nigerian startup scale</td></tr>
+    </table>
+
+    <h3>Django App Structure</h3>
+    <div class="code-block">
+<span class="comment"># SubHero Django Project Structure</span>
+subhero_project/
+├── config/
+│   ├── settings/
+│   │   ├── base.py          <span class="comment"># shared settings</span>
+│   │   ├── dev.py           <span class="comment"># development</span>
+│   │   └── prod.py          <span class="comment"># production (secrets via env vars)</span>
+│   ├── urls.py
+│   └── celery.py
+├── apps/
+│   ├── accounts/            <span class="comment"># User auth, profile, PIN management</span>
+│   ├── wallet/              <span class="comment"># Balance, ledger, virtual account</span>
+│   ├── funding/             <span class="comment"># Inbound payment webhook handling</span>
+│   ├── vtu/                 <span class="comment"># Data, airtime, electricity, cable orders</span>
+│   ├── smm/                 <span class="comment"># SMM services catalogue + order management</span>
+│   ├── transfers/           <span class="comment"># User-to-user wallet transfers</span>
+│   ├── transactions/        <span class="comment"># Unified immutable transaction log</span>
+│   └── notifications/       <span class="comment"># In-app + push + email notifications</span>
+├── templates/
+├── static/
+└── manage.py
+    </div>
+  </div>
+
+  <!-- SECTION 03 -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num-badge">03</span>
+      <span class="section-title">Security Architecture Overview</span>
+    </div>
+
+    <div class="callout callout-danger">
+      <span class="callout-icon">⚠️</span>
+      <span>SubHero handles real money for real users. Every developer on this team must treat security not as an afterthought but as a first-class feature built into every layer of the system. A single exploitable vulnerability can drain user wallets or expose personal data. The architecture below is mandatory — not optional.</span>
+    </div>
+
+    <h3>Security Layers</h3>
+    <table>
+      <tr><th>Layer</th><th>What It Protects</th><th>Mechanisms</th></tr>
+      <tr><td>Application Layer</td><td>Business logic exploits</td><td>Input validation, idempotency, atomic transactions, PIN confirmation</td></tr>
+      <tr><td>Authentication Layer</td><td>Unauthorized access</td><td>Argon2 password hashing, OTP, session management, brute-force protection</td></tr>
+      <tr><td>Database Layer</td><td>Race conditions, double-spend</td><td>SELECT FOR UPDATE, DB-level constraints, atomic F() expressions</td></tr>
+      <tr><td>API Layer</td><td>Abuse, scraping, enumeration</td><td>Rate limiting per IP + per user, CSRF tokens, signed webhooks</td></tr>
+      <tr><td>Transport Layer</td><td>Man-in-the-middle attacks</td><td>HTTPS only, HSTS, TLS 1.2+</td></tr>
+      <tr><td>Infrastructure Layer</td><td>Server intrusion</td><td>UFW firewall, SSH key-only, no root login, Fail2Ban</td></tr>
+      <tr><td>Audit Layer</td><td>Fraud detection, dispute resolution</td><td>Immutable transaction log, IP logging, anomaly alerts</td></tr>
+    </table>
+
+    <h3>The Golden Rules — All Developers Must Follow</h3>
+    <div class="callout callout-info">
+      <span class="callout-icon">📌</span>
+      <div>
+        <strong>Rule 1:</strong> Every wallet debit must use <code>SELECT FOR UPDATE</code> inside an atomic transaction. No exceptions.<br><br>
+        <strong>Rule 2:</strong> Every financial action requires a confirmed, hashed transaction PIN — never trust a session alone for money movement.<br><br>
+        <strong>Rule 3:</strong> Every third-party API call (VTU, SMM, webhook) must use an idempotency key — never process the same event twice.<br><br>
+        <strong>Rule 4:</strong> Never store secrets in code. All API keys, DB passwords, and webhook secrets live in environment variables only.<br><br>
+        <strong>Rule 5:</strong> Log everything financial — every debit, credit, failed attempt, and PIN error — with timestamp and IP address.
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 04 -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num-badge">04</span>
+      <span class="section-title">Module 1 — Authentication & Accounts</span>
+    </div>
+
+    <div class="feature-block">
+      <div class="feature-header">
+        <span class="feature-tag tag-auth">AUTH</span>
+        <span class="feature-name">User Registration</span>
+        <span class="badge badge-mvp" style="margin-left:auto">MVP</span>
+      </div>
+      <div class="feature-body">
+        <h4>Flow</h4>
+        <div class="flow">
+          <div class="flow-step">Enter email + phone + password</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">OTP sent via SMS (Termii)</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">Verify OTP</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step green">Account created + wallet initialized</div>
+        </div>
+        <h4>Fields Required</h4>
+        <ul>
+          <li>Full name, email address (unique), Nigerian phone number (unique), password</li>
+          <li>No KYC required at registration for MVP. BVN/NIN verification is Phase 2.</li>
+        </ul>
+        <div class="security-block">
+          <div class="sec-title">Security Measures — Registration</div>
+          <div class="sec-item"><span class="sec-label">Password Hashing</span> Use Argon2 (Django's most secure hasher). Configure in settings: <code>PASSWORD_HASHERS = ['django.contrib.auth.hashers.Argon2PasswordHasher']</code></div>
+          <div class="sec-item"><span class="sec-label">OTP Expiry</span> OTP codes expire in 5 minutes. Store hashed OTP in Redis with TTL=300s. Never store raw OTP in DB.</div>
+          <div class="sec-item"><span class="sec-label">OTP Rate Limit</span> Max 3 OTP requests per phone number per 10 minutes. Block further requests and alert user if exceeded.</div>
+          <div class="sec-item"><span class="sec-label">Email Enumeration</span> Return generic response ("If account exists, OTP was sent") — never confirm whether an email/phone is registered or not.</div>
+          <div class="sec-item"><span class="sec-label">Phone Validation</span> Validate Nigerian phone format server-side with regex: <code>^(\+234|0)[789][01]\d{8}$</code>. Normalize to +234 format before storing.</div>
+          <div class="sec-item"><span class="sec-label">Duplicate Prevention</span> Unique DB constraints on both email and phone fields. Check before OTP send, not after.</div>
+          <div class="sec-item"><span class="sec-label">Registration Rate Limit</span> Max 5 registrations per IP per hour to prevent bot account farming.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="feature-block">
+      <div class="feature-header">
+        <span class="feature-tag tag-auth">AUTH</span>
+        <span class="feature-name">Login & Session Management</span>
+        <span class="badge badge-mvp" style="margin-left:auto">MVP</span>
+      </div>
+      <div class="feature-body">
+        <h4>Flow</h4>
+        <div class="flow">
+          <div class="flow-step">Enter email/phone + password</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">Credentials verified</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step green">Session created</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step blue">Redirect to Dashboard</div>
+        </div>
+        <div class="security-block">
+          <div class="sec-title">Security Measures — Login</div>
+          <div class="sec-item"><span class="sec-label">Brute Force Protection</span> Lock account for 15 minutes after 5 consecutive failed login attempts. Store attempt count in Redis with TTL. Use <code>django-axes</code> library.</div>
+          <div class="sec-item"><span class="sec-label">Rate Limiting</span> Max 10 login attempts per IP per minute. Return 429 with Retry-After header on breach.</div>
+          <div class="sec-item"><span class="sec-label">Session Security</span> Set <code>SESSION_COOKIE_SECURE=True</code>, <code>SESSION_COOKIE_HTTPONLY=True</code>, <code>SESSION_COOKIE_SAMESITE='Lax'</code>. Session expires after 24h of inactivity.</div>
+          <div class="sec-item"><span class="sec-label">Session Fixation</span> Rotate session ID on every login: call <code>request.session.cycle_key()</code> immediately after authentication.</div>
+          <div class="sec-item"><span class="sec-label">Concurrent Sessions</span> For MVP: allow. Log all active sessions. Phase 2: single-device enforcement with session invalidation.</div>
+          <div class="sec-item"><span class="sec-label">Login Notification</span> Send email/SMS alert on new login from unrecognized device or IP (fingerprint by User-Agent + IP).</div>
+          <div class="sec-item"><span class="sec-label">Timing Attack Prevention</span> Always run password check even if user not found (use <code>check_password</code> on dummy hash). Prevents username enumeration via response time.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="feature-block">
+      <div class="feature-header">
+        <span class="feature-tag tag-auth">AUTH</span>
+        <span class="feature-name">Transaction PIN</span>
+        <span class="badge badge-mvp" style="margin-left:auto">MVP</span>
+      </div>
+      <div class="feature-body">
+        <p>Every user must set a 4-digit Transaction PIN during onboarding. This PIN is required to authorize any financial action: VTU purchase, SMM order, wallet funding, or user-to-user transfer. It is separate from the login password.</p>
+        <div class="security-block">
+          <div class="sec-title">Security Measures — Transaction PIN</div>
+          <div class="sec-item"><span class="sec-label">PIN Storage</span> Store PIN as Argon2 hash — never plain text, never reversible. Treat it exactly like a password.</div>
+          <div class="sec-item"><span class="sec-label">PIN Brute Force</span> Lock financial actions for 30 minutes after 3 wrong PIN attempts. Alert user via SMS immediately on lock.</div>
+          <div class="sec-item"><span class="sec-label">PIN Reset</span> Require OTP to phone + email confirmation to reset PIN. Log PIN reset events with IP and timestamp.</div>
+          <div class="sec-item"><span class="sec-label">PIN Validation Timing</span> Validate PIN server-side using constant-time comparison (<code>hmac.compare_digest</code>) to prevent timing attacks.</div>
+          <div class="sec-item"><span class="sec-label">PIN Expiry on Transactions</span> A PIN confirmation token (generated post-PIN-entry) expires in 60 seconds. Use it as a one-time gate before executing the transaction.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 05 -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num-badge">05</span>
+      <span class="section-title">Module 2 — Wallet System & Funding</span>
+    </div>
+
+    <p>The wallet is the financial core of SubHero. Every user has exactly one wallet. All services are purchased by deducting from the wallet balance. The wallet is funded via a dedicated virtual bank account assigned to each user.</p>
+
+    <div class="callout callout-danger">
+      <span class="callout-icon">🚨</span>
+      <span><strong>Critical:</strong> The wallet balance field must NEVER be updated with a raw assignment (<code>wallet.balance = wallet.balance - amount</code>). This causes race conditions under concurrent requests. Always use <code>SELECT FOR UPDATE</code> with atomic transactions or Django's <code>F()</code> expressions at the database level.</span>
+    </div>
+
+    <div class="feature-block">
+      <div class="feature-header">
+        <span class="feature-tag tag-wallet">WALLET</span>
+        <span class="feature-name">Virtual Account Funding</span>
+        <span class="badge badge-mvp" style="margin-left:auto">MVP</span>
+      </div>
+      <div class="feature-body">
+        <h4>Flow</h4>
+        <div class="flow">
+          <div class="flow-step">User views their unique virtual account number</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">User sends bank transfer from any Nigerian bank</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step blue">Providus/Squad webhook fires (POST to SubHero)</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step green">Wallet credited, user notified</div>
+        </div>
+        <h4>Virtual Account Assignment</h4>
+        <ul>
+          <li>Each user gets a <strong>dedicated static virtual account number</strong> (assigned at registration)</li>
+          <li>The account is linked permanently to their SubHero wallet</li>
+          <li>Users can see their account number and bank name on the "Fund Wallet" page</li>
+          <li>Credit the user's wallet with the <strong>exact amount received</strong> — SubHero absorbs the provider's processing fee as a cost of business</li>
+        </ul>
+        <div class="security-block">
+          <div class="sec-title">Security Measures — Virtual Account & Webhooks</div>
+          <div class="sec-item"><span class="sec-label">Webhook Signature</span> Validate every inbound webhook using HMAC-SHA512 signature against the provider's secret key. Reject any request where signature doesn't match. Never process an unsigned webhook.</div>
+          <div class="sec-item"><span class="sec-label">Idempotency</span> Store the provider's transaction reference in DB with a unique constraint. If the same reference arrives twice (provider retry), return 200 OK but skip processing. This prevents double-crediting a user's wallet.</div>
+          <div class="sec-item"><span class="sec-label">Webhook IP Whitelist</span> Only accept webhook POST requests from the provider's documented IP ranges. Reject all others with 403.</div>
+          <div class="sec-item"><span class="sec-label">Webhook Endpoint Privacy</span> Use a non-guessable webhook URL path, e.g. <code>/webhooks/fund/sh-{random-32-char-token}/</code>. Never expose it publicly.</div>
+          <div class="sec-item"><span class="sec-label">Atomic Credit</span> Wrap the wallet credit inside <code>transaction.atomic()</code>. If any part fails (e.g. notification), the wallet credit rolls back and the webhook is retried by the provider.</div>
+          <div class="sec-item"><span class="sec-label">Amount Validation</span> Validate that the credited amount is positive, non-zero, and a reasonable number (reject amounts above ₦10 million as suspicious for manual review).</div>
+          <div class="sec-item"><span class="sec-label">Minimum Funding</span> Enforce a minimum fund amount of ₦100 to prevent wallet spam with micro-transactions.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="feature-block">
+      <div class="feature-header">
+        <span class="feature-tag tag-wallet">WALLET</span>
+        <span class="feature-name">Wallet Debit (Purchase Flow)</span>
+        <span class="badge badge-mvp" style="margin-left:auto">MVP</span>
+      </div>
+      <div class="feature-body">
+        <h4>Safe Debit Pattern — Mandatory for All Purchase Modules</h4>
+        <div class="code-block">
+<span class="comment"># apps/wallet/services.py — The ONLY approved way to debit a wallet</span>
+
+<span class="key">from</span> django.db <span class="key">import</span> transaction
+<span class="key">from</span> django.db.models <span class="key">import</span> F
+<span class="key">from</span> .models <span class="key">import</span> Wallet, WalletTransaction
+
+<span class="key">def</span> <span class="val">debit_wallet</span>(user, amount, description, reference, order_type):
+    <span class="key">with</span> transaction.atomic():
+        <span class="comment"># Lock the wallet row — prevents race conditions</span>
+        wallet = Wallet.objects.select_for_update().get(user=user)
+
+        <span class="comment"># Check balance AFTER acquiring lock</span>
+        <span class="key">if</span> wallet.balance < amount:
+            <span class="key">raise</span> <span class="type">InsufficientBalanceError</span>(<span class="val">"Insufficient balance"</span>)
+
+        <span class="comment"># Deduct using F() expression — atomic DB operation</span>
+        wallet.balance = F(<span class="val">'balance'</span>) - amount
+        wallet.save(update_fields=[<span class="val">'balance'</span>])
+
+        <span class="comment"># Write immutable ledger entry</span>
+        WalletTransaction.objects.create(
+            wallet=wallet,
+            amount=amount,
+            transaction_type=<span class="val">'DEBIT'</span>,
+            description=description,
+            reference=reference,
+            order_type=order_type
+        )
+    <span class="key">return</span> <span class="type">True</span>
+        </div>
+        <div class="security-block">
+          <div class="sec-title">Security Measures — Wallet Debit</div>
+          <div class="sec-item"><span class="sec-label">SELECT FOR UPDATE</span> Acquire a row-level lock on the user's wallet before reading balance. This prevents two concurrent requests from both reading the same balance and both succeeding on insufficient funds.</div>
+          <div class="sec-item"><span class="sec-label">Negative Balance Guard</span> Add a <code>CheckConstraint</code> at the DB level: <code>balance >= 0</code>. Even if application code has a bug, the database will reject any debit that would cause a negative balance.</div>
+          <div class="sec-item"><span class="sec-label">Atomic Rollback</span> If the service purchase fails after wallet debit (e.g. VTU API is down), the transaction rolls back and the wallet is NOT debited. If debited but service fails to deliver, an automatic refund credit is issued.</div>
+          <div class="sec-item"><span class="sec-label">PIN Gate</span> No wallet debit can occur without prior PIN validation in the same request session. Validate PIN before acquiring the wallet lock.</div>
+          <div class="sec-item"><span class="sec-label">Decimal Precision</span> Store all monetary values as <code>DecimalField(max_digits=12, decimal_places=2)</code>. Never use float for money. Never do arithmetic in Python — use DB-level operations.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 06 -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num-badge">06</span>
+      <span class="section-title">Module 3 — VTU Services</span>
+    </div>
+
+    <p>VTU services cover Data Bundles, Airtime Top-Up, Electricity Tokens, and Cable TV subscriptions. All are fulfilled via the <strong>VTUPass API</strong>. All purchases follow the same secure flow.</p>
+
+    <div class="feature-block">
+      <div class="feature-header">
+        <span class="feature-tag tag-vtu">VTU</span>
+        <span class="feature-name">Purchase Flow — All VTU Services</span>
+        <span class="badge badge-mvp" style="margin-left:auto">MVP</span>
+      </div>
+      <div class="feature-body">
+        <div class="flow">
+          <div class="flow-step">User selects service + inputs details</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">Preview shown (amount, recipient)</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">User enters PIN</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">Wallet debited atomically</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step blue">VTU API called (Celery task)</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step green">Success → Receipt</div>
+        </div>
+        <div class="flow" style="margin-top:8px">
+          <div class="flow-step">VTU API fails</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step red">Automatic refund credit issued</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">User notified with failure reason</div>
+        </div>
+
+        <h4>Services & Catalogue</h4>
+        <table>
+          <tr><th>Service</th><th>Input Fields</th><th>VTUPass Endpoint</th></tr>
+          <tr><td>Data Bundle</td><td>Network (MTN/Airtel/Glo/9mobile), plan, phone number</td><td><code>/pay</code> with serviceID=mtn-data etc.</td></tr>
+          <tr><td>Airtime</td><td>Network, phone number, amount</td><td><code>/pay</code> with serviceID=mtn etc.</td></tr>
+          <tr><td>Electricity Token</td><td>Disco (IKEDC/EKEDC etc.), meter number, amount, meter type</td><td><code>/pay</code> with serviceID=ikeja-electric etc.</td></tr>
+          <tr><td>Cable TV</td><td>Provider (DStv/GOtv/Startimes), smartcard number, plan</td><td><code>/pay</code> with serviceID=dstv etc.</td></tr>
+        </table>
+
+        <div class="security-block">
+          <div class="sec-title">Security Measures — VTU Module</div>
+          <div class="sec-item"><span class="sec-label">Idempotency Key</span> Generate a unique <code>request_id</code> UUID per purchase attempt. Pass it to VTUPass. Store it in DB before API call. If the same UUID appears again (e.g. user double-clicks), reject the second attempt immediately.</div>
+          <div class="sec-item"><span class="sec-label">Input Validation</span> Validate phone numbers (Nigerian format), meter numbers (format per DISCO), and smartcard numbers server-side before calling the API. Never pass raw user input directly to VTUPass.</div>
+          <div class="sec-item"><span class="sec-label">Amount Bounds</span> Enforce minimum (₦50) and maximum (₦50,000 per transaction) purchase limits. Reject out-of-range amounts before wallet debit.</div>
+          <div class="sec-item"><span class="sec-label">Async Execution</span> Execute VTUPass API calls via Celery task — not in the request thread. This prevents timeout-based exploits where users refresh mid-transaction.</div>
+          <div class="sec-item"><span class="sec-label">Order Status Locking</span> Mark order as PROCESSING before API call. Prevent a second API call for the same order ID. Order states: PENDING → PROCESSING → COMPLETED / FAILED.</div>
+          <div class="sec-item"><span class="sec-label">Refund Atomicity</span> If API returns failure, credit refund inside the same atomic block as the failure status update. No partial states: either user gets service OR gets refund — never neither.</div>
+          <div class="sec-item"><span class="sec-label">VTUPass Credential Storage</span> Store VTUPass API key and password in environment variables only. Never hardcode or commit to version control.</div>
+          <div class="sec-item"><span class="sec-label">Response Verification</span> Always verify the VTUPass response status field. A 200 HTTP status does not mean success — VTUPass returns status codes in the body. Check <code>response.code == "000"</code> for success.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 07 -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num-badge">07</span>
+      <span class="section-title">Module 4 — SMM Panel</span>
+    </div>
+
+    <p>The SMM module allows users to purchase social media growth services (followers, likes, views, comments, subscribers) via the <strong>JustAnotherPanel (JAP) API</strong>. SubHero buys wholesale and sells at markup. Services are ordered by submitting a URL target and quantity.</p>
+
+    <div class="feature-block">
+      <div class="feature-header">
+        <span class="feature-tag tag-smm">SMM</span>
+        <span class="feature-name">SMM Service Catalogue & Orders</span>
+        <span class="badge badge-mvp" style="margin-left:auto">MVP</span>
+      </div>
+      <div class="feature-body">
+        <h4>Catalogue Sync Strategy</h4>
+        <p>Run a Celery periodic task (every 24 hours) to sync the SMM service catalogue from JAP API. Store services in the <code>SMMService</code> model with SubHero's markup price applied. Admin can toggle any service active/inactive from Django admin.</p>
+
+        <div class="flow">
+          <div class="flow-step">User browses SMM catalogue by platform</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">Selects service + enters profile URL + quantity</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">PIN confirmation</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">Wallet debited</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step blue">Order submitted to JAP</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step green">Order ID saved, status tracked</div>
+        </div>
+
+        <h4>Order Status Polling</h4>
+        <p>A Celery beat task polls JAP every 10 minutes for all orders in PENDING/PROCESSING state and updates their status. Users can see live status on their order history page.</p>
+
+        <div class="security-block">
+          <div class="sec-title">Security Measures — SMM Module</div>
+          <div class="sec-item"><span class="sec-label">URL Validation</span> Validate that the submitted link is a real, well-formed URL pointing to the correct platform domain (e.g. instagram.com, tiktok.com). Reject any URL containing unusual characters, localhost, internal IPs, or non-matching domains. Use a whitelist of allowed domains per service.</div>
+          <div class="sec-item"><span class="sec-label">SSRF Prevention</span> Never fetch the user-submitted URL from the server. Only pass it as a string to the JAP API. Never use it in server-side requests that SubHero itself makes. This prevents Server-Side Request Forgery attacks.</div>
+          <div class="sec-item"><span class="sec-label">Quantity Bounds</span> Enforce per-service min/max quantity bounds as defined in the service catalogue. Reject out-of-bounds quantities before processing payment.</div>
+          <div class="sec-item"><span class="sec-label">Order Idempotency</span> Generate a unique reference per order attempt. Prevent the same order from being submitted twice if user double-submits.</div>
+          <div class="sec-item"><span class="sec-label">JAP API Key Storage</span> Store JAP API key in environment variables. Rotate key immediately if suspected compromise.</div>
+          <div class="sec-item"><span class="sec-label">Markup Integrity</span> SubHero price is calculated and stored at order time — not re-fetched from JAP at payment time. This prevents price manipulation if catalogue sync lags.</div>
+          <div class="sec-item"><span class="sec-label">Refund on JAP Failure</span> If JAP returns an error on order creation, auto-refund the wallet immediately. If order status becomes CANCELLED after creation, trigger a refund via the wallet credit system.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 08 -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num-badge">08</span>
+      <span class="section-title">Module 5 — User-to-User Transfers</span>
+    </div>
+
+    <p>SubHero users can send wallet balance to other SubHero users instantly and <strong>completely fee-free</strong>. This is an internal ledger operation — no third-party payment processor is involved. Money moves between SubHero wallets only.</p>
+
+    <div class="feature-block">
+      <div class="feature-header">
+        <span class="feature-tag tag-transfer">TRANSFER</span>
+        <span class="feature-name">Internal User-to-User Transfer</span>
+        <span class="badge badge-mvp" style="margin-left:auto">MVP</span>
+      </div>
+      <div class="feature-body">
+        <h4>Flow</h4>
+        <div class="flow">
+          <div class="flow-step">Enter recipient (phone number or username)</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">System shows recipient name for confirmation</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">Enter amount + note (optional)</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">Enter Transaction PIN</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step green">Atomic: debit sender, credit recipient</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step blue">Both users notified instantly</div>
+        </div>
+        <h4>Key Rules</h4>
+        <ul>
+          <li>Transfers are <strong>zero fee</strong> for both sender and recipient</li>
+          <li>Minimum transfer: ₦50. Maximum per transfer: ₦100,000 (anti-fraud limit for MVP)</li>
+          <li>Max 10 transfers per user per 24-hour period (anti-abuse limit)</li>
+          <li>Recipient lookup is by phone number or SubHero username — display name before confirmation</li>
+        </ul>
+
+        <div class="security-block">
+          <div class="sec-title">Security Measures — User-to-User Transfers</div>
+          <div class="sec-item"><span class="sec-label">Atomic Double-Entry</span> Debit sender and credit recipient inside a single <code>transaction.atomic()</code> block with <code>SELECT FOR UPDATE</code> on BOTH wallets. Both wallets are locked before any balance change occurs. If either operation fails, both roll back.</div>
+          <div class="sec-item"><span class="sec-label">Deadlock Prevention</span> Always lock wallet rows in a consistent order (by wallet ID, ascending) to prevent deadlocks when two users transfer to each other simultaneously.</div>
+          <div class="sec-item"><span class="sec-label">Self-Transfer Block</span> Server-side check: if <code>sender.id == recipient.id</code>, reject immediately. Never allow a user to transfer to themselves.</div>
+          <div class="sec-item"><span class="sec-label">PIN Requirement</span> Transaction PIN is mandatory for all transfers — no exceptions. Even small transfers require PIN confirmation.</div>
+          <div class="sec-item"><span class="sec-label">Daily Transfer Limit</span> Enforce maximum 10 outgoing transfers and ₦500,000 total daily transfer volume per user. Check against Redis counter with 24h TTL before processing. Block if exceeded.</div>
+          <div class="sec-item"><span class="sec-label">Idempotency Key</span> Generate a transfer idempotency key combining sender_id + recipient_id + amount + timestamp-minute. If exact same key seen within 60 seconds, reject as duplicate. Prevents accidental double-tap submissions.</div>
+          <div class="sec-item"><span class="sec-label">Recipient Confirmation</span> Always display recipient's registered name before PIN entry. Never process transfer to an account without displaying who the money is going to.</div>
+          <div class="sec-item"><span class="sec-label">Velocity Alerts</span> If a user makes 5+ transfers in under 10 minutes, flag the account for review and optionally require re-authentication before continuing.</div>
+          <div class="sec-item"><span class="sec-label">Immutable Ledger</span> Create a <code>TransferRecord</code> entry linking sender, recipient, amount, timestamp, and reference. This record is never deleted or updated — only the status field changes (PENDING → COMPLETED).</div>
+          <div class="sec-item"><span class="sec-label">Minimum Balance Guard</span> After debit, sender's balance must remain ≥ ₦0. DB constraint enforces this independently of application code.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 09 -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num-badge">09</span>
+      <span class="section-title">Module 6 — Dashboard & Transaction History</span>
+    </div>
+
+    <div class="feature-block">
+      <div class="feature-header">
+        <span class="feature-tag tag-system">DASHBOARD</span>
+        <span class="feature-name">User Dashboard</span>
+        <span class="badge badge-mvp" style="margin-left:auto">MVP</span>
+      </div>
+      <div class="feature-body">
+        <h4>Dashboard Components</h4>
+        <ul>
+          <li><strong>Wallet Balance Card</strong> — show/hide toggle (balance hidden by default, revealed on tap)</li>
+          <li><strong>Quick-Buy Shortcuts</strong> — last 3 used services (populated from transaction history)</li>
+          <li><strong>Recent Transactions</strong> — last 5 transactions with type icon and status</li>
+          <li><strong>Notification Bell</strong> — unread count badge, click to see all alerts</li>
+          <li><strong>Virtual Account Card</strong> — account number + bank name for funding</li>
+        </ul>
+        <div class="security-block">
+          <div class="sec-title">Security Measures — Dashboard</div>
+          <div class="sec-item"><span class="sec-label">Balance Masking</span> Default to showing masked balance (e.g. ₦••••••). User must actively tap "Show Balance". This prevents shoulder-surfing in public.</div>
+          <div class="sec-item"><span class="sec-label">Login Required</span> All dashboard views decorated with <code>@login_required</code>. Any unauthenticated access redirects to login.</div>
+          <div class="sec-item"><span class="sec-label">Data Ownership</span> Every query on the dashboard is scoped to <code>request.user</code>. Never use user-supplied IDs to look up other users' data. Always filter by the authenticated user's ID.</div>
+          <div class="sec-item"><span class="sec-label">No Sensitive Data in URL</span> Never include wallet balance, transaction amounts, or personal data in URL parameters or query strings.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="feature-block">
+      <div class="feature-header">
+        <span class="feature-tag tag-system">HISTORY</span>
+        <span class="feature-name">Transaction History</span>
+        <span class="badge badge-mvp" style="margin-left:auto">MVP</span>
+      </div>
+      <div class="feature-body">
+        <h4>Features</h4>
+        <ul>
+          <li>Full paginated history of all wallet events (credits, debits, transfers)</li>
+          <li>Filterable by type: All / VTU / SMM / Transfer / Funding</li>
+          <li>Filterable by status: All / Completed / Pending / Failed</li>
+          <li>Date range filter</li>
+          <li>Each transaction has a unique reference ID, timestamp, type, amount, status, and description</li>
+          <li>Tap any transaction to see full details (receipt view)</li>
+        </ul>
+        <div class="security-block">
+          <div class="sec-title">Security Measures — Transaction History</div>
+          <div class="sec-item"><span class="sec-label">Immutability</span> Transaction records are never updated or deleted after creation. If a status changes (e.g. PENDING → FAILED), write a new event — don't overwrite the old one.</div>
+          <div class="sec-item"><span class="sec-label">IDOR Prevention</span> Never expose transaction detail by raw ID in URL (<code>/transactions/123/</code>). Use the user-scoped reference string instead (<code>/transactions/TXN-SH-XXXXXXXX/</code>) and always verify <code>transaction.user == request.user</code> server-side.</div>
+          <div class="sec-item"><span class="sec-label">Pagination Limits</span> Cap results at 50 per page. Prevent bulk data extraction via large page sizes.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 10 -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num-badge">10</span>
+      <span class="section-title">Data Models</span>
+    </div>
+
+    <div class="model-block">
+      <div class="model-title">accounts.User (Extended AbstractUser)</div>
+      <div class="model-body">
+<span class="model-field">id</span>                  <span class="model-type">UUIDField</span>        <span class="model-comment"># primary key — never auto-increment int</span>
+<span class="model-field">email</span>               <span class="model-type">EmailField</span>       <span class="model-comment"># unique=True</span>
+<span class="model-field">phone</span>               <span class="model-type">CharField</span>        <span class="model-comment"># unique=True, normalized to +234 format</span>
+<span class="model-field">username</span>            <span class="model-type">CharField</span>        <span class="model-comment"># unique=True, public-facing handle</span>
+<span class="model-field">full_name</span>           <span class="model-type">CharField</span>        
+<span class="model-field">avatar</span>              <span class="model-type">ImageField</span>       <span class="model-comment"># stored on S3/Cloudinary</span>
+<span class="model-field">transaction_pin</span>     <span class="model-type">CharField</span>        <span class="model-comment"># Argon2 hashed, never raw</span>
+<span class="model-field">pin_set</span>             <span class="model-type">BooleanField</span>     <span class="model-comment"># False until user sets PIN</span>
+<span class="model-field">is_verified</span>         <span class="model-type">BooleanField</span>     <span class="model-comment"># True after OTP verification</span>
+<span class="model-field">failed_pin_attempts</span> <span class="model-type">IntegerField</span>     <span class="model-comment"># reset on success</span>
+<span class="model-field">pin_locked_until</span>    <span class="model-type">DateTimeField</span>    <span class="model-comment"># null if not locked</span>
+<span class="model-field">created_at</span>          <span class="model-type">DateTimeField</span>    <span class="model-comment"># auto_now_add=True</span>
+      </div>
+    </div>
+
+    <div class="model-block">
+      <div class="model-title">wallet.Wallet</div>
+      <div class="model-body">
+<span class="model-field">id</span>                  <span class="model-type">UUIDField</span>        <span class="model-comment"># primary key</span>
+<span class="model-field">user</span>                <span class="model-type">OneToOneField</span>    <span class="model-comment"># User — one wallet per user</span>
+<span class="model-field">balance</span>             <span class="model-type">DecimalField</span>     <span class="model-comment"># max_digits=12, decimal_places=2, default=0.00</span>
+<span class="model-field">virtual_account_no</span>  <span class="model-type">CharField</span>        <span class="model-comment"># assigned on registration, unique</span>
+<span class="model-field">virtual_bank_name</span>   <span class="model-type">CharField</span>        <span class="model-comment"># e.g. "Providus Bank"</span>
+<span class="model-field">is_active</span>           <span class="model-type">BooleanField</span>     <span class="model-comment"># admin can freeze wallet</span>
+<span class="model-field">updated_at</span>          <span class="model-type">DateTimeField</span>    <span class="model-comment"># auto_now=True</span>
+
+<span class="model-comment"># DB Constraint (must be enforced at migration level):</span>
+<span class="model-comment"># CheckConstraint(check=Q(balance__gte=0), name='wallet_balance_non_negative')</span>
+      </div>
+    </div>
+
+    <div class="model-block">
+      <div class="model-title">wallet.WalletTransaction (Immutable Ledger)</div>
+      <div class="model-body">
+<span class="model-field">id</span>                  <span class="model-type">UUIDField</span>        <span class="model-comment"># primary key</span>
+<span class="model-field">wallet</span>              <span class="model-type">ForeignKey</span>       <span class="model-comment"># Wallet</span>
+<span class="model-field">transaction_type</span>    <span class="model-type">CharField</span>        <span class="model-comment"># CREDIT / DEBIT</span>
+<span class="model-field">amount</span>              <span class="model-type">DecimalField</span>     <span class="model-comment"># always positive</span>
+<span class="model-field">balance_before</span>      <span class="model-type">DecimalField</span>     <span class="model-comment"># snapshot before transaction</span>
+<span class="model-field">balance_after</span>       <span class="model-type">DecimalField</span>     <span class="model-comment"># snapshot after transaction</span>
+<span class="model-field">reference</span>           <span class="model-type">CharField</span>        <span class="model-comment"># unique, format: TXN-SH-{UUID}</span>
+<span class="model-field">order_type</span>          <span class="model-type">CharField</span>        <span class="model-comment"># VTU / SMM / TRANSFER / FUNDING / REFUND</span>
+<span class="model-field">description</span>         <span class="model-type">TextField</span>        
+<span class="model-field">status</span>              <span class="model-type">CharField</span>        <span class="model-comment"># PENDING / COMPLETED / FAILED</span>
+<span class="model-field">ip_address</span>          <span class="model-type">GenericIPAddressField</span>  <span class="model-comment"># requester IP</span>
+<span class="model-field">created_at</span>          <span class="model-type">DateTimeField</span>    <span class="model-comment"># auto_now_add=True — NEVER EDITABLE</span>
+      </div>
+    </div>
+
+    <div class="model-block">
+      <div class="model-title">vtu.VTUOrder</div>
+      <div class="model-body">
+<span class="model-field">id</span>                  <span class="model-type">UUIDField</span>
+<span class="model-field">user</span>                <span class="model-type">ForeignKey</span>       <span class="model-comment"># User</span>
+<span class="model-field">service_type</span>        <span class="model-type">CharField</span>        <span class="model-comment"># DATA / AIRTIME / ELECTRICITY / CABLE</span>
+<span class="model-field">network</span>             <span class="model-type">CharField</span>        <span class="model-comment"># MTN / AIRTEL / GLO / 9MOBILE</span>
+<span class="model-field">recipient</span>           <span class="model-type">CharField</span>        <span class="model-comment"># phone, meter no, smartcard no</span>
+<span class="model-field">amount</span>              <span class="model-type">DecimalField</span>     
+<span class="model-field">wallet_transaction</span>  <span class="model-type">OneToOneField</span>    <span class="model-comment"># WalletTransaction</span>
+<span class="model-field">vtupass_reference</span>   <span class="model-type">CharField</span>        <span class="model-comment"># unique — idempotency key sent to VTUPass</span>
+<span class="model-field">vtupass_order_id</span>    <span class="model-type">CharField</span>        <span class="model-comment"># returned by VTUPass</span>
+<span class="model-field">status</span>              <span class="model-type">CharField</span>        <span class="model-comment"># PENDING / PROCESSING / COMPLETED / FAILED</span>
+<span class="model-field">token</span>               <span class="model-type">TextField</span>        <span class="model-comment"># electricity token if applicable</span>
+<span class="model-field">created_at</span>          <span class="model-type">DateTimeField</span>
+      </div>
+    </div>
+
+    <div class="model-block">
+      <div class="model-title">smm.SMMService & smm.SMMOrder</div>
+      <div class="model-body">
+<span class="model-comment"># SMMService — synced from JAP, editable in admin</span>
+<span class="model-field">id</span>                  <span class="model-type">UUIDField</span>
+<span class="model-field">jap_service_id</span>      <span class="model-type">IntegerField</span>     <span class="model-comment"># JAP's internal service ID</span>
+<span class="model-field">name</span>                <span class="model-type">CharField</span>
+<span class="model-field">platform</span>           <span class="model-type">CharField</span>        <span class="model-comment"># instagram / tiktok / youtube etc.</span>
+<span class="model-field">category</span>           <span class="model-type">CharField</span>        <span class="model-comment"># followers / likes / views / comments</span>
+<span class="model-field">wholesale_price</span>    <span class="model-type">DecimalField</span>     <span class="model-comment"># price from JAP per 1000 units</span>
+<span class="model-field">retail_price</span>       <span class="model-type">DecimalField</span>     <span class="model-comment"># SubHero price (includes markup)</span>
+<span class="model-field">min_quantity</span>       <span class="model-type">IntegerField</span>
+<span class="model-field">max_quantity</span>       <span class="model-type">IntegerField</span>
+<span class="model-field">is_active</span>          <span class="model-type">BooleanField</span>     <span class="model-comment"># admin-toggleable</span>
+
+<span class="model-comment"># SMMOrder</span>
+<span class="model-field">id</span>                  <span class="model-type">UUIDField</span>
+<span class="model-field">user</span>                <span class="model-type">ForeignKey</span>
+<span class="model-field">service</span>             <span class="model-type">ForeignKey</span>       <span class="model-comment"># SMMService</span>
+<span class="model-field">target_url</span>          <span class="model-type">URLField</span>         <span class="model-comment"># validated, platform-matched</span>
+<span class="model-field">quantity</span>            <span class="model-type">IntegerField</span>
+<span class="model-field">amount_charged</span>      <span class="model-type">DecimalField</span>     <span class="model-comment"># locked at order time</span>
+<span class="model-field">wallet_transaction</span>  <span class="model-type">OneToOneField</span>
+<span class="model-field">jap_order_id</span>        <span class="model-type">CharField</span>        <span class="model-comment"># returned by JAP</span>
+<span class="model-field">status</span>              <span class="model-type">CharField</span>        <span class="model-comment"># PENDING / PROCESSING / COMPLETED / PARTIAL / CANCELLED / FAILED</span>
+<span class="model-field">created_at</span>          <span class="model-type">DateTimeField</span>
+      </div>
+    </div>
+
+    <div class="model-block">
+      <div class="model-title">transfers.Transfer</div>
+      <div class="model-body">
+<span class="model-field">id</span>                  <span class="model-type">UUIDField</span>
+<span class="model-field">sender</span>              <span class="model-type">ForeignKey</span>       <span class="model-comment"># User</span>
+<span class="model-field">recipient</span>           <span class="model-type">ForeignKey</span>       <span class="model-comment"># User</span>
+<span class="model-field">amount</span>              <span class="model-type">DecimalField</span>
+<span class="model-field">note</span>                <span class="model-type">CharField</span>        <span class="model-comment"># optional message, max 100 chars</span>
+<span class="model-field">reference</span>           <span class="model-type">CharField</span>        <span class="model-comment"># unique: TRF-SH-{UUID}</span>
+<span class="model-field">sender_transaction</span>  <span class="model-type">OneToOneField</span>    <span class="model-comment"># WalletTransaction (DEBIT)</span>
+<span class="model-field">recipient_transaction</span> <span class="model-type">OneToOneField</span>  <span class="model-comment"># WalletTransaction (CREDIT)</span>
+<span class="model-field">idempotency_key</span>     <span class="model-type">CharField</span>        <span class="model-comment"># unique, prevents double-submit</span>
+<span class="model-field">ip_address</span>          <span class="model-type">GenericIPAddressField</span>
+<span class="model-field">created_at</span>          <span class="model-type">DateTimeField</span>    <span class="model-comment"># auto_now_add — immutable</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 11 -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num-badge">11</span>
+      <span class="section-title">Global Security Measures</span>
+    </div>
+
+    <p>These measures apply to the entire platform — not just individual modules. Every developer must implement and verify all of these before the platform goes live.</p>
+
+    <h3>Django Security Settings (Mandatory in Production)</h3>
+    <div class="code-block">
+<span class="comment"># config/settings/prod.py — MANDATORY security settings</span>
+
+<span class="key">DEBUG</span> = <span class="type">False</span>                              <span class="comment"># NEVER True in production</span>
+<span class="key">SECRET_KEY</span> = os.environ[<span class="val">'DJANGO_SECRET_KEY'</span>]  <span class="comment"># 64+ char random string from env</span>
+<span class="key">ALLOWED_HOSTS</span> = [<span class="val">'subhero.com.ng'</span>, <span class="val">'www.subhero.com.ng'</span>]
+
+<span class="comment"># HTTPS enforcement</span>
+<span class="key">SECURE_SSL_REDIRECT</span> = <span class="type">True</span>
+<span class="key">SECURE_HSTS_SECONDS</span> = 31536000           <span class="comment"># 1 year HSTS</span>
+<span class="key">SECURE_HSTS_INCLUDE_SUBDOMAINS</span> = <span class="type">True</span>
+<span class="key">SECURE_HSTS_PRELOAD</span> = <span class="type">True</span>
+<span class="key">SESSION_COOKIE_SECURE</span> = <span class="type">True</span>
+<span class="key">CSRF_COOKIE_SECURE</span> = <span class="type">True</span>
+
+<span class="comment"># Cookie security</span>
+<span class="key">SESSION_COOKIE_HTTPONLY</span> = <span class="type">True</span>
+<span class="key">CSRF_COOKIE_HTTPONLY</span> = <span class="type">True</span>
+<span class="key">SESSION_COOKIE_SAMESITE</span> = <span class="val">'Lax'</span>
+<span class="key">CSRF_COOKIE_SAMESITE</span> = <span class="val">'Lax'</span>
+
+<span class="comment"># Clickjacking protection</span>
+<span class="key">X_FRAME_OPTIONS</span> = <span class="val">'DENY'</span>
+
+<span class="comment"># Content-type sniffing</span>
+<span class="key">SECURE_CONTENT_TYPE_NOSNIFF</span> = <span class="type">True</span>
+
+<span class="comment"># Password hashing — Argon2 first</span>
+<span class="key">PASSWORD_HASHERS</span> = [
+    <span class="val">'django.contrib.auth.hashers.Argon2PasswordHasher'</span>,
+    <span class="val">'django.contrib.auth.hashers.BCryptSHA256PasswordHasher'</span>,
+]
+    </div>
+
+    <h3>Rate Limiting Strategy</h3>
+    <table>
+      <tr><th>Endpoint</th><th>Limit</th><th>Window</th><th>Action on Breach</th></tr>
+      <tr><td>POST /auth/login/</td><td>10 attempts</td><td>Per IP, per minute</td><td>429 + account lock after 5 failures</td></tr>
+      <tr><td>POST /auth/register/</td><td>5 registrations</td><td>Per IP, per hour</td><td>429 — silent block</td></tr>
+      <tr><td>POST /auth/otp/request/</td><td>3 OTPs</td><td>Per phone, per 10 min</td><td>429 + cooldown message</td></tr>
+      <tr><td>POST /vtu/purchase/</td><td>20 orders</td><td>Per user, per hour</td><td>429 — temporary block</td></tr>
+      <tr><td>POST /smm/order/</td><td>30 orders</td><td>Per user, per hour</td><td>429 — temporary block</td></tr>
+      <tr><td>POST /transfers/send/</td><td>10 transfers</td><td>Per user, per 24h</td><td>Hard block until reset</td></tr>
+      <tr><td>GET /api/* (general)</td><td>200 requests</td><td>Per IP, per minute</td><td>429</td></tr>
+    </table>
+    <p>Use <code>django-ratelimit</code> or implement via Redis with a sliding window counter. Apply limits at the view level with decorator or middleware.</p>
+
+    <h3>Input Validation & Sanitization</h3>
+    <div class="security-block">
+      <div class="sec-title">Cross-Platform Input Rules</div>
+      <div class="sec-item"><span class="sec-label">SQL Injection</span> Django ORM prevents SQL injection by default. Never use raw SQL strings with user input. If raw SQL is necessary, always use parameterized queries: <code>cursor.execute("SELECT * FROM x WHERE id = %s", [user_id])</code></div>
+      <div class="sec-item"><span class="sec-label">XSS Prevention</span> Django templates auto-escape all variables. Never use <code>{{ var | safe }}</code> on user-generated content. For rich text, use bleach library with a strict allowlist.</div>
+      <div class="sec-item"><span class="sec-label">CSRF Protection</span> Django's CSRF middleware is enabled globally. All POST forms include <code>{% csrf_token %}</code>. All HTMX requests include CSRF header via <code>hx-headers</code>.</div>
+      <div class="sec-item"><span class="sec-label">File Uploads</span> Validate file type by magic bytes (not extension). Restrict avatar uploads to image/* types only. Scan uploads with a content type validator before saving to S3.</div>
+      <div class="sec-item"><span class="sec-label">Amount Fields</span> Always parse monetary amounts as <code>Decimal</code> from string — never from float. Reject negative values, zero values, and values with more than 2 decimal places at form validation level.</div>
+    </div>
+
+    <h3>Sensitive Data Handling</h3>
+    <table>
+      <tr><th>Data Type</th><th>Storage Rule</th><th>Display Rule</th></tr>
+      <tr><td>Passwords</td><td>Argon2 hash only — never plain text</td><td>Never displayed</td></tr>
+      <tr><td>Transaction PINs</td><td>Argon2 hash only</td><td>Never displayed</td></tr>
+      <tr><td>API Keys (VTUPass, JAP)</td><td>Environment variables only</td><td>Never in logs or responses</td></tr>
+      <tr><td>Webhook secrets</td><td>Environment variables only</td><td>Never logged</td></tr>
+      <tr><td>Wallet Balance</td><td>DB, encrypted at rest</td><td>Masked by default</td></tr>
+      <tr><td>Phone numbers</td><td>DB plaintext (needed for SMS)</td><td>Mask in UI: +234***8901</td></tr>
+      <tr><td>Virtual account number</td><td>DB plaintext</td><td>Show in full only on Fund Wallet page</td></tr>
+      <tr><td>OTP codes</td><td>Hashed in Redis, TTL 5min</td><td>Never — one-way flow</td></tr>
+    </table>
+
+    <h3>Logging & Audit Trail</h3>
+    <div class="security-block">
+      <div class="sec-title">What Must Be Logged — Every Event</div>
+      <div class="sec-item"><span class="sec-label">Financial Events</span> Every wallet debit, credit, transfer, and refund — with user ID, amount, balance before/after, reference, IP, timestamp.</div>
+      <div class="sec-item"><span class="sec-label">Auth Events</span> Every login (success + failure), logout, PIN change, password reset, OTP request — with IP, user agent, timestamp.</div>
+      <div class="sec-item"><span class="sec-label">Webhook Events</span> Every inbound webhook — payload hash, signature validation result (pass/fail), processing outcome, IP.</div>
+      <div class="sec-item"><span class="sec-label">Failed Attempts</span> Every failed PIN attempt, failed login, rate limit breach — with IP and timestamp. Used for fraud detection.</div>
+      <div class="sec-item"><span class="sec-label">Log Storage</span> Use Python's logging module with a structured JSON formatter. Ship logs to a separate service (Papertrail, Logtail, or AWS CloudWatch). Never store logs only on the application server.</div>
+      <div class="sec-item"><span class="sec-label">No Secrets in Logs</span> Scrub all logs to remove passwords, PINs, API keys, and full card numbers before writing. Use a log sanitizer middleware.</div>
+    </div>
+  </div>
+
+  <!-- SECTION 12 -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num-badge">12</span>
+      <span class="section-title">Infrastructure & Deployment Security</span>
+    </div>
+
+    <h3>Server Hardening (VPS)</h3>
+    <table>
+      <tr><th>Area</th><th>Action Required</th></tr>
+      <tr><td>SSH Access</td><td>Key-based authentication only. Disable password login. Disable root SSH login. Change default SSH port.</td></tr>
+      <tr><td>Firewall (UFW)</td><td>Allow only ports 80 (HTTP), 443 (HTTPS), and custom SSH port. Block all others by default.</td></tr>
+      <tr><td>Fail2Ban</td><td>Install and configure to ban IPs with 5+ failed SSH attempts or 10+ failed login requests in 5 minutes.</td></tr>
+      <tr><td>System Updates</td><td>Enable unattended-upgrades for security patches. Review and apply OS updates monthly.</td></tr>
+      <tr><td>Database Access</td><td>PostgreSQL must NOT be exposed on a public port. Only accessible on localhost or via private network. Strong password, dedicated DB user per app.</td></tr>
+      <tr><td>Redis Access</td><td>Bind Redis to localhost only. Set a strong Redis password. Never expose Redis publicly.</td></tr>
+      <tr><td>Environment Variables</td><td>Store all secrets in <code>.env</code> file, never committed to Git. Use <code>python-decouple</code> or <code>django-environ</code> to load them.</td></tr>
+      <tr><td>SSL Certificate</td><td>Use Let's Encrypt with auto-renewal via Certbot. Configure Nginx to redirect all HTTP to HTTPS.</td></tr>
+    </table>
+
+    <h3>Nginx Security Headers</h3>
+    <div class="code-block">
+<span class="comment"># /etc/nginx/sites-available/subhero — Security headers</span>
+add_header Strict-Transport-Security <span class="val">"max-age=31536000; includeSubDomains; preload"</span>;
+add_header X-Frame-Options <span class="val">"DENY"</span>;
+add_header X-Content-Type-Options <span class="val">"nosniff"</span>;
+add_header X-XSS-Protection <span class="val">"1; mode=block"</span>;
+add_header Referrer-Policy <span class="val">"strict-origin-when-cross-origin"</span>;
+add_header Content-Security-Policy <span class="val">"default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self';"</span>;
+add_header Permissions-Policy <span class="val">"geolocation=(), microphone=(), camera=()"</span>;
+
+<span class="comment"># Hide server version</span>
+server_tokens off;
+    </div>
+
+    <h3>Build Phase Summary & What Devs Should Know</h3>
+    <table>
+      <tr><th>Week</th><th>Build Target</th><th>Security Deliverable</th></tr>
+      <tr><td>Week 1</td><td>accounts app + wallet app + virtual account setup</td><td>Argon2 PIN hashing, OTP rate limiting, wallet DB constraint, webhook signature validation</td></tr>
+      <tr><td>Week 2</td><td>VTU module + VTUPass integration</td><td>Idempotency keys, atomic debit/refund, input validation, Celery task queue</td></tr>
+      <tr><td>Week 3</td><td>SMM module + JAP integration + transfers module</td><td>URL whitelist validation, SSRF prevention, transfer deadlock guard, transfer velocity limits</td></tr>
+      <tr><td>Week 4</td><td>Dashboard, history, notifications, UI polish</td><td>IDOR checks, balance masking, rate limiting middleware, security headers, logging pipeline</td></tr>
+      <tr><td>Pre-launch</td><td>Penetration testing + code review</td><td>Full security audit against all items in this PRD. No launch until all CRITICAL items pass.</td></tr>
+    </table>
+
+    <div class="callout callout-success">
+      <span class="callout-icon">✅</span>
+      <span><strong>Pre-Launch Checklist:</strong> DEBUG=False · HTTPS enforced · All secrets in env vars · Webhook signatures validated · SELECT FOR UPDATE on all wallet debits · Rate limiting active · Balance DB constraint in place · Argon2 PIN hashing confirmed · No raw SQL with user input · CSRF tokens on all forms · Logging pipeline operational · Fail2Ban configured · Redis and PostgreSQL not publicly exposed.</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- FOOTER -->
+<div class="doc-footer">
+  <div><strong>SubHero PRD v1.0</strong> — SubVerse Suite · Confidential & Internal</div>
+  <div>Django + PostgreSQL + Tailwind · April 2026</div>
+  <div>Questions → SubHero Dev Team</div>
+</div>
+
+</body>
+</html>

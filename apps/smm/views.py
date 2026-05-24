@@ -1,75 +1,69 @@
-"""
-SMM — Views
-===========
-"""
-
 from decimal import Decimal
 import logging
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.cache import cache
+from django.db import transaction
 from django.shortcuts import render, redirect
 from django.views import View
 
 from apps.core.mixins import PinRequiredMixin
 from apps.core.utils import get_client_ip, generate_reference
 from apps.wallet.models import Wallet, WalletTransaction
-from apps.wallet.services import debit_wallet, InsufficientBalanceError, WalletFrozenError
+from apps.wallet.services import InsufficientBalanceError, WalletFrozenError
+from apps.smm.models import SMMService, SMMOrder
+from apps.smm.tasks import process_smm_order
 
 logger = logging.getLogger(__name__)
 
-# SMM Rate definition (cost per 1 unit)
-SMM_RATES = {
-    # platform -> service -> cost_per_unit
-    "instagram": {
-        "Instagram Followers": Decimal("0.80"),  # ₦800 per 1k
-        "Instagram Likes": Decimal("0.20"),      # ₦200 per 1k
-        "Instagram Views": Decimal("0.10"),      # ₦100 per 1k
-        "Story Views": Decimal("0.15"),          # ₦150 per 1k
-        "Post Comments": Decimal("12.00"),       # ₦1200 per 100
-    },
-    "tiktok": {
-        "TikTok Followers": Decimal("1.20"),
-        "TikTok Likes": Decimal("0.30"),
-        "TikTok Views": Decimal("0.05"),
-        "TikTok Shares": Decimal("0.15"),
-    },
-    "youtube": {
-        "YouTube Subscribers": Decimal("15.00"),
-        "YouTube Views": Decimal("0.80"),
-        "YouTube Likes": Decimal("1.00"),
-    },
-    "twitter": {
-        "Twitter Followers": Decimal("2.50"),
-        "Twitter Likes": Decimal("0.50"),
-        "Twitter Retweets": Decimal("0.80"),
-    },
-    "telegram": {
-        "Telegram Members": Decimal("1.50"),
-        "Telegram Post Views": Decimal("0.02"),
-    },
-    "spotify": {
-        "Spotify Plays": Decimal("0.40"),
-        "Spotify Followers": Decimal("0.60"),
-    }
-}
+# SSRF Protection: Allowed social media domains (PRD Section 7.2)
+ALLOWED_SMM_DOMAINS = [
+    "instagram.com",
+    "tiktok.com",
+    "youtube.com",
+    "twitter.com",
+    "x.com",
+    "t.me",
+    "open.spotify.com"
+]
 
 class SmmIndexView(LoginRequiredMixin, PinRequiredMixin, View):
-    """SMM Social Media Booster Page View."""
+    """SMM Social Media Booster Page View with background processing and SSRF protection."""
+    template_name = "smm/index.html"
 
     def get(self, request, *args, **kwargs):
-        # Fetch user's wallet
         wallet, _ = Wallet.objects.get_or_create(user=request.user)
+
+        # Load active SMM services
+        services = SMMService.objects.filter(is_active=True)
+        if not services.exists():
+            from apps.smm.tasks import sync_smm_catalogue
+            sync_smm_catalogue()
+            services = SMMService.objects.filter(is_active=True)
+
+        rates_dict = {}
+        platform_counts = {}
+        for s in services:
+            platform = s.category.lower()
+            if platform not in rates_dict:
+                rates_dict[platform] = {}
+                platform_counts[platform] = 0
+            
+            if platform_counts[platform] < 15:
+                # Unit rate is price per 1k divided by 1000
+                rates_dict[platform][s.name] = s.subhero_price_per_1k / Decimal("1000.00")
+                platform_counts[platform] += 1
+
         context = {
             "wallet": wallet,
-            "rates": SMM_RATES,
+            "rates": rates_dict,
         }
-        return render(request, "smm/index.html", context)
+        return render(request, self.template_name, context)
 
     def post(self, request, *args, **kwargs):
         wallet, _ = Wallet.objects.get_or_create(user=request.user)
-        
+
         # 1. Parse inputs
         platform = request.POST.get("platform", "").lower()
         service_name = request.POST.get("service_name", "")
@@ -77,9 +71,23 @@ class SmmIndexView(LoginRequiredMixin, PinRequiredMixin, View):
         quantity_str = request.POST.get("quantity", "")
         pin = request.POST.get("pin", "")
 
+        # Reload services for context re-rendering in case of error
+        services = SMMService.objects.filter(is_active=True)
+        rates_dict = {}
+        platform_counts = {}
+        for s in services:
+            plat = s.category.lower()
+            if plat not in rates_dict:
+                rates_dict[plat] = {}
+                platform_counts[plat] = 0
+            
+            if platform_counts[plat] < 15:
+                rates_dict[plat][s.name] = s.subhero_price_per_1k / Decimal("1000.00")
+                platform_counts[plat] += 1
+
         context = {
             "wallet": wallet,
-            "rates": SMM_RATES,
+            "rates": rates_dict,
             "form_data": {
                 "platform": platform,
                 "service_name": service_name,
@@ -94,12 +102,12 @@ class SmmIndexView(LoginRequiredMixin, PinRequiredMixin, View):
 
         if cache.get(pin_lockout_key):
             messages.error(request, "PIN locked due to too many attempts. Try again in 30 minutes.")
-            return render(request, "smm/index.html", context)
+            return render(request, self.template_name, context)
 
         # 3. Basic validations
         if not platform or not service_name or not url or not quantity_str or not pin:
             messages.error(request, "All fields (including Transaction PIN) are required.")
-            return render(request, "smm/index.html", context)
+            return render(request, self.template_name, context)
 
         try:
             quantity = int(quantity_str)
@@ -107,56 +115,96 @@ class SmmIndexView(LoginRequiredMixin, PinRequiredMixin, View):
                 raise ValueError()
         except ValueError:
             messages.error(request, "Please enter a valid positive quantity.")
-            return render(request, "smm/index.html", context)
+            return render(request, self.template_name, context)
 
         # 4. Verify PIN
         if not request.user.check_pin(pin):
             attempts = cache.get(pin_attempts_key, 0) + 1
-            cache.set(pin_attempts_key, attempts, 300)  # expires in 5m
+            cache.set(pin_attempts_key, attempts, 300)
             if attempts >= 3:
-                cache.set(pin_lockout_key, True, 1800)  # 30 minutes lockout
+                cache.set(pin_lockout_key, True, 1800)
                 messages.error(request, "Incorrect PIN. You have been locked out for 30 minutes.")
             else:
                 remaining = 3 - attempts
                 messages.error(request, f"Incorrect transaction PIN. {remaining} attempts remaining.")
-            return render(request, "smm/index.html", context)
+            return render(request, self.template_name, context)
 
-        # Reset PIN attempts on successful entry
         cache.delete(pin_attempts_key)
 
-        # 5. Calculate rate & cost
-        platform_rates = SMM_RATES.get(platform)
-        if not platform_rates:
-            messages.error(request, "Invalid platform selected.")
-            return render(request, "smm/index.html", context)
+        # 5. SSRF Link Validation (PRD Section 7.2)
+        valid_domain = False
+        for domain in ALLOWED_SMM_DOMAINS:
+            if domain in url.lower():
+                valid_domain = True
+                break
+        
+        if not valid_domain:
+            messages.error(request, "SSRF Threat Detected: Target URL is not within whitelisted social media domains.")
+            return render(request, self.template_name, context)
 
-        rate = platform_rates.get(service_name)
-        if not rate:
-            # Fallback default rate if name not matches exactly
-            rate = Decimal("0.50")
+        # 6. Fetch Service strictly from database
+        try:
+            service = SMMService.objects.get(name=service_name, category__iexact=platform, is_active=True)
+        except SMMService.DoesNotExist:
+            messages.error(request, "Selected SMM service is invalid or currently inactive.")
+            return render(request, self.template_name, context)
 
-        amount = Decimal(str(quantity)) * rate
+        # Verify min/max quantity limits
+        if quantity < service.provider_min or quantity > service.provider_max:
+            messages.error(request, f"Invalid quantity. Min allowed: {service.provider_min:,}, Max allowed: {service.provider_max:,}.")
+            return render(request, self.template_name, context)
 
-        # 6. Execute atomic wallet debit
+        # Compute price server-side
+        unit_rate = service.subhero_price_per_1k / Decimal("1000.00")
+        amount = Decimal(str(quantity)) * unit_rate
+
+        # 7. Execute atomic wallet debit and dispatch process task
         reference = generate_reference("SMM")
         try:
-            txn = debit_wallet(
-                wallet_id=wallet.id,
-                amount=amount,
-                txn_type=WalletTransaction.TxnType.SMM,
-                reference=reference,
-                description=f"{service_name} ×{quantity:,} for {url}",
-                metadata={
-                    "platform": platform,
-                    "service_name": service_name,
-                    "url": url,
-                    "quantity": quantity,
-                },
-                ip_address=get_client_ip(request)
-            )
-            # Render success receipt
+            with transaction.atomic():
+                locked_wallet = Wallet.objects.select_for_update().get(id=wallet.id)
+
+                if locked_wallet.is_frozen:
+                    raise WalletFrozenError("Your wallet is frozen. Contact support.")
+
+                if locked_wallet.balance < amount:
+                    raise InsufficientBalanceError("Insufficient balance")
+
+                # Debit
+                balance_before = locked_wallet.balance
+                locked_wallet.balance -= amount
+                locked_wallet.save(update_fields=["balance"])
+
+                # Create transaction ledger
+                txn = WalletTransaction.objects.create(
+                    wallet=locked_wallet,
+                    txn_type=WalletTransaction.TxnType.SMM,
+                    amount=amount,
+                    balance_before=balance_before,
+                    balance_after=locked_wallet.balance,
+                    reference=reference,
+                    status=WalletTransaction.Status.SUCCESS,
+                    description=f"SMM Booster: {service_name} ×{quantity:,} for {url}",
+                    ip_address=get_client_ip(request)
+                )
+
+                # Create Order
+                order = SMMOrder.objects.create(
+                    user=request.user,
+                    service=service,
+                    target_url=url,
+                    quantity=quantity,
+                    amount=amount,
+                    reference=reference,
+                    status=SMMOrder.Status.PROCESSING
+                )
+
+            # Dispatch Celery background execution task
+            process_smm_order.delay(order.id)
+
+            # Render receipt
             receipt_context = {
-                "wallet": wallet,
+                "wallet": locked_wallet,
                 "txn": txn,
                 "platform": platform,
                 "service_name": service_name,
@@ -168,11 +216,55 @@ class SmmIndexView(LoginRequiredMixin, PinRequiredMixin, View):
 
         except InsufficientBalanceError:
             messages.error(request, f"Insufficient balance. You need ₦{amount:,.2f} but your balance is ₦{wallet.balance:,.2f}.")
-            return render(request, "smm/index.html", context)
+            return render(request, self.template_name, context)
         except WalletFrozenError:
-            messages.error(request, "Your wallet is currently frozen by administrator. Please contact support.")
-            return render(request, "smm/index.html", context)
+            messages.error(request, "Your wallet is currently frozen. Please contact support.")
+            return render(request, self.template_name, context)
         except Exception as e:
             logger.exception("SMM purchase failed")
             messages.error(request, f"Transaction failed: {str(e)}")
-            return render(request, "smm/index.html", context)
+            return render(request, self.template_name, context)
+
+
+class SmmCategoriesAjaxView(LoginRequiredMixin, View):
+    """
+    Returns unique active categories for the selected platform tab dynamically.
+    HTMX-native endpoint returning HTML option elements.
+    """
+    def get(self, request, *args, **kwargs):
+        platform = request.GET.get("platform", "").lower()
+        subcategories = SMMService.objects.filter(
+            category=platform,
+            is_active=True
+        ).values_list("subcategory", flat=True).distinct().order_by("subcategory")
+
+        from django.http import HttpResponse
+        html = '<option value="" disabled selected>-- Select SMM Category --</option>'
+        for sub in subcategories:
+            if sub:
+                html += f'<option value="{sub}">{sub}</option>'
+        return HttpResponse(html)
+
+
+class SmmServicesAjaxView(LoginRequiredMixin, View):
+    """
+    Returns dynamically styled service cards matching platform and category.
+    HTMX-native endpoint returning partial HTML.
+    """
+    template_name = "smm/partials/_service_cards.html"
+
+    def get(self, request, *args, **kwargs):
+        platform = request.GET.get("platform", "").lower()
+        subcategory = request.GET.get("subcategory", "").strip()
+
+        services = SMMService.objects.filter(
+            category=platform,
+            subcategory=subcategory,
+            is_active=True
+        ).order_by("subhero_price_per_1k")
+
+        # Inject unit price into each service object for easy template consumption
+        for s in services:
+            s.unit_price = s.subhero_price_per_1k / Decimal("1000.00")
+
+        return render(request, self.template_name, {"services": services})
