@@ -220,10 +220,47 @@ class TransactionDetailView(LoginRequiredMixin, PinRequiredMixin, View):
             wallet=wallet,  # IDOR protection
         )
 
+        # Retrieve any background order associated with this transaction or its refund
+        order = None
+        order_type = None
+        ref = txn.reference
+        if ref.startswith("REFUND-"):
+            ref = ref.replace("REFUND-", "")
+
+        from apps.vtu.models import VTUOrder, AirtimeOrder, CableOrder, ElectricityOrder, ExamPinOrder
+        from apps.smm.models import SMMOrder
+
+        order = VTUOrder.objects.filter(reference=ref).first()
+        if order:
+            order_type = "data"
+        else:
+            order = AirtimeOrder.objects.filter(reference=ref).first()
+            if order:
+                order_type = "airtime"
+            else:
+                order = CableOrder.objects.filter(reference=ref).first()
+                if order:
+                    order_type = "cable"
+                else:
+                    order = ElectricityOrder.objects.filter(reference=ref).first()
+                    if order:
+                        order_type = "electricity"
+                    else:
+                        order = ExamPinOrder.objects.filter(reference=ref).first()
+                        if order:
+                            order_type = "exam_pin"
+                        else:
+                            order = SMMOrder.objects.filter(reference=ref).first()
+                            if order:
+                                order_type = "smm"
+
         return render(request, self.template_name, {
             "wallet": wallet,
             "txn": txn,
+            "order": order,
+            "order_type": order_type,
         })
+
 
 
 class LookupRecipientView(LoginRequiredMixin, View):

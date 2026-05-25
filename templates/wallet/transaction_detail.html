@@ -52,6 +52,183 @@
             {% endif %}">{{ txn.get_status_display }}</div>
     </div>
 
+    {% if order %}
+    <!-- Fulfillment Details Card -->
+    <div class="card card-padding mb-6 border border-surface-border bg-white rounded-2xl shadow-sm">
+        <h3 class="font-display text-[15px] font-bold text-text-primary mb-3 flex items-center gap-2">
+            <i data-feather="package" class="w-4 h-4 text-brand-primary"></i>
+            Order Fulfillment
+        </h3>
+        <div class="space-y-4">
+            <div class="flex items-center justify-between">
+                <span class="text-[13px] text-text-muted">Fulfillment Status</span>
+                <span class="text-[10px] font-semibold px-2.5 py-0.5 rounded-pill tracking-[0.3px]
+                    {% if order.status == 'SUCCESS' %}
+                        bg-status-success-bg text-status-success-text
+                    {% elif order.status == 'PROCESSING' or order.status == 'PENDING' %}
+                        bg-status-warning-bg text-status-warning-text
+                    {% else %}
+                        bg-status-danger-bg text-status-danger-text
+                    {% endif %}">{{ order.get_status_display }}</span>
+            </div>
+            <div class="h-[1px] bg-surface-border"></div>
+
+            {% if order_type == 'data' %}
+            <div class="flex items-center justify-between">
+                <span class="text-[13px] text-text-muted">Network</span>
+                <span class="text-[13px] font-semibold text-text-primary uppercase">{{ order.network }}</span>
+            </div>
+            <div class="h-[1px] bg-surface-border"></div>
+            <div class="flex items-center justify-between">
+                <span class="text-[13px] text-text-muted">Data Plan</span>
+                <span class="text-[13px] font-semibold text-text-primary text-right max-w-[200px]">{{ order.plan_name }}</span>
+            </div>
+            <div class="h-[1px] bg-surface-border"></div>
+            <div class="flex items-center justify-between">
+                <span class="text-[13px] text-text-muted">Recipient</span>
+                <span class="text-[13px] font-semibold text-text-primary">{{ order.recipient }}</span>
+            </div>
+
+            {% elif order_type == 'airtime' %}
+            <div class="flex items-center justify-between">
+                <span class="text-[13px] text-text-muted">Network</span>
+                <span class="text-[13px] font-semibold text-text-primary uppercase">{{ order.network }}</span>
+            </div>
+            <div class="h-[1px] bg-surface-border"></div>
+            <div class="flex items-center justify-between">
+                <span class="text-[13px] text-text-muted">Recipient</span>
+                <span class="text-[13px] font-semibold text-text-primary">{{ order.recipient }}</span>
+            </div>
+
+            {% elif order_type == 'cable' %}
+            <div class="flex items-center justify-between">
+                <span class="text-[13px] text-text-muted">Provider</span>
+                <span class="text-[13px] font-semibold text-text-primary uppercase">{{ order.provider }}</span>
+            </div>
+            <div class="h-[1px] bg-surface-border"></div>
+            <div class="flex items-center justify-between">
+                <span class="text-[13px] text-text-muted">Package</span>
+                <span class="text-[13px] font-semibold text-text-primary">{{ order.plan_name }}</span>
+            </div>
+            <div class="h-[1px] bg-surface-border"></div>
+            <div class="flex items-center justify-between">
+                <span class="text-[13px] text-text-muted">Smartcard Number</span>
+                <span class="text-[13px] font-semibold text-text-primary font-mono">{{ order.card_number }}</span>
+            </div>
+
+            {% elif order_type == 'electricity' %}
+            <div class="flex items-center justify-between">
+                <span class="text-[13px] text-text-muted">DISCO</span>
+                <span class="text-[13px] font-semibold text-text-primary">{{ order.disco_name }}</span>
+            </div>
+            <div class="h-[1px] bg-surface-border"></div>
+            <div class="flex items-center justify-between">
+                <span class="text-[13px] text-text-muted">Meter Number</span>
+                <span class="text-[13px] font-semibold text-text-primary font-mono">{{ order.meter_number }}</span>
+            </div>
+            <div class="h-[1px] bg-surface-border"></div>
+            <div class="flex items-center justify-between">
+                <span class="text-[13px] text-text-muted">Meter Type</span>
+                <span class="text-[13px] font-semibold text-text-primary capitalize">{{ order.meter_type }}</span>
+            </div>
+            {% if order.token %}
+            <div class="h-[1px] bg-surface-border"></div>
+            <div class="flex flex-col gap-2">
+                <span class="text-[13px] text-text-muted">Token Code</span>
+                <div class="flex items-center justify-between bg-surface-page rounded-xl p-3 border border-surface-border">
+                    <span id="tokenCode" class="text-[15px] font-mono font-bold text-text-primary tracking-wider">{{ order.token }}</span>
+                    <button onclick="copyToClipboard('{{ order.token }}', this)" class="text-xs font-bold text-brand-primary active:scale-95 transition-all">Copy</button>
+                </div>
+            </div>
+            {% endif %}
+            {% if order.units %}
+            <div class="h-[1px] bg-surface-border"></div>
+            <div class="flex items-center justify-between">
+                <span class="text-[13px] text-text-muted">Vended Units</span>
+                <span class="text-[13px] font-semibold text-brand-primary font-mono">{{ order.units }} kWh</span>
+            </div>
+            {% endif %}
+
+            {% elif order_type == 'exam_pin' %}
+            <div class="flex items-center justify-between">
+                <span class="text-[13px] text-text-muted">Exam Product</span>
+                <span class="text-[13px] font-semibold text-text-primary">{{ order.exam_name }}</span>
+            </div>
+            <div class="h-[1px] bg-surface-border"></div>
+            <div class="flex items-center justify-between">
+                <span class="text-[13px] text-text-muted">Quantity</span>
+                <span class="text-[13px] font-semibold text-text-primary">{{ order.quantity }} PINs</span>
+            </div>
+            {% if order.get_pins_list %}
+            <div class="h-[1px] bg-surface-border"></div>
+            <div class="flex flex-col gap-2">
+                <span class="text-[13px] text-text-muted">Vended PINs</span>
+                {% for pin in order.get_pins_list %}
+                <div class="flex items-center justify-between bg-surface-page rounded-xl p-3 border border-surface-border font-mono text-[13px] font-bold text-text-primary">
+                    <span>{{ pin }}</span>
+                    <button onclick="copyToClipboard('{{ pin }}', this)" class="text-xs font-bold text-brand-primary active:scale-95 transition-all">Copy</button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% elif order_type == 'smm' %}
+            <div class="flex items-center justify-between">
+                <span class="text-[13px] text-text-muted">Platform</span>
+                <span class="text-[13px] font-semibold text-text-primary capitalize">{{ order.service.category }}</span>
+            </div>
+            <div class="h-[1px] bg-surface-border"></div>
+            <div class="flex items-center justify-between">
+                <span class="text-[13px] text-text-muted">Booster Service</span>
+                <span class="text-[13px] font-semibold text-text-primary text-right max-w-[200px]">{{ order.service.name }}</span>
+            </div>
+            <div class="h-[1px] bg-surface-border"></div>
+            <div class="flex items-center justify-between">
+                <span class="text-[13px] text-text-muted">Target Link</span>
+                <span class="text-[13px] font-medium text-brand-primary truncate max-w-[200px]" title="{{ order.target_url }}">{{ order.target_url }}</span>
+            </div>
+            <div class="h-[1px] bg-surface-border"></div>
+            <div class="flex items-center justify-between">
+                <span class="text-[13px] text-text-muted">Quantity</span>
+                <span class="text-[13px] font-semibold text-text-primary font-mono">{{ order.quantity }}</span>
+            </div>
+            {% endif %}
+
+            <!-- Failure Reason Detail -->
+            {% if order.status == 'FAILED' %}
+            <div class="h-[1px] bg-surface-border"></div>
+            <div class="bg-red-50 border border-red-100 rounded-xl p-3.5 text-left flex gap-3">
+                <i data-feather="alert-circle" class="w-5 h-5 text-status-danger-text shrink-0 mt-0.5"></i>
+                <div>
+                    <div class="text-xs font-bold text-status-danger-text mb-0.5">Fulfillment Failed</div>
+                    <div class="text-xs text-status-danger-text/90 font-medium leading-relaxed">
+                        {% if "wallet" in order.provider_ref|lower or "insufficient" in order.provider_ref|lower or "402" in order.provider_ref or "wallet" in order.provider_order_id|lower or "insufficient" in order.provider_order_id|lower or "402" in order.provider_order_id %}
+                            API wallet balance exhausted or low balance on API side. Your payment has been refunded to your wallet. Please contact support.
+                        {% else %}
+                            {{ order.provider_ref|default:order.provider_order_id|default:"Temporary provider error. Fully refunded." }}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <script>
+        function copyToClipboard(text, btn) {
+            navigator.clipboard.writeText(text).then(function() {
+                var oldText = btn.innerText;
+                btn.innerText = "Copied!";
+                btn.classList.add("text-status-success-text");
+                setTimeout(function() {
+                    btn.innerText = oldText;
+                    btn.classList.remove("text-status-success-text");
+                }, 2000);
+            });
+        }
+    </script>
+    {% endif %}
+
     <!-- Details Card -->
     <div class="card card-padding">
         <div class="space-y-4">
