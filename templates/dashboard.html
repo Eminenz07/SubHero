@@ -53,35 +53,66 @@
     </div>
 </div>
 
-<!-- Quick Actions -->
-<div class="grid grid-cols-4 gap-2 px-4 mb-6">
-    <a href="{% url 'vtu:buy_data' %}" class="bg-surface-card rounded-[14px] py-4 px-2 flex flex-col items-center gap-2 shadow-card border border-surface-border cursor-pointer active:bg-surface-page no-underline">
-        <div class="w-[46px] h-[46px] rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center text-[22px]">
+<!-- Quick Actions Row 1 -->
+<div class="grid grid-cols-4 gap-2 px-4 mb-2">
+    <a href="{% url 'vtu:buy_data' %}" class="bg-surface-card rounded-[14px] py-4 px-2 flex flex-col items-center gap-2 shadow-card border border-surface-border cursor-pointer active:bg-surface-page no-underline" id="qa-data">
+        <div class="w-[46px] h-[46px] rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center">
             <i data-feather="wifi" class="w-[22px] h-[22px]"></i>
         </div>
         <span class="text-[11px] font-semibold text-text-secondary text-center leading-[1.2]">Data</span>
     </a>
-    
-    <div class="bg-surface-card rounded-[14px] py-4 px-2 flex flex-col items-center gap-2 shadow-card border border-surface-border cursor-pointer active:bg-surface-page">
-        <div class="w-[46px] h-[46px] rounded-xl bg-green-50 text-green-500 flex items-center justify-center text-[22px]">
+
+    <a href="{% url 'vtu:buy_airtime' %}" class="bg-surface-card rounded-[14px] py-4 px-2 flex flex-col items-center gap-2 shadow-card border border-surface-border cursor-pointer active:bg-surface-page no-underline" id="qa-airtime">
+        <div class="w-[46px] h-[46px] rounded-xl bg-green-50 text-green-500 flex items-center justify-center">
             <i data-feather="phone" class="w-[22px] h-[22px]"></i>
         </div>
         <span class="text-[11px] font-semibold text-text-secondary text-center leading-[1.2]">Airtime</span>
-    </div>
-    
-    <div class="bg-surface-card rounded-[14px] py-4 px-2 flex flex-col items-center gap-2 shadow-card border border-surface-border cursor-pointer active:bg-surface-page">
-        <div class="w-[46px] h-[46px] rounded-xl bg-yellow-50 text-yellow-500 flex items-center justify-center text-[22px]">
+    </a>
+
+    <a href="{% url 'vtu:buy_electricity' %}" class="bg-surface-card rounded-[14px] py-4 px-2 flex flex-col items-center gap-2 shadow-card border border-surface-border cursor-pointer active:bg-surface-page no-underline" id="qa-electricity">
+        <div class="w-[46px] h-[46px] rounded-xl bg-yellow-50 text-yellow-500 flex items-center justify-center">
             <i data-feather="zap" class="w-[22px] h-[22px]"></i>
         </div>
         <span class="text-[11px] font-semibold text-text-secondary text-center leading-[1.2]">Power</span>
-    </div>
-    
-    <div class="bg-surface-card rounded-[14px] py-4 px-2 flex flex-col items-center gap-2 shadow-card border border-surface-border cursor-pointer active:bg-surface-page">
-        <div class="w-[46px] h-[46px] rounded-xl bg-purple-50 text-purple-500 flex items-center justify-center text-[22px]">
+    </a>
+
+    <a href="{% url 'vtu:buy_cable' %}" class="bg-surface-card rounded-[14px] py-4 px-2 flex flex-col items-center gap-2 shadow-card border border-surface-border cursor-pointer active:bg-surface-page no-underline" id="qa-cable">
+        <div class="w-[46px] h-[46px] rounded-xl bg-purple-50 text-purple-500 flex items-center justify-center">
             <i data-feather="tv" class="w-[22px] h-[22px]"></i>
         </div>
         <span class="text-[11px] font-semibold text-text-secondary text-center leading-[1.2]">Cable TV</span>
-    </div>
+    </a>
+</div>
+
+<!-- Quick Actions Row 2 -->
+<div class="grid grid-cols-4 gap-2 px-4 mb-6">
+    <a href="{% url 'vtu:buy_exam_pin' %}" class="bg-surface-card rounded-[14px] py-4 px-2 flex flex-col items-center gap-2 shadow-card border border-surface-border cursor-pointer active:bg-surface-page no-underline" id="qa-exam">
+        <div class="w-[46px] h-[46px] rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center">
+            <i data-feather="book-open" class="w-[22px] h-[22px]"></i>
+        </div>
+        <span class="text-[11px] font-semibold text-text-secondary text-center leading-[1.2]">Exam PIN</span>
+    </a>
+
+    <a href="{% url 'smm:index' %}" class="bg-surface-card rounded-[14px] py-4 px-2 flex flex-col items-center gap-2 shadow-card border border-surface-border cursor-pointer active:bg-surface-page no-underline" id="qa-smm">
+        <div class="w-[46px] h-[46px] rounded-xl bg-pink-50 text-pink-500 flex items-center justify-center">
+            <i data-feather="trending-up" class="w-[22px] h-[22px]"></i>
+        </div>
+        <span class="text-[11px] font-semibold text-text-secondary text-center leading-[1.2]">Social</span>
+    </a>
+
+    <a href="{% url 'wallet:fund' %}" class="bg-surface-card rounded-[14px] py-4 px-2 flex flex-col items-center gap-2 shadow-card border border-surface-border cursor-pointer active:bg-surface-page no-underline" id="qa-fund">
+        <div class="w-[46px] h-[46px] rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center">
+            <i data-feather="plus-circle" class="w-[22px] h-[22px]"></i>
+        </div>
+        <span class="text-[11px] font-semibold text-text-secondary text-center leading-[1.2]">Fund</span>
+    </a>
+
+    <a href="{% url 'wallet:transfer' %}" class="bg-surface-card rounded-[14px] py-4 px-2 flex flex-col items-center gap-2 shadow-card border border-surface-border cursor-pointer active:bg-surface-page no-underline" id="qa-transfer">
+        <div class="w-[46px] h-[46px] rounded-xl bg-indigo-50 text-indigo-500 flex items-center justify-center">
+            <i data-feather="send" class="w-[22px] h-[22px]"></i>
+        </div>
+        <span class="text-[11px] font-semibold text-text-secondary text-center leading-[1.2]">Transfer</span>
+    </a>
 </div>
 
 <!-- SMM Platforms Horizontal Scroll -->
