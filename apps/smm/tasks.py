@@ -61,17 +61,14 @@ def process_smm_order(self, order_id):
 
             logger.info("JAP SMM order placed successfully: provider_id=%s", order.provider_order_id)
         else:
-            error_msg = response_data.get("error", "API returned error")
+            error_msg = response_data.get("error", response_data.get("message", "API returned error"))
             raise Exception(f"JAP API error: {error_msg}")
 
+    except requests.exceptions.Timeout:
+        raise Exception("JAP API timed out. Your order will be retried automatically.")
+    except requests.exceptions.ConnectionError:
+        raise Exception("Could not connect to SMM provider. Your order will be retried automatically.")
     except Exception as exc:
-        if settings.DEBUG:
-            logger.warning("SMM API call failed. DEBUG mode is ON. Simulating success fallback: %s", str(exc))
-            order.provider_order_id = "MOCK-JAP-ORDER-12345"
-            order.status = SMMOrder.Status.PROCESSING
-            order.save(update_fields=["status", "provider_order_id"])
-            return
-
         logger.warning("SMM order %s API call failed. Retrying... Error: %s", order_id, str(exc))
         try:
             self.retry(exc=exc, countdown=30)
@@ -165,10 +162,11 @@ def poll_smm_orders():
 
     for order in processing_orders:
         if not order.provider_order_id or order.provider_order_id.startswith("MOCK"):
-            # Mock success simulation for testing
-            order.status = SMMOrder.Status.SUCCESS
+            # Orders with mock IDs were created without a real API key — mark as failed and refund
+            logger.warning("SMM order %s has mock provider ID — marking failed and refunding.", order.reference)
+            order.status = SMMOrder.Status.FAILED
             order.save(update_fields=["status"])
-            logger.info("Mock SMM order completed successfully.")
+            refund_smm_order.delay(order.id)
             continue
 
         try:

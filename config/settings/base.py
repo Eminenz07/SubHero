@@ -349,6 +349,14 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'apps.vtu.tasks.sync_vtu_plans',
         'schedule': crontab(minute=0, hour='*/6'),
     },
+    'sync-cable-plans': {
+        'task': 'apps.vtu.tasks.sync_cable_plans',
+        'schedule': crontab(minute=30, hour='*/6'),
+    },
+    'sync-exam-products': {
+        'task': 'apps.vtu.tasks.sync_exam_products',
+        'schedule': crontab(minute=0, hour='*/12'),
+    },
     'sync-smm-catalogue': {
         'task': 'apps.smm.tasks.sync_smm_catalogue',
         'schedule': crontab(minute=0, hour=3),

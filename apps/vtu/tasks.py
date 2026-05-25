@@ -7,7 +7,13 @@ from django.utils import timezone
 from celery import shared_task
 from celery.exceptions import MaxRetriesExceededError
 
-from apps.vtu.models import VTUPlan, VTUOrder
+from apps.vtu.models import (
+    VTUPlan, VTUOrder,
+    AirtimeOrder, AIRTIME_NETWORKS,
+    CablePlan, CableOrder,
+    ElectricityOrder, DISCO_NAMES,
+    ExamProduct, ExamPinOrder,
+)
 from apps.wallet.models import Wallet, WalletTransaction
 from apps.wallet.services import debit_wallet, credit_wallet, InsufficientBalanceError, WalletFrozenError
 from apps.notifications.tasks import send_transaction_sms
@@ -64,7 +70,7 @@ def process_vtu_order(self, order_id):
 
     url = f"{settings.CHEAPDATAHUB_BASE_URL}/api/v1/resellers/data/purchase/"
     headers = {
-        "Authorization": f"Token {api_key}",
+        "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
     }
     payload = {
@@ -86,8 +92,7 @@ def process_vtu_order(self, order_id):
                 order.user.phone_number,
                 f"SubHero: {order.plan_name} delivered to {order.recipient}. Ref: {order.reference}"
             )
-            
-            # Success notification
+
             try:
                 from apps.notifications.models import Notification
                 Notification.add(
@@ -99,36 +104,18 @@ def process_vtu_order(self, order_id):
             except Exception as e:
                 logger.error("Notification creation failed: %s", str(e))
         else:
-            msg = response_data.get("message", "API response failed")
-            raise Exception(f"CheapDataHub VTU failed: {msg}")
+            # Provider returned a non-success status — treat as failure
+            http_code = response.status_code
+            msg = response_data.get("message", response_data.get("error", "Provider declined the request"))
+            if http_code == 402:
+                raise Exception(f"Provider wallet insufficient funds. Please contact support. (Ref: {order.reference})")
+            raise Exception(f"CheapDataHub VTU failed [{http_code}]: {msg}")
 
+    except requests.exceptions.Timeout:
+        raise Exception("Provider API timed out. Your order will be retried automatically.")
+    except requests.exceptions.ConnectionError:
+        raise Exception("Could not reach payment provider. Your order will be retried automatically.")
     except Exception as exc:
-        if settings.DEBUG:
-            logger.warning("VTU API call failed. DEBUG mode is ON. Simulating success fallback: %s", str(exc))
-            order.status = VTUOrder.Status.SUCCESS
-            order.provider_ref = "MOCK-CDH-12345"
-            order.delivered_at = timezone.now()
-            order.save(update_fields=["status", "provider_ref", "delivered_at"])
-            
-            # Notify user via SMS
-            send_transaction_sms.delay(
-                order.user.phone_number,
-                f"SubHero: {order.plan_name} delivered to {order.recipient}. Ref: {order.reference}"
-            )
-            
-            # Add success notification
-            try:
-                from apps.notifications.models import Notification
-                Notification.add(
-                    user=order.user,
-                    title="VTU Purchase Successful",
-                    description=f"Your {order.plan_name} data purchase for {order.recipient} was successful.",
-                    level="financial"
-                )
-            except Exception as e:
-                logger.error("Notification creation failed: %s", str(e))
-            return
-
         logger.warning("VTU order %s failed API call. Retrying... Error: %s", order_id, str(exc))
         try:
             self.retry(exc=exc, countdown=30)
@@ -299,7 +286,7 @@ def check_api_wallet_balance():
 
     url = f"{settings.CHEAPDATAHUB_BASE_URL}/api/v1/resellers/wallet/balance/"
     headers = {
-        "Authorization": f"Token {api_key}"
+        "Authorization": f"Bearer {api_key}"
     }
 
     try:
@@ -312,3 +299,498 @@ def check_api_wallet_balance():
             # Standard email notification logic goes here (mocked or logs as warning)
     except Exception as e:
         logger.error("Failed to check CheapDataHub API wallet balance: %s", str(e))
+
+
+# =============================================================
+# AIRTIME TASKS
+# =============================================================
+
+def _generic_refund(order, order_type_label, refund_prefix):
+    """Helper: refund any VTU-type order atomically."""
+    with transaction.atomic():
+        refund_ref = f"REFUND-{order.reference}"
+        if WalletTransaction.objects.filter(reference=refund_ref).exists():
+            logger.warning("%s Order %s already refunded.", order_type_label, order.reference)
+            return
+
+        wallet = Wallet.objects.select_for_update().get(user=order.user)
+        balance_before = wallet.balance
+        wallet.balance += order.amount
+        wallet.save(update_fields=["balance"])
+
+        order.status = "FAILED"
+        order.save(update_fields=["status"])
+
+        WalletTransaction.objects.create(
+            wallet=wallet,
+            txn_type=WalletTransaction.TxnType.REFUND,
+            amount=order.amount,
+            balance_before=balance_before,
+            balance_after=wallet.balance,
+            reference=refund_ref,
+            status=WalletTransaction.Status.SUCCESS,
+            description=f"Refund for failed {order_type_label} order {order.reference}",
+        )
+        logger.info("%s refund success: ₦%s restored to User %s", order_type_label, order.amount, order.user.id)
+
+    try:
+        send_transaction_sms.delay(
+            order.user.phone_number,
+            f"SubHero: ₦{order.amount:,.0f} refunded. {order_type_label} Order {order.reference} could not be completed.",
+        )
+    except Exception as sms_err:
+        logger.error("Refund SMS failed: %s", str(sms_err))
+
+
+@shared_task(bind=True, max_retries=3)
+def process_airtime_order(self, order_id):
+    """Purchases airtime via CheapDataHub and handles retries/refunds."""
+    try:
+        order = AirtimeOrder.objects.get(id=order_id)
+    except AirtimeOrder.DoesNotExist:
+        logger.error("AirtimeOrder not found: %s", order_id)
+        return
+
+    if order.status != AirtimeOrder.Status.PROCESSING:
+        return
+
+    api_key = settings.CHEAPDATAHUB_API_KEY
+    if not api_key:
+        logger.error("CHEAPDATAHUB_API_KEY not set. Cannot process airtime order %s.", order_id)
+        order.status = AirtimeOrder.Status.FAILED
+        order.save(update_fields=["status"])
+        refund_airtime_order.delay(order_id)
+        return
+
+    network_info = AIRTIME_NETWORKS.get(order.network.lower(), {})
+    provider_id = network_info.get("provider_id")
+    if not provider_id:
+        logger.error("Unknown network for airtime: %s", order.network)
+        order.status = AirtimeOrder.Status.FAILED
+        order.save(update_fields=["status"])
+        refund_airtime_order.delay(order_id)
+        return
+
+    url = f"{settings.CHEAPDATAHUB_BASE_URL}/api/v1/resellers/airtime/purchase/"
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    payload = {
+        "network_id": provider_id,
+        "phone_number": order.recipient,
+        "amount": str(order.amount),
+    }
+
+    try:
+        response = requests.post(url, json=payload, headers=headers, timeout=30)
+        data = response.json()
+
+        if response.status_code in [200, 201] and data.get("status") in ["true", "success", True]:
+            order.status = AirtimeOrder.Status.SUCCESS
+            order.provider_ref = data.get("reference", data.get("id", "CDH-AIRTIME"))
+            order.delivered_at = timezone.now()
+            order.save(update_fields=["status", "provider_ref", "delivered_at"])
+
+            send_transaction_sms.delay(
+                order.user.phone_number,
+                f"SubHero: ₦{order.amount:,.0f} airtime sent to {order.recipient}. Ref: {order.reference}",
+            )
+            try:
+                from apps.notifications.models import Notification
+                Notification.add(order.user, "Airtime Purchase Successful",
+                    f"₦{order.amount:,.0f} airtime delivered to {order.recipient}.", "financial")
+            except Exception as e:
+                logger.error("Notification failed: %s", str(e))
+        else:
+            http_code = response.status_code
+            msg = data.get("message", data.get("error", "Provider declined"))
+            if http_code == 402:
+                raise Exception(f"Provider wallet insufficient. Please contact support. (Ref: {order.reference})")
+            raise Exception(f"CheapDataHub Airtime failed [{http_code}]: {msg}")
+
+    except requests.exceptions.Timeout:
+        raise Exception("Provider API timed out. Will retry automatically.")
+    except requests.exceptions.ConnectionError:
+        raise Exception("Could not reach provider. Will retry automatically.")
+    except Exception as exc:
+        logger.warning("Airtime order %s failed. Retrying... Error: %s", order_id, str(exc))
+        try:
+            self.retry(exc=exc, countdown=30)
+        except MaxRetriesExceededError:
+            logger.error("Airtime order %s exceeded all retries. Refunding.", order_id)
+            order.status = AirtimeOrder.Status.FAILED
+            order.provider_ref = f"Failed: {str(exc)}"[:100]
+            order.save(update_fields=["status", "provider_ref"])
+            refund_airtime_order.delay(order_id)
+
+
+@shared_task
+def refund_airtime_order(order_id):
+    try:
+        order = AirtimeOrder.objects.select_for_update().get(id=order_id)
+        _generic_refund(order, "Airtime", "REFUND")
+    except Exception as err:
+        logger.exception("Airtime refund failed: %s", str(err))
+
+
+# =============================================================
+# CABLE TV TASKS
+# =============================================================
+
+@shared_task(bind=True, max_retries=3)
+def process_cable_order(self, order_id):
+    """Subscribes a cable TV plan via CheapDataHub."""
+    try:
+        order = CableOrder.objects.get(id=order_id)
+    except CableOrder.DoesNotExist:
+        logger.error("CableOrder not found: %s", order_id)
+        return
+
+    if order.status != CableOrder.Status.PROCESSING:
+        return
+
+    api_key = settings.CHEAPDATAHUB_API_KEY
+    if not api_key:
+        order.status = CableOrder.Status.FAILED
+        order.save(update_fields=["status"])
+        refund_cable_order.delay(order_id)
+        return
+
+    url = f"{settings.CHEAPDATAHUB_BASE_URL}/api/v1/resellers/cable/purchase/"
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    payload = {
+        "plan_id": order.plan_id,
+        "smartcard_number": order.card_number,
+        "phone_number": order.phone,
+    }
+
+    try:
+        response = requests.post(url, json=payload, headers=headers, timeout=30)
+        data = response.json()
+
+        if response.status_code in [200, 201] and data.get("status") in ["true", "success", True]:
+            order.status = CableOrder.Status.SUCCESS
+            order.provider_ref = data.get("reference", data.get("id", "CDH-CABLE"))
+            order.delivered_at = timezone.now()
+            order.save(update_fields=["status", "provider_ref", "delivered_at"])
+
+            send_transaction_sms.delay(
+                order.user.phone_number,
+                f"SubHero: {order.provider.upper()} {order.plan_name} renewed for card {order.card_number}. Ref: {order.reference}",
+            )
+            try:
+                from apps.notifications.models import Notification
+                Notification.add(order.user, "Cable TV Subscription Successful",
+                    f"{order.provider.upper()} {order.plan_name} activated on {order.card_number}.", "financial")
+            except Exception as e:
+                logger.error("Notification failed: %s", str(e))
+        else:
+            http_code = response.status_code
+            msg = data.get("message", data.get("error", "Provider declined"))
+            raise Exception(f"CheapDataHub Cable failed [{http_code}]: {msg}")
+
+    except requests.exceptions.Timeout:
+        raise Exception("Provider API timed out.")
+    except requests.exceptions.ConnectionError:
+        raise Exception("Could not reach provider.")
+    except Exception as exc:
+        logger.warning("Cable order %s failed. Retrying... Error: %s", order_id, str(exc))
+        try:
+            self.retry(exc=exc, countdown=30)
+        except MaxRetriesExceededError:
+            order.status = CableOrder.Status.FAILED
+            order.provider_ref = f"Failed: {str(exc)}"[:100]
+            order.save(update_fields=["status", "provider_ref"])
+            refund_cable_order.delay(order_id)
+
+
+@shared_task
+def refund_cable_order(order_id):
+    try:
+        order = CableOrder.objects.select_for_update().get(id=order_id)
+        _generic_refund(order, "Cable TV", "REFUND")
+    except Exception as err:
+        logger.exception("Cable refund failed: %s", str(err))
+
+
+@shared_task
+def sync_cable_plans():
+    """Syncs cable TV plans from CheapDataHub every 6 hours."""
+    api_key = settings.CHEAPDATAHUB_API_KEY
+    if not api_key:
+        # Seed default plans so UI works without API key
+        _seed_default_cable_plans()
+        return
+
+    # Provider IDs: DSTV=1, GOtv=2, Startimes=3
+    providers = [("dstv", 1), ("gotv", 2), ("startimes", 3)]
+    headers = {"Authorization": f"Bearer {api_key}"}
+
+    for provider_name, provider_id in providers:
+        url = f"{settings.CHEAPDATAHUB_BASE_URL}/api/v1/resellers/cable/plans/?provider_id={provider_id}"
+        try:
+            response = requests.get(url, headers=headers, timeout=20)
+            plans = response.json().get("data", response.json())
+            for p in (plans if isinstance(plans, list) else []):
+                provider_price = Decimal(str(p.get("amount", p.get("price", "0"))))
+                subhero_price = (provider_price * Decimal("1.04")).quantize(Decimal("0.01"))
+                CablePlan.objects.update_or_create(
+                    plan_id=str(p["id"]),
+                    defaults={
+                        "provider": provider_name,
+                        "name": p.get("name", p.get("package_name", "")),
+                        "amount": provider_price,
+                        "subhero_price": subhero_price,
+                        "is_active": True,
+                    }
+                )
+            logger.info("Synced %s cable plans for %s.", len(plans), provider_name)
+        except Exception as e:
+            logger.error("Failed to sync cable plans for %s: %s", provider_name, str(e))
+            _seed_default_cable_plans()
+
+
+def _seed_default_cable_plans():
+    """Fallback cable plans so UI works even without API key or during sync failures."""
+    default_plans = [
+        # DStv
+        {"plan_id": "dstv-padi", "provider": "dstv", "name": "DStv Padi", "amount": Decimal("1850"), "subhero_price": Decimal("1924")},
+        {"plan_id": "dstv-yanga", "provider": "dstv", "name": "DStv Yanga", "amount": Decimal("2565"), "subhero_price": Decimal("2668")},
+        {"plan_id": "dstv-confam", "provider": "dstv", "name": "DStv Confam", "amount": Decimal("6200"), "subhero_price": Decimal("6448")},
+        {"plan_id": "dstv-compact", "provider": "dstv", "name": "DStv Compact", "amount": Decimal("15700"), "subhero_price": Decimal("16328")},
+        {"plan_id": "dstv-compact-plus", "provider": "dstv", "name": "DStv Compact Plus", "amount": Decimal("25000"), "subhero_price": Decimal("26000")},
+        {"plan_id": "dstv-premium", "provider": "dstv", "name": "DStv Premium", "amount": Decimal("37000"), "subhero_price": Decimal("38480")},
+        # GOtv
+        {"plan_id": "gotv-supa-plus", "provider": "gotv", "name": "GOtv Supa Plus", "amount": Decimal("6400"), "subhero_price": Decimal("6656")},
+        {"plan_id": "gotv-supa", "provider": "gotv", "name": "GOtv Supa", "amount": Decimal("5500"), "subhero_price": Decimal("5720")},
+        {"plan_id": "gotv-max", "provider": "gotv", "name": "GOtv Max", "amount": Decimal("4150"), "subhero_price": Decimal("4316")},
+        {"plan_id": "gotv-jolli", "provider": "gotv", "name": "GOtv Jolli", "amount": Decimal("3000"), "subhero_price": Decimal("3120")},
+        {"plan_id": "gotv-jinja", "provider": "gotv", "name": "GOtv Jinja", "amount": Decimal("1900"), "subhero_price": Decimal("1976")},
+        {"plan_id": "gotv-smallie", "provider": "gotv", "name": "GOtv Smallie (1 Month)", "amount": Decimal("1100"), "subhero_price": Decimal("1144")},
+        # Startimes
+        {"plan_id": "startimes-nova", "provider": "startimes", "name": "Startimes Nova (1 Month)", "amount": Decimal("1300"), "subhero_price": Decimal("1352")},
+        {"plan_id": "startimes-basic", "provider": "startimes", "name": "Startimes Basic (1 Month)", "amount": Decimal("2200"), "subhero_price": Decimal("2288")},
+        {"plan_id": "startimes-smart", "provider": "startimes", "name": "Startimes Smart (1 Month)", "amount": Decimal("3000"), "subhero_price": Decimal("3120")},
+        {"plan_id": "startimes-classic", "provider": "startimes", "name": "Startimes Classic (1 Month)", "amount": Decimal("4000"), "subhero_price": Decimal("4160")},
+        {"plan_id": "startimes-super", "provider": "startimes", "name": "Startimes Super (1 Month)", "amount": Decimal("6200"), "subhero_price": Decimal("6448")},
+    ]
+    for p in default_plans:
+        CablePlan.objects.update_or_create(plan_id=p["plan_id"], defaults={**p, "is_active": True})
+    logger.info("Default cable plans seeded.")
+
+
+# =============================================================
+# ELECTRICITY TASKS
+# =============================================================
+
+@shared_task(bind=True, max_retries=3)
+def process_electricity_order(self, order_id):
+    """Vends electricity token via CheapDataHub."""
+    try:
+        order = ElectricityOrder.objects.get(id=order_id)
+    except ElectricityOrder.DoesNotExist:
+        logger.error("ElectricityOrder not found: %s", order_id)
+        return
+
+    if order.status != ElectricityOrder.Status.PROCESSING:
+        return
+
+    api_key = settings.CHEAPDATAHUB_API_KEY
+    if not api_key:
+        order.status = ElectricityOrder.Status.FAILED
+        order.save(update_fields=["status"])
+        refund_electricity_order.delay(order_id)
+        return
+
+    url = f"{settings.CHEAPDATAHUB_BASE_URL}/api/v1/resellers/electricity/purchase/"
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    payload = {
+        "disco_id": order.disco_id,
+        "meter_number": order.meter_number,
+        "meter_type": order.meter_type,
+        "amount": str(order.amount),
+        "phone_number": order.phone,
+    }
+
+    try:
+        response = requests.post(url, json=payload, headers=headers, timeout=45)
+        data = response.json()
+
+        if response.status_code in [200, 201] and data.get("status") in ["true", "success", True]:
+            order.status = ElectricityOrder.Status.SUCCESS
+            order.provider_ref = data.get("reference", data.get("id", "CDH-ELEC"))
+            order.token = data.get("token", data.get("data", {}).get("token", ""))
+            order.units = str(data.get("units", data.get("data", {}).get("units", "")))
+            order.delivered_at = timezone.now()
+            order.save(update_fields=["status", "provider_ref", "token", "units", "delivered_at"])
+
+            token_msg = f" Token: {order.token}" if order.token else ""
+            send_transaction_sms.delay(
+                order.user.phone_number,
+                f"SubHero: ₦{order.amount:,.0f} electricity vended for {order.meter_number}.{token_msg} Ref: {order.reference}",
+            )
+            try:
+                from apps.notifications.models import Notification
+                desc = f"₦{order.amount:,.0f} electricity for meter {order.meter_number} ({order.disco_name})."
+                if order.token:
+                    desc += f" Token: {order.token}"
+                Notification.add(order.user, "Electricity Purchase Successful", desc, "financial")
+            except Exception as e:
+                logger.error("Notification failed: %s", str(e))
+        else:
+            http_code = response.status_code
+            msg = data.get("message", data.get("error", "Provider declined"))
+            raise Exception(f"CheapDataHub Electricity failed [{http_code}]: {msg}")
+
+    except requests.exceptions.Timeout:
+        raise Exception("Provider API timed out.")
+    except requests.exceptions.ConnectionError:
+        raise Exception("Could not reach provider.")
+    except Exception as exc:
+        logger.warning("Electricity order %s failed. Retrying... Error: %s", order_id, str(exc))
+        try:
+            self.retry(exc=exc, countdown=60)  # Longer delay for electricity (slower provider)
+        except MaxRetriesExceededError:
+            order.status = ElectricityOrder.Status.FAILED
+            order.provider_ref = f"Failed: {str(exc)}"[:100]
+            order.save(update_fields=["status", "provider_ref"])
+            refund_electricity_order.delay(order_id)
+
+
+@shared_task
+def refund_electricity_order(order_id):
+    try:
+        order = ElectricityOrder.objects.select_for_update().get(id=order_id)
+        _generic_refund(order, "Electricity", "REFUND")
+    except Exception as err:
+        logger.exception("Electricity refund failed: %s", str(err))
+
+
+# =============================================================
+# EXAM PIN TASKS
+# =============================================================
+
+@shared_task(bind=True, max_retries=3)
+def process_exam_pin_order(self, order_id):
+    """Purchases exam PINs via CheapDataHub and stores the delivered tokens."""
+    try:
+        order = ExamPinOrder.objects.get(id=order_id)
+    except ExamPinOrder.DoesNotExist:
+        logger.error("ExamPinOrder not found: %s", order_id)
+        return
+
+    if order.status != ExamPinOrder.Status.PROCESSING:
+        return
+
+    api_key = settings.CHEAPDATAHUB_API_KEY
+    if not api_key:
+        order.status = ExamPinOrder.Status.FAILED
+        order.save(update_fields=["status"])
+        refund_exam_pin_order.delay(order_id)
+        return
+
+    url = f"{settings.CHEAPDATAHUB_BASE_URL}/api/v1/resellers/exam-pin/purchase/"
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    payload = {
+        "product_id": order.product_id,
+        "quantity": order.quantity,
+    }
+
+    try:
+        response = requests.post(url, json=payload, headers=headers, timeout=45)
+        data = response.json()
+
+        if response.status_code in [200, 201] and data.get("status") in ["true", "success", True]:
+            # Parse delivered PINs from response
+            raw_pins = data.get("pins", data.get("data", {}).get("pins", []))
+            if isinstance(raw_pins, list):
+                pins_text = "\n".join(str(p) for p in raw_pins)
+            else:
+                pins_text = str(raw_pins)
+
+            order.status = ExamPinOrder.Status.SUCCESS
+            order.provider_ref = data.get("reference", data.get("id", "CDH-EXAM"))
+            order.delivered_pins = pins_text
+            order.delivered_at = timezone.now()
+            order.save(update_fields=["status", "provider_ref", "delivered_pins", "delivered_at"])
+
+            send_transaction_sms.delay(
+                order.user.phone_number,
+                f"SubHero: {order.quantity} {order.exam_name} PIN(s) delivered. Check your dashboard. Ref: {order.reference}",
+            )
+            try:
+                from apps.notifications.models import Notification
+                Notification.add(order.user, "Exam PIN Delivered",
+                    f"{order.quantity} {order.exam_name} PIN(s) successfully purchased. View them in your transaction history.", "financial")
+            except Exception as e:
+                logger.error("Notification failed: %s", str(e))
+        else:
+            http_code = response.status_code
+            msg = data.get("message", data.get("error", "Provider declined"))
+            raise Exception(f"CheapDataHub Exam PIN failed [{http_code}]: {msg}")
+
+    except requests.exceptions.Timeout:
+        raise Exception("Provider API timed out.")
+    except requests.exceptions.ConnectionError:
+        raise Exception("Could not reach provider.")
+    except Exception as exc:
+        logger.warning("Exam PIN order %s failed. Retrying... Error: %s", order_id, str(exc))
+        try:
+            self.retry(exc=exc, countdown=30)
+        except MaxRetriesExceededError:
+            order.status = ExamPinOrder.Status.FAILED
+            order.provider_ref = f"Failed: {str(exc)}"[:100]
+            order.save(update_fields=["status", "provider_ref"])
+            refund_exam_pin_order.delay(order_id)
+
+
+@shared_task
+def refund_exam_pin_order(order_id):
+    try:
+        order = ExamPinOrder.objects.select_for_update().get(id=order_id)
+        _generic_refund(order, "Exam PIN", "REFUND")
+    except Exception as err:
+        logger.exception("Exam PIN refund failed: %s", str(err))
+
+
+@shared_task
+def sync_exam_products():
+    """Syncs exam PIN products from CheapDataHub every 6 hours."""
+    api_key = settings.CHEAPDATAHUB_API_KEY
+    if not api_key:
+        _seed_default_exam_products()
+        return
+
+    url = f"{settings.CHEAPDATAHUB_BASE_URL}/api/v1/resellers/exam-pin/products/"
+    headers = {"Authorization": f"Bearer {api_key}"}
+
+    try:
+        response = requests.get(url, headers=headers, timeout=20)
+        products = response.json().get("data", response.json())
+        for p in (products if isinstance(products, list) else []):
+            provider_price = Decimal(str(p.get("price", p.get("amount", "0"))))
+            subhero_price = (provider_price * Decimal("1.08")).quantize(Decimal("0.01"))
+            ExamProduct.objects.update_or_create(
+                product_id=str(p["id"]),
+                defaults={
+                    "exam_name": p.get("name", p.get("exam_name", "")),
+                    "price_per_pin": provider_price,
+                    "subhero_price_per_pin": subhero_price,
+                    "is_active": True,
+                }
+            )
+        logger.info("Synced %s exam products.", len(products))
+    except Exception as e:
+        logger.error("Failed to sync exam products: %s", str(e))
+        _seed_default_exam_products()
+
+
+def _seed_default_exam_products():
+    """Fallback exam products if API is unavailable."""
+    defaults = [
+        {"product_id": "waec-1", "exam_name": "WAEC", "price_per_pin": Decimal("4000"), "subhero_price_per_pin": Decimal("4320")},
+        {"product_id": "neco-1", "exam_name": "NECO", "price_per_pin": Decimal("1000"), "subhero_price_per_pin": Decimal("1080")},
+        {"product_id": "nabteb-1", "exam_name": "NABTEB", "price_per_pin": Decimal("1000"), "subhero_price_per_pin": Decimal("1080")},
+    ]
+    for p in defaults:
+        ExamProduct.objects.update_or_create(product_id=p["product_id"], defaults={**p, "is_active": True})
+    logger.info("Default exam products seeded.")
+
