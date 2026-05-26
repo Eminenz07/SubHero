@@ -299,6 +299,14 @@
         const pinCode = pinState.join('');
         document.getElementById('id_hidden_pin').value = pinCode;
         
+        // Show premium glassmorphic loader
+        const overlay = document.getElementById('global-loading-overlay');
+        if (overlay) {
+            document.getElementById('loading-overlay-title').textContent = "Vending Mobile Data...";
+            document.getElementById('loading-overlay-subtitle').textContent = "Delivering your data package via CheapDataHub. Please do not close or refresh this page.";
+            overlay.classList.remove('hidden');
+        }
+        
         // Disable buttons to prevent duplicates
         document.querySelectorAll('#custom-sheet-pin button').forEach(b => b.disabled = true);
         

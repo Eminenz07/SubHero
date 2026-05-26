@@ -1,11 +1,11 @@
 <div class="px-4 py-8 max-w-md mx-auto text-center" id="receipt-container"
-     {% if order and order.status == 'PROCESSING' or order.status == 'PENDING' %}
+     {% if order and order.status in 'PROCESSING,PENDING' %}
      hx-get="{% url 'vtu:receipt_status' order_type=service_type order_id=order.id %}"
      hx-trigger="every 2.5s"
      hx-swap="outerHTML"
      {% endif %}>
 
-    {% if order and order.status == 'PROCESSING' or order and order.status == 'PENDING' %}
+    {% if order and order.status in 'PROCESSING,PENDING' %}
     <!-- Processing Badge -->
     <div class="w-20 h-20 bg-amber-100 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-6">
         <i data-feather="clock" class="w-12 h-12 animate-spin" style="animation-duration: 3s;"></i>
@@ -172,7 +172,7 @@
     {% endif %}
 
     <!-- Disclaimer note -->
-    {% if order and order.status == 'PROCESSING' or order and order.status == 'PENDING' %}
+    {% if order and order.status in 'PROCESSING,PENDING' %}
     <div class="text-xs text-text-muted mb-6 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-left">
         <strong class="text-amber-700">⏱ Processing</strong> — Most orders complete within 60 seconds. If delivery fails, your ₦{{ amount|floatformat:0 }} will be fully refunded automatically.
     </div>

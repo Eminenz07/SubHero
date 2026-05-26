@@ -155,7 +155,12 @@ class BuyDataView(LoginRequiredMixin, PinRequiredMixin, View):
                 )
 
             cache.set(idempotency_key, order.id, 300)
-            process_vtu_order.delay(order.id)
+            # Run task synchronously for immediate real-time feedback
+            from apps.vtu.tasks import process_vtu_order
+            process_vtu_order(order.id)
+            order.refresh_from_db()
+            txn = WalletTransaction.objects.filter(reference=order.reference).first()
+            locked_wallet = Wallet.objects.get(user=request.user)
 
             return render(request, "vtu/receipt.html", {
                 "wallet": locked_wallet, "txn": txn, "order": order,
@@ -244,7 +249,12 @@ class BuyAirtimeView(LoginRequiredMixin, PinRequiredMixin, View):
                 )
 
             cache.set(idempotency_key, order.id, 300)
-            process_airtime_order.delay(str(order.id))
+            # Run task synchronously for immediate real-time feedback
+            from apps.vtu.tasks import process_airtime_order
+            process_airtime_order(str(order.id))
+            order.refresh_from_db()
+            txn = WalletTransaction.objects.filter(reference=order.reference).first()
+            locked_wallet = Wallet.objects.get(user=request.user)
 
             return render(request, "vtu/receipt.html", {
                 "wallet": locked_wallet, "txn": txn, "order": order,
@@ -334,7 +344,12 @@ class BuyCableView(LoginRequiredMixin, PinRequiredMixin, View):
                 )
 
             cache.set(idempotency_key, order.id, 300)
-            process_cable_order.delay(str(order.id))
+            # Run task synchronously for immediate real-time feedback
+            from apps.vtu.tasks import process_cable_order
+            process_cable_order(str(order.id))
+            order.refresh_from_db()
+            txn = WalletTransaction.objects.filter(reference=order.reference).first()
+            locked_wallet = Wallet.objects.get(user=request.user)
 
             return render(request, "vtu/receipt.html", {
                 "wallet": locked_wallet, "txn": txn, "order": order,
@@ -444,7 +459,12 @@ class BuyElectricityView(LoginRequiredMixin, PinRequiredMixin, View):
                 )
 
             cache.set(idempotency_key, order.id, 300)
-            process_electricity_order.delay(str(order.id))
+            # Run task synchronously for immediate real-time feedback
+            from apps.vtu.tasks import process_electricity_order
+            process_electricity_order(str(order.id))
+            order.refresh_from_db()
+            txn = WalletTransaction.objects.filter(reference=order.reference).first()
+            locked_wallet = Wallet.objects.get(user=request.user)
 
             return render(request, "vtu/receipt.html", {
                 "wallet": locked_wallet, "txn": txn, "order": order,
@@ -533,13 +553,18 @@ class BuyExamPinView(LoginRequiredMixin, PinRequiredMixin, View):
                 )
 
             cache.set(idempotency_key, order.id, 300)
-            process_exam_pin_order.delay(str(order.id))
+            # Run task synchronously for immediate real-time feedback
+            from apps.vtu.tasks import process_exam_pin_order
+            process_exam_pin_order(str(order.id))
+            order.refresh_from_db()
+            txn = WalletTransaction.objects.filter(reference=order.reference).first()
+            locked_wallet = Wallet.objects.get(user=request.user)
 
             return render(request, "vtu/receipt.html", {
                 "wallet": locked_wallet, "txn": txn, "order": order,
                 "service_type": "exam_pin", "exam_name": product.exam_name,
                 "quantity": quantity, "amount": total,
-                "pins": order.get_pins_list(),  # Usually empty at this stage (async delivery)
+                "pins": order.get_pins_list(),
                 "back_url": "/vtu/exam-pin/",
             })
         except InsufficientBalanceError:
@@ -668,48 +693,14 @@ class VerifyUtilityAjaxView(LoginRequiredMixin, View):
             
             disco_name = DISCO_NAMES.get(disco_id, "Unknown DisCo")
             
-            # 1. API Call check
-            api_key = settings.CHEAPDATAHUB_API_KEY
-            if not api_key or api_key == "YOUR_CHEAPDATAHUB_API_KEY_HERE":
-                if not number.isdigit() or not (11 <= len(number) <= 13):
-                    return JsonResponse({"status": "error", "message": "Invalid meter number format (11-13 digits required)."})
-                return JsonResponse({
-                    "status": "success",
-                    "customer_name": f"ADENEKAN ADEMOLA ({disco_name} {meter_type.upper()})"
-                })
-            
-            url = f"{settings.CHEAPDATAHUB_BASE_URL}/api/v1/resellers/electricity/verify/"
-            headers = {
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json"
-            }
-            payload = {
-                "disco_id": int(disco_id) if disco_id.isdigit() else disco_id,
-                "meter_number": number,
-                "meter_type": meter_type
-            }
-            
-            try:
-                response = requests.post(url, json=payload, headers=headers, timeout=10)
-                if response.status_code in [200, 201]:
-                    res_data = response.json()
-                    if res_data.get("status") in [True, "true", "success"]:
-                        name = res_data.get("customer_name", res_data.get("name", "VERIFIED CUSTOMER"))
-                        return JsonResponse({"status": "success", "customer_name": name})
+            # Format validation (11 to 13 digits)
+            if not number.isdigit() or not (11 <= len(number) <= 13):
+                return JsonResponse({"status": "error", "message": "Invalid meter number format (11-13 digits required)."})
                 
-                if number.isdigit() and (11 <= len(number) <= 13):
-                    return JsonResponse({
-                        "status": "success",
-                        "customer_name": f"ADENEKAN ADEMOLA ({disco_name} {meter_type.upper()})"
-                    })
-                return JsonResponse({"status": "error", "message": "Verification failed. Check meter details."})
-            except Exception:
-                if number.isdigit() and (11 <= len(number) <= 13):
-                    return JsonResponse({
-                        "status": "success",
-                        "customer_name": f"ADENEKAN ADEMOLA ({disco_name} {meter_type.upper()})"
-                    })
-                return JsonResponse({"status": "error", "message": "Connection to provider validation failed."})
+            return JsonResponse({
+                "status": "success",
+                "customer_name": f"Format Valid — Confirmed on delivery ({disco_name} {meter_type.upper()})"
+            })
                 
         elif action == "cable":
             provider = request.GET.get("provider", "").strip().lower()
@@ -718,46 +709,14 @@ class VerifyUtilityAjaxView(LoginRequiredMixin, View):
             if not provider or not number:
                 return JsonResponse({"status": "error", "message": "Provider and Smart Card number are required."})
             
-            api_key = settings.CHEAPDATAHUB_API_KEY
-            if not api_key or api_key == "YOUR_CHEAPDATAHUB_API_KEY_HERE":
-                if not number.isdigit() or not (10 <= len(number) <= 11):
-                    return JsonResponse({"status": "error", "message": "Invalid Smartcard number format (10-11 digits)."})
-                return JsonResponse({
-                    "status": "success",
-                    "customer_name": f"CHIBUZOR OKEKE ({provider.upper()} Subscriber)"
-                })
-            
-            url = f"{settings.CHEAPDATAHUB_BASE_URL}/api/v1/resellers/cable/verify/"
-            headers = {
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json"
-            }
-            payload = {
-                "provider": provider,
-                "smartcard_number": number
-            }
-            
-            try:
-                response = requests.post(url, json=payload, headers=headers, timeout=10)
-                if response.status_code in [200, 201]:
-                    res_data = response.json()
-                    if res_data.get("status") in [True, "true", "success"]:
-                        name = res_data.get("customer_name", res_data.get("name", "VERIFIED CUSTOMER"))
-                        return JsonResponse({"status": "success", "customer_name": name})
+            # Format validation (10 or 11 digits)
+            if not number.isdigit() or not (10 <= len(number) <= 11):
+                return JsonResponse({"status": "error", "message": "Invalid Smartcard number format (10-11 digits)."})
                 
-                if number.isdigit() and (10 <= len(number) <= 11):
-                    return JsonResponse({
-                        "status": "success",
-                        "customer_name": f"CHIBUZOR OKEKE ({provider.upper()} Subscriber)"
-                    })
-                return JsonResponse({"status": "error", "message": "Smartcard verification failed."})
-            except Exception:
-                if number.isdigit() and (10 <= len(number) <= 11):
-                    return JsonResponse({
-                        "status": "success",
-                        "customer_name": f"CHIBUZOR OKEKE ({provider.upper()} Subscriber)"
-                    })
-                return JsonResponse({"status": "error", "message": "Verification service unavailable."})
+            return JsonResponse({
+                "status": "success",
+                "customer_name": f"Format Valid — Confirmed on delivery ({provider.upper()} Decoder)"
+            })
                 
         else:
             return JsonResponse({"status": "error", "message": "Invalid action specified."})
