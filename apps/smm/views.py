@@ -206,6 +206,7 @@ class SmmIndexView(LoginRequiredMixin, PinRequiredMixin, View):
             receipt_context = {
                 "wallet": locked_wallet,
                 "txn": txn,
+                "order": order,
                 "platform": platform,
                 "service_name": service_name,
                 "url": url,
@@ -268,3 +269,28 @@ class SmmServicesAjaxView(LoginRequiredMixin, View):
             s.unit_price = s.subhero_price_per_1k / Decimal("1000.00")
 
         return render(request, self.template_name, {"services": services})
+
+
+class SmmReceiptStatusAjaxView(LoginRequiredMixin, View):
+    """
+    HTMX status polling endpoint for SMM receipts.
+    """
+    template_name = "smm/partials/_receipt_content.html"
+
+    def get(self, request, order_id, *args, **kwargs):
+        from django.shortcuts import get_object_or_404
+        order = get_object_or_404(SMMOrder, id=order_id, user=request.user)
+        wallet, _ = Wallet.objects.get_or_create(user=request.user)
+        txn = WalletTransaction.objects.filter(reference=order.reference).first()
+
+        context = {
+            "wallet": wallet,
+            "txn": txn,
+            "order": order,
+            "platform": order.service.category,
+            "service_name": order.service.name,
+            "url": order.target_url,
+            "quantity": order.quantity,
+            "amount": order.amount,
+        }
+        return render(request, self.template_name, context)

@@ -100,19 +100,21 @@
         <span class="text-[11px] font-semibold text-text-secondary text-center leading-[1.2]">Social</span>
     </a>
 
-    <a href="{% url 'wallet:fund' %}" class="bg-surface-card rounded-[14px] py-4 px-2 flex flex-col items-center gap-2 shadow-card border border-surface-border cursor-pointer active:bg-surface-page no-underline" id="qa-fund">
+    <div class="bg-surface-card rounded-[14px] py-4 px-2 flex flex-col items-center gap-2 shadow-card border border-surface-border relative overflow-hidden" id="qa-betting">
         <div class="w-[46px] h-[46px] rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center">
-            <i data-feather="plus-circle" class="w-[22px] h-[22px]"></i>
+            <i data-feather="award" class="w-[22px] h-[22px]"></i>
         </div>
-        <span class="text-[11px] font-semibold text-text-secondary text-center leading-[1.2]">Fund</span>
-    </a>
+        <span class="text-[11px] font-semibold text-text-secondary text-center leading-[1.2]">Betting</span>
+        <span class="text-[9px] font-bold text-amber-600 bg-amber-50 rounded-pill px-1.5 py-0.5 scale-90 -mt-1 uppercase tracking-wider">Soon</span>
+    </div>
 
-    <a href="{% url 'wallet:transfer' %}" class="bg-surface-card rounded-[14px] py-4 px-2 flex flex-col items-center gap-2 shadow-card border border-surface-border cursor-pointer active:bg-surface-page no-underline" id="qa-transfer">
+    <div class="bg-surface-card rounded-[14px] py-4 px-2 flex flex-col items-center gap-2 shadow-card border border-surface-border relative overflow-hidden" id="qa-gift">
         <div class="w-[46px] h-[46px] rounded-xl bg-indigo-50 text-indigo-500 flex items-center justify-center">
-            <i data-feather="send" class="w-[22px] h-[22px]"></i>
+            <i data-feather="gift" class="w-[22px] h-[22px]"></i>
         </div>
-        <span class="text-[11px] font-semibold text-text-secondary text-center leading-[1.2]">Transfer</span>
-    </a>
+        <span class="text-[11px] font-semibold text-text-secondary text-center leading-[1.2]">Gift Cards</span>
+        <span class="text-[9px] font-bold text-amber-600 bg-amber-50 rounded-pill px-1.5 py-0.5 scale-90 -mt-1 uppercase tracking-wider">Soon</span>
+    </div>
 </div>
 
 <!-- SMM Platforms Horizontal Scroll -->

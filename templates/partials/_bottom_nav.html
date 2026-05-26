@@ -1,8 +1,7 @@
 <!-- Bottom Nav Partial -->
 {% url 'dashboard' as dashboard_url %}
-{% url 'vtu:buy_data' as vtu_url %}
+{% url 'vtu:buy_data' as data_url %}
 {% url 'smm:index' as smm_url %}
-{% url 'wallet:index' as wallet_url %}
 {% url 'accounts:profile' as profile_url %}
 
 <nav class="bottom-nav">
@@ -12,7 +11,7 @@
         <span>Home</span>
     </a>
     
-    <a href="{{ vtu_url }}" class="nav-item {% if request.path == vtu_url %}active{% endif %}">
+    <a href="#" onclick="openVtuSheet(event)" class="nav-item {% if '/vtu/' in request.path %}active{% endif %}">
         <span class="nav-dot"></span>
         <i data-feather="smartphone" class="nav-icon"></i>
         <span>VTU</span>
@@ -30,3 +29,81 @@
         <span>Profile</span>
     </a>
 </nav>
+
+<!-- VTU Services Bottom Sheet Drawer -->
+<div class="sheet-backdrop" id="vtu-sheet-backdrop" onclick="closeVtuSheet()"></div>
+
+<div class="bottom-sheet shadow-2xl" id="vtu-services-sheet">
+    <div class="sheet-handle"></div>
+    <div class="p-5 pb-6">
+        <h2 class="sheet-title">VTU Hub</h2>
+        <p class="sheet-subtitle">Select a telecom or utility service to proceed</p>
+        
+        <div class="grid grid-cols-3 gap-3 my-5">
+            <a href="{% url 'vtu:buy_data' %}" class="bg-surface-card rounded-[14px] py-4 px-2 flex flex-col items-center gap-2 shadow-card border border-surface-border cursor-pointer active:bg-surface-page no-underline">
+                <div class="w-[44px] h-[44px] rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center">
+                    <i data-feather="wifi" class="w-5 h-5"></i>
+                </div>
+                <span class="text-[12px] font-semibold text-text-secondary text-center leading-[1.2]">Data</span>
+            </a>
+            
+            <a href="{% url 'vtu:buy_airtime' %}" class="bg-surface-card rounded-[14px] py-4 px-2 flex flex-col items-center gap-2 shadow-card border border-surface-border cursor-pointer active:bg-surface-page no-underline">
+                <div class="w-[44px] h-[44px] rounded-xl bg-green-50 text-green-500 flex items-center justify-center">
+                    <i data-feather="phone" class="w-5 h-5"></i>
+                </div>
+                <span class="text-[12px] font-semibold text-text-secondary text-center leading-[1.2]">Airtime</span>
+            </a>
+            
+            <a href="{% url 'vtu:buy_electricity' %}" class="bg-surface-card rounded-[14px] py-4 px-2 flex flex-col items-center gap-2 shadow-card border border-surface-border cursor-pointer active:bg-surface-page no-underline">
+                <div class="w-[44px] h-[44px] rounded-xl bg-yellow-50 text-yellow-500 flex items-center justify-center">
+                    <i data-feather="zap" class="w-5 h-5"></i>
+                </div>
+                <span class="text-[12px] font-semibold text-text-secondary text-center leading-[1.2]">Power</span>
+            </a>
+            
+            <a href="{% url 'vtu:buy_cable' %}" class="bg-surface-card rounded-[14px] py-4 px-2 flex flex-col items-center gap-2 shadow-card border border-surface-border cursor-pointer active:bg-surface-page no-underline">
+                <div class="w-[44px] h-[44px] rounded-xl bg-purple-50 text-purple-500 flex items-center justify-center">
+                    <i data-feather="tv" class="w-5 h-5"></i>
+                </div>
+                <span class="text-[12px] font-semibold text-text-secondary text-center leading-[1.2]">Cable TV</span>
+            </a>
+            
+            <a href="{% url 'vtu:buy_exam_pin' %}" class="bg-surface-card rounded-[14px] py-4 px-2 flex flex-col items-center gap-2 shadow-card border border-surface-border cursor-pointer active:bg-surface-page no-underline">
+                <div class="w-[44px] h-[44px] rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center">
+                    <i data-feather="book-open" class="w-5 h-5"></i>
+                </div>
+                <span class="text-[12px] font-semibold text-text-secondary text-center leading-[1.2]">Exam PIN</span>
+            </a>
+        </div>
+        
+        <div class="pt-2">
+            <button type="button" class="btn btn-outline btn-block text-sm" onclick="closeVtuSheet()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openVtuSheet(event) {
+        event.preventDefault();
+        const backdrop = document.getElementById('vtu-sheet-backdrop');
+        const sheet = document.getElementById('vtu-services-sheet');
+        if (backdrop && sheet) {
+            backdrop.classList.add('active');
+            sheet.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            if (typeof feather !== 'undefined') {
+                feather.replace();
+            }
+        }
+    }
+    
+    function closeVtuSheet() {
+        const backdrop = document.getElementById('vtu-sheet-backdrop');
+        const sheet = document.getElementById('vtu-services-sheet');
+        if (backdrop && sheet) {
+            backdrop.classList.remove('active');
+            sheet.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+    }
+</script>

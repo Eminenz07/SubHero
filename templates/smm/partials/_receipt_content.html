@@ -1,0 +1,112 @@
+<div class="px-4 py-8 max-w-md mx-auto text-center" id="receipt-container"
+     {% if order and order.status == 'PROCESSING' or order.status == 'PENDING' %}
+     hx-get="{% url 'smm:receipt_status' order_id=order.id %}"
+     hx-trigger="every 2.5s"
+     hx-swap="outerHTML"
+     {% endif %}>
+
+    {% if order and order.status == 'PROCESSING' or order and order.status == 'PENDING' %}
+    <!-- Processing Badge -->
+    <div class="w-20 h-20 bg-amber-100 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-6">
+        <i data-feather="clock" class="w-12 h-12 animate-spin" style="animation-duration: 3s;"></i>
+    </div>
+
+    <h1 class="text-2xl font-bold text-text-primary mb-2">Order Submitted</h1>
+    <p class="text-sm text-text-muted mb-2">
+        Your payment of <span class="font-bold text-text-primary">₦{{ amount|floatformat:2 }}</span> has been deducted.
+    </p>
+    <p class="text-sm text-text-muted mb-8">
+        Your booster order for <span class="font-bold text-text-primary">{{ service_name }}</span> has been received and is being processed. This page will update automatically.
+    </p>
+
+    {% elif order and order.status == 'FAILED' %}
+    <!-- Failed Badge -->
+    <div class="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
+        <i data-feather="x-circle" class="w-12 h-12"></i>
+    </div>
+
+    <h1 class="text-2xl font-bold text-status-danger mb-2">Order Failed</h1>
+    <p class="text-sm text-text-muted mb-8">
+        We were unable to fulfill your booster order. Your wallet balance has been **fully refunded**.
+    </p>
+
+    {% else %}
+    <!-- Success Badge -->
+    <div class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
+        <i data-feather="check-circle" class="w-12 h-12"></i>
+    </div>
+
+    <h1 class="text-2xl font-bold text-text-primary mb-2">Order Completed!</h1>
+    <p class="text-sm text-text-muted mb-8">
+        Your SMM booster request for <span class="font-bold text-text-primary">{{ service_name }}</span> has been successfully delivered.
+    </p>
+    {% endif %}
+
+    <!-- Receipt Card -->
+    <div class="card p-6 mb-8 text-left space-y-4 shadow-sm border border-surface-border bg-white rounded-2xl">
+        <div class="flex justify-between items-center pb-3 border-b border-surface-border">
+            <span class="text-xs font-semibold text-text-muted uppercase">Platform</span>
+            <span class="text-sm font-bold text-text-primary capitalize">{{ platform }}</span>
+        </div>
+        
+        <div class="flex justify-between items-center pb-3 border-b border-surface-border">
+            <span class="text-xs font-semibold text-text-muted uppercase">Service Ordered</span>
+            <span class="text-sm font-bold text-text-primary">{{ service_name }}</span>
+        </div>
+
+        <div class="flex justify-between items-center pb-3 border-b border-surface-border">
+            <span class="text-xs font-semibold text-text-muted uppercase">Target URL</span>
+            <span class="text-sm font-medium text-text-primary truncate max-w-[200px]" title="{{ url }}">{{ url }}</span>
+        </div>
+
+        <div class="flex justify-between items-center pb-3 border-b border-surface-border">
+            <span class="text-xs font-semibold text-text-muted uppercase">Quantity</span>
+            <span class="text-sm font-bold text-text-primary font-mono">{{ quantity }}</span>
+        </div>
+
+        <div class="flex justify-between items-center pb-3 border-b border-surface-border">
+            <span class="text-xs font-semibold text-text-muted uppercase">Amount Paid</span>
+            <span class="text-sm font-bold text-status-danger font-mono">₦{{ amount|floatformat:2 }}</span>
+        </div>
+
+        <div class="flex justify-between items-center pb-3 border-b border-surface-border">
+            <span class="text-xs font-semibold text-text-muted uppercase">New Balance</span>
+            <span class="text-sm font-bold text-brand-primary font-mono">₦{{ wallet.balance|floatformat:2 }}</span>
+        </div>
+
+        <div class="flex justify-between items-center">
+            <span class="text-xs font-semibold text-text-muted uppercase">Reference</span>
+            <span class="text-[11px] font-medium text-text-muted font-mono">{{ txn.reference }}</span>
+        </div>
+    </div>
+
+    <!-- Failure Reason Detail Box -->
+    {% if order and order.status == 'FAILED' %}
+    <div class="bg-red-50 border border-red-100 rounded-xl p-3.5 text-left flex gap-3 mb-6">
+        <i data-feather="alert-circle" class="w-5 h-5 text-status-danger-text shrink-0 mt-0.5"></i>
+        <div>
+            <div class="text-xs font-bold text-status-danger-text mb-0.5">Fulfillment Failed</div>
+            <div class="text-xs text-status-danger-text/90 font-medium leading-relaxed">
+                {% if "wallet" in order.provider_order_id|lower or "insufficient" in order.provider_order_id|lower or "402" in order.provider_order_id %}
+                    API wallet balance exhausted or low balance on API side. Your payment has been refunded to your wallet. Please contact support.
+                {% else %}
+                    {{ order.provider_order_id|default:"Temporary provider connection error." }}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Actions -->
+    <div class="space-y-3">
+        <a href="{% url 'dashboard' %}" class="btn btn-primary btn-block">Back to Dashboard</a>
+        <a href="{% url 'smm:index' %}" class="btn btn-secondary btn-block">Order Again</a>
+    </div>
+
+    <script>
+        // Re-init feather icons on HTMX swap
+        if (typeof feather !== 'undefined') {
+            feather.replace();
+        }
+    </script>
+</div>

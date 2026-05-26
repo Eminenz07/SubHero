@@ -158,7 +158,7 @@ class BuyDataView(LoginRequiredMixin, PinRequiredMixin, View):
             process_vtu_order.delay(order.id)
 
             return render(request, "vtu/receipt.html", {
-                "wallet": locked_wallet, "txn": txn,
+                "wallet": locked_wallet, "txn": txn, "order": order,
                 "service_type": "data", "network": network,
                 "phone_number": phone_number, "plan_name": plan.name,
                 "amount": plan.subhero_price, "back_url": "/vtu/data/",
@@ -183,7 +183,11 @@ class BuyAirtimeView(LoginRequiredMixin, PinRequiredMixin, View):
 
     def _context(self, request):
         wallet, _ = Wallet.objects.get_or_create(user=request.user)
-        return {"wallet": wallet, "networks": list(AIRTIME_NETWORKS.keys())}
+        return {
+            "wallet": wallet,
+            "networks": list(AIRTIME_NETWORKS.keys()),
+            "amounts": [50, 100, 200, 500, 1000, 2000]
+        }
 
     def get(self, request, *args, **kwargs):
         return render(request, self.template_name, self._context(request))
@@ -243,7 +247,7 @@ class BuyAirtimeView(LoginRequiredMixin, PinRequiredMixin, View):
             process_airtime_order.delay(str(order.id))
 
             return render(request, "vtu/receipt.html", {
-                "wallet": locked_wallet, "txn": txn,
+                "wallet": locked_wallet, "txn": txn, "order": order,
                 "service_type": "airtime", "network": network,
                 "phone_number": phone_number, "amount": amount,
                 "back_url": "/vtu/airtime/",
@@ -333,7 +337,7 @@ class BuyCableView(LoginRequiredMixin, PinRequiredMixin, View):
             process_cable_order.delay(str(order.id))
 
             return render(request, "vtu/receipt.html", {
-                "wallet": locked_wallet, "txn": txn,
+                "wallet": locked_wallet, "txn": txn, "order": order,
                 "service_type": "cable", "provider": provider.upper(),
                 "plan_name": plan.name, "card_number": card_number,
                 "amount": plan.subhero_price, "back_url": "/vtu/cable/",
@@ -358,7 +362,11 @@ class BuyElectricityView(LoginRequiredMixin, PinRequiredMixin, View):
 
     def get(self, request, *args, **kwargs):
         wallet, _ = Wallet.objects.get_or_create(user=request.user)
-        return render(request, self.template_name, {"wallet": wallet, "discos": DISCO_CHOICES})
+        return render(request, self.template_name, {
+            "wallet": wallet,
+            "discos": DISCO_CHOICES,
+            "amounts": [500, 1000, 2000, 5000, 10000]
+        })
 
     def post(self, request, *args, **kwargs):
         wallet, _ = Wallet.objects.get_or_create(user=request.user)
@@ -367,7 +375,18 @@ class BuyElectricityView(LoginRequiredMixin, PinRequiredMixin, View):
         meter_type = request.POST.get("meter_type", "").lower()
         phone_number = request.POST.get("phone_number", "").strip()
         amount_str = request.POST.get("amount", "").strip()
-        context = {"wallet": wallet, "discos": DISCO_CHOICES, "form_data": {"disco_id": disco_id, "meter_number": meter_number, "meter_type": meter_type, "phone_number": phone_number, "amount": amount_str}}
+        context = {
+            "wallet": wallet,
+            "discos": DISCO_CHOICES,
+            "amounts": [500, 1000, 2000, 5000, 10000],
+            "form_data": {
+                "disco_id": disco_id,
+                "meter_number": meter_number,
+                "meter_type": meter_type,
+                "phone_number": phone_number,
+                "amount": amount_str
+            }
+        }
 
         if not disco_id or not meter_number or not meter_type or not phone_number or not amount_str:
             messages.error(request, "All fields are required.")
@@ -428,7 +447,7 @@ class BuyElectricityView(LoginRequiredMixin, PinRequiredMixin, View):
             process_electricity_order.delay(str(order.id))
 
             return render(request, "vtu/receipt.html", {
-                "wallet": locked_wallet, "txn": txn,
+                "wallet": locked_wallet, "txn": txn, "order": order,
                 "service_type": "electricity", "disco_name": disco_name,
                 "meter_number": meter_number, "meter_type": meter_type,
                 "amount": amount, "back_url": "/vtu/electricity/",
@@ -517,7 +536,7 @@ class BuyExamPinView(LoginRequiredMixin, PinRequiredMixin, View):
             process_exam_pin_order.delay(str(order.id))
 
             return render(request, "vtu/receipt.html", {
-                "wallet": locked_wallet, "txn": txn,
+                "wallet": locked_wallet, "txn": txn, "order": order,
                 "service_type": "exam_pin", "exam_name": product.exam_name,
                 "quantity": quantity, "amount": total,
                 "pins": order.get_pins_list(),  # Usually empty at this stage (async delivery)
@@ -555,5 +574,76 @@ class CablePlansAjaxView(LoginRequiredMixin, View):
         plans = list(CablePlan.objects.filter(provider=provider, is_active=True).order_by("subhero_price").values("plan_id", "name", "subhero_price"))
         from django.http import JsonResponse
         return JsonResponse({"plans": plans})
+
+
+class ReceiptStatusAjaxView(LoginRequiredMixin, View):
+    """
+    HTMX status polling endpoint for VTU receipts.
+    Checks the background database state of the specified order type.
+    """
+    template_name = "vtu/partials/_receipt_content.html"
+
+    def get(self, request, order_type, order_id, *args, **kwargs):
+        from django.shortcuts import get_object_or_404
+        from apps.vtu.models import VTUOrder, AirtimeOrder, CableOrder, ElectricityOrder, ExamPinOrder
+
+        order = None
+        if order_type == 'data':
+            order = get_object_or_404(VTUOrder, id=order_id, user=request.user)
+        elif order_type == 'airtime':
+            order = get_object_or_404(AirtimeOrder, id=order_id, user=request.user)
+        elif order_type == 'cable':
+            order = get_object_or_404(CableOrder, id=order_id, user=request.user)
+        elif order_type == 'electricity':
+            order = get_object_or_404(ElectricityOrder, id=order_id, user=request.user)
+        elif order_type == 'exam_pin':
+            order = get_object_or_404(ExamPinOrder, id=order_id, user=request.user)
+        else:
+            from django.http import Http404
+            raise Http404("Invalid order type")
+
+        wallet, _ = Wallet.objects.get_or_create(user=request.user)
+        txn = WalletTransaction.objects.filter(reference=order.reference).first()
+
+        context = {
+            "wallet": wallet,
+            "txn": txn,
+            "order": order,
+            "service_type": order_type,
+            "amount": order.amount,
+            "back_url": f"/vtu/{order_type}/",
+        }
+
+        if order_type == 'data':
+            context.update({
+                "network": order.network,
+                "phone_number": order.recipient,
+                "plan_name": order.plan_name,
+            })
+        elif order_type == 'airtime':
+            context.update({
+                "network": order.network,
+                "phone_number": order.recipient,
+            })
+        elif order_type == 'cable':
+            context.update({
+                "provider": order.provider.upper(),
+                "plan_name": order.plan_name,
+                "card_number": order.smartcard_number if hasattr(order, 'smartcard_number') else getattr(order, 'card_number', ''),
+            })
+        elif order_type == 'electricity':
+            context.update({
+                "disco_name": order.disco_name,
+                "meter_number": order.meter_number,
+                "meter_type": order.meter_type,
+            })
+        elif order_type == 'exam_pin':
+            context.update({
+                "exam_name": order.exam_name,
+                "quantity": order.quantity,
+                "pins": order.get_pins_list(),
+            })
+
+        return render(request, self.template_name, context)
 
 

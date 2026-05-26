@@ -529,7 +529,10 @@ def sync_cable_plans():
         try:
             response = requests.get(url, headers=headers, timeout=20)
             plans = response.json().get("data", response.json())
-            for p in (plans if isinstance(plans, list) else []):
+            plans_list = plans if isinstance(plans, list) else []
+            if not plans_list:
+                raise Exception("Empty plans list received from API")
+            for p in plans_list:
                 provider_price = Decimal(str(p.get("amount", p.get("price", "0"))))
                 subhero_price = (provider_price * Decimal("1.04")).quantize(Decimal("0.01"))
                 CablePlan.objects.update_or_create(
@@ -542,7 +545,7 @@ def sync_cable_plans():
                         "is_active": True,
                     }
                 )
-            logger.info("Synced %s cable plans for %s.", len(plans), provider_name)
+            logger.info("Synced %s cable plans for %s.", len(plans_list), provider_name)
         except Exception as e:
             logger.error("Failed to sync cable plans for %s: %s", provider_name, str(e))
             _seed_default_cable_plans()

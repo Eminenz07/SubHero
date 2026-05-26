@@ -71,7 +71,7 @@
     <div class="form-group">
       <label class="form-label" for="id_amount">Amount (₦)</label>
       <div class="flex flex-wrap gap-2 mb-3">
-        {% for amt in "500,1000,2000,5000,10000"|split:"," %}
+        {% for amt in amounts %}
         <button type="button" class="px-3 py-1.5 text-xs font-semibold border border-surface-border rounded-lg text-text-muted hover:border-brand-accent hover:text-brand-primary transition-all" onclick="setAmount('{{ amt }}')">₦{{ amt }}</button>
         {% endfor %}
       </div>

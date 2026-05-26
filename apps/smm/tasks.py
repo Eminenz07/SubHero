@@ -268,10 +268,28 @@ def sync_smm_catalogue():
     if not api_key:
         # Pre-populate catalogue for local manual developer verification
         pre_populated = [
+            # Instagram
             {"service": "1001", "name": "Instagram Followers (Real & Active)", "category": "instagram", "min": "100", "max": "10000", "rate": Decimal("0.80")},
             {"service": "1002", "name": "Instagram Likes (High Quality)", "category": "instagram", "min": "50", "max": "5000", "rate": Decimal("0.20")},
-            {"service": "2001", "name": "TikTok Followers", "category": "tiktok", "min": "100", "max": "20000", "rate": Decimal("1.20")},
-            {"service": "2002", "name": "TikTok Likes", "category": "tiktok", "min": "100", "max": "10000", "rate": Decimal("0.30")},
+            {"service": "1003", "name": "Instagram Views (Fast delivery)", "category": "instagram", "min": "100", "max": "50000", "rate": Decimal("0.10")},
+            # TikTok
+            {"service": "2001", "name": "TikTok Followers (Premium)", "category": "tiktok", "min": "100", "max": "20000", "rate": Decimal("1.20")},
+            {"service": "2002", "name": "TikTok Likes (Real)", "category": "tiktok", "min": "100", "max": "10000", "rate": Decimal("0.30")},
+            {"service": "2003", "name": "TikTok Views (Instant)", "category": "tiktok", "min": "500", "max": "100000", "rate": Decimal("0.05")},
+            # YouTube
+            {"service": "3001", "name": "YouTube Subscribers (Non-Drop)", "category": "youtube", "min": "50", "max": "5000", "rate": Decimal("8.50")},
+            {"service": "3002", "name": "YouTube Likes (Active)", "category": "youtube", "min": "50", "max": "10000", "rate": Decimal("1.50")},
+            {"service": "3003", "name": "YouTube Views (High Retention)", "category": "youtube", "min": "100", "max": "100000", "rate": Decimal("1.20")},
+            # Twitter
+            {"service": "4001", "name": "Twitter Followers (Real Look)", "category": "twitter", "min": "100", "max": "5000", "rate": Decimal("2.50")},
+            {"service": "4002", "name": "Twitter Retweets (Instant)", "category": "twitter", "min": "50", "max": "2000", "rate": Decimal("0.90")},
+            {"service": "4003", "name": "Twitter Likes (Organic)", "category": "twitter", "min": "50", "max": "5000", "rate": Decimal("0.70")},
+            # Telegram
+            {"service": "5001", "name": "Telegram Channel Members (Global)", "category": "telegram", "min": "100", "max": "10000", "rate": Decimal("0.60")},
+            {"service": "5002", "name": "Telegram Post Views (Instant)", "category": "telegram", "min": "100", "max": "50000", "rate": Decimal("0.05")},
+            # Spotify
+            {"service": "6001", "name": "Spotify Playlist Followers", "category": "spotify", "min": "100", "max": "20000", "rate": Decimal("0.40")},
+            {"service": "6002", "name": "Spotify Song Plays (Premium)", "category": "spotify", "min": "100", "max": "50000", "rate": Decimal("0.30")},
         ]
         for s in pre_populated:
             # For mock data, rate is already normalized in Naira.

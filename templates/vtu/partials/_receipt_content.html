@@ -1,0 +1,208 @@
+<div class="px-4 py-8 max-w-md mx-auto text-center" id="receipt-container"
+     {% if order and order.status == 'PROCESSING' or order.status == 'PENDING' %}
+     hx-get="{% url 'vtu:receipt_status' order_type=service_type order_id=order.id %}"
+     hx-trigger="every 2.5s"
+     hx-swap="outerHTML"
+     {% endif %}>
+
+    {% if order and order.status == 'PROCESSING' or order and order.status == 'PENDING' %}
+    <!-- Processing Badge -->
+    <div class="w-20 h-20 bg-amber-100 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-6">
+        <i data-feather="clock" class="w-12 h-12 animate-spin" style="animation-duration: 3s;"></i>
+    </div>
+
+    <h1 class="text-2xl font-bold text-text-primary mb-2">Order Processing</h1>
+    <p class="text-sm text-text-muted mb-2">
+        Your payment of <span class="font-bold text-text-primary">₦{{ amount|floatformat:2 }}</span> has been deducted.
+    </p>
+    <p class="text-sm text-text-muted mb-8">
+        We are actively processing your request with the network provider. This page will update automatically.
+    </p>
+
+    {% elif order and order.status == 'FAILED' %}
+    <!-- Failed Badge -->
+    <div class="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
+        <i data-feather="x-circle" class="w-12 h-12"></i>
+    </div>
+
+    <h1 class="text-2xl font-bold text-status-danger mb-2">Order Failed</h1>
+    <p class="text-sm text-text-muted mb-8">
+        We were unable to fulfill your order. Your wallet balance has been **fully refunded**.
+    </p>
+
+    {% else %}
+    <!-- Success Badge -->
+    <div class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
+        <i data-feather="check-circle" class="w-12 h-12"></i>
+    </div>
+
+    <h1 class="text-2xl font-bold text-text-primary mb-2">Order Successful!</h1>
+    <p class="text-sm text-text-muted mb-8">
+        Your order has been successfully delivered by the network provider.
+    </p>
+    {% endif %}
+
+    <!-- Receipt Card -->
+    <div class="card p-6 mb-6 text-left space-y-4 shadow-sm border border-surface-border bg-white rounded-2xl">
+
+        {% if service_type == 'airtime' %}
+        <div class="flex justify-between items-center pb-3 border-b border-surface-border">
+            <span class="text-xs font-semibold text-text-muted uppercase">Service</span>
+            <span class="text-sm font-bold text-text-primary uppercase">{{ network }} Airtime</span>
+        </div>
+        <div class="flex justify-between items-center pb-3 border-b border-surface-border">
+            <span class="text-xs font-semibold text-text-muted uppercase">Phone Number</span>
+            <span class="text-sm font-bold text-text-primary">{{ phone_number }}</span>
+        </div>
+
+        {% elif service_type == 'cable' %}
+        <div class="flex justify-between items-center pb-3 border-b border-surface-border">
+            <span class="text-xs font-semibold text-text-muted uppercase">Service</span>
+            <span class="text-sm font-bold text-text-primary uppercase">{{ provider }} Cable TV</span>
+        </div>
+        <div class="flex justify-between items-center pb-3 border-b border-surface-border">
+            <span class="text-xs font-semibold text-text-muted uppercase">Package</span>
+            <span class="text-sm font-bold text-text-primary">{{ plan_name }}</span>
+        </div>
+        <div class="flex justify-between items-center pb-3 border-b border-surface-border">
+            <span class="text-xs font-semibold text-text-muted uppercase">Smart Card No.</span>
+            <span class="text-sm font-bold text-text-primary font-mono">{{ card_number }}</span>
+        </div>
+
+        {% elif service_type == 'electricity' %}
+        <div class="flex justify-between items-center pb-3 border-b border-surface-border">
+            <span class="text-xs font-semibold text-text-muted uppercase">Service</span>
+            <span class="text-sm font-bold text-text-primary uppercase">{{ disco_name }} Electricity</span>
+        </div>
+        <div class="flex justify-between items-center pb-3 border-b border-surface-border">
+            <span class="text-xs font-semibold text-text-muted uppercase">Meter Number</span>
+            <span class="text-sm font-bold text-text-primary font-mono">{{ meter_number }}</span>
+        </div>
+        <div class="flex justify-between items-center pb-3 border-b border-surface-border">
+            <span class="text-xs font-semibold text-text-muted uppercase">Meter Type</span>
+            <span class="text-sm font-bold text-text-primary capitalize">{{ meter_type }}</span>
+        </div>
+        
+        <!-- Vended Token Details (HTMX Dynamic Updates) -->
+        {% if order and order.token %}
+        <div class="pb-3 border-b border-surface-border">
+            <span class="text-xs font-semibold text-text-muted uppercase block mb-2">Electricity Token</span>
+            <div class="flex items-center justify-between bg-surface-muted rounded-xl p-3 border border-surface-border">
+                <span class="font-mono text-sm font-bold text-text-primary tracking-wider" id="tokenCode">{{ order.token }}</span>
+                <button onclick="copyCode('{{ order.token }}', this)" class="text-xs font-bold text-brand-primary active:scale-95 transition-all">Copy</button>
+            </div>
+        </div>
+        {% endif %}
+        {% if order and order.units %}
+        <div class="flex justify-between items-center pb-3 border-b border-surface-border">
+            <span class="text-xs font-semibold text-text-muted uppercase">Vended Units</span>
+            <span class="text-sm font-bold text-brand-primary font-mono">{{ order.units }} kWh</span>
+        </div>
+        {% endif %}
+
+        {% elif service_type == 'exam_pin' %}
+        <div class="flex justify-between items-center pb-3 border-b border-surface-border">
+            <span class="text-xs font-semibold text-text-muted uppercase">Service</span>
+            <span class="text-sm font-bold text-text-primary uppercase">{{ exam_name }} Exam PIN</span>
+        </div>
+        <div class="flex justify-between items-center pb-3 border-b border-surface-border">
+            <span class="text-xs font-semibold text-text-muted uppercase">Quantity</span>
+            <span class="text-sm font-bold text-text-primary">{{ quantity }} PIN{{ quantity|pluralize }}</span>
+        </div>
+        <!-- Vended PINs Details (HTMX Dynamic Updates) -->
+        {% if order and order.get_pins_list %}
+        <div class="pb-3 border-b border-surface-border">
+            <span class="text-xs font-semibold text-text-muted uppercase block mb-2">Delivered PINs</span>
+            {% for pin in order.get_pins_list %}
+            <div class="flex items-center justify-between bg-surface-muted rounded-xl p-3 mb-1 border border-surface-border font-mono text-xs font-bold text-text-primary">
+                <span>{{ pin }}</span>
+                <button onclick="copyCode('{{ pin }}', this)" class="text-xs font-bold text-brand-primary active:scale-95 transition-all">Copy</button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% else %}
+        <!-- Default: Data / generic -->
+        <div class="flex justify-between items-center pb-3 border-b border-surface-border">
+            <span class="text-xs font-semibold text-text-muted uppercase">Service</span>
+            <span class="text-sm font-bold text-text-primary uppercase">{{ network|default:"" }} Data Top-Up</span>
+        </div>
+        <div class="flex justify-between items-center pb-3 border-b border-surface-border">
+            <span class="text-xs font-semibold text-text-muted uppercase">Plan Package</span>
+            <span class="text-sm font-bold text-text-primary">{{ plan_name }}</span>
+        </div>
+        <div class="flex justify-between items-center pb-3 border-b border-surface-border">
+            <span class="text-xs font-semibold text-text-muted uppercase">Phone Number</span>
+            <span class="text-sm font-bold text-text-primary">{{ phone_number }}</span>
+        </div>
+        {% endif %}
+
+        <div class="flex justify-between items-center pb-3 border-b border-surface-border">
+            <span class="text-xs font-semibold text-text-muted uppercase">Amount Paid</span>
+            <span class="text-sm font-bold text-status-danger font-mono">₦{{ amount|floatformat:2 }}</span>
+        </div>
+
+        <div class="flex justify-between items-center pb-3 border-b border-surface-border">
+            <span class="text-xs font-semibold text-text-muted uppercase">New Balance</span>
+            <span class="text-sm font-bold text-brand-primary font-mono">₦{{ wallet.balance|floatformat:2 }}</span>
+        </div>
+
+        <div class="flex justify-between items-center">
+            <span class="text-xs font-semibold text-text-muted uppercase">Reference</span>
+            <span class="text-[11px] font-medium text-text-muted font-mono">{{ txn.reference }}</span>
+        </div>
+    </div>
+
+    <!-- Failure Reason Detail Box -->
+    {% if order and order.status == 'FAILED' %}
+    <div class="bg-red-50 border border-red-100 rounded-xl p-3.5 text-left flex gap-3 mb-6">
+        <i data-feather="alert-circle" class="w-5 h-5 text-status-danger-text shrink-0 mt-0.5"></i>
+        <div>
+            <div class="text-xs font-bold text-status-danger-text mb-0.5">Fulfillment Failed</div>
+            <div class="text-xs text-status-danger-text/90 font-medium leading-relaxed">
+                {% if "wallet" in order.provider_ref|lower or "insufficient" in order.provider_ref|lower or "402" in order.provider_ref or "wallet" in order.provider_order_id|lower or "insufficient" in order.provider_order_id|lower or "402" in order.provider_order_id %}
+                    API wallet balance exhausted or low balance on API side. Your payment has been refunded to your wallet. Please contact support.
+                {% else %}
+                    {{ order.provider_ref|default:order.provider_order_id|default:"Temporary provider connection error." }}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Disclaimer note -->
+    {% if order and order.status == 'PROCESSING' or order and order.status == 'PENDING' %}
+    <div class="text-xs text-text-muted mb-6 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-left">
+        <strong class="text-amber-700">⏱ Processing</strong> — Most orders complete within 60 seconds. If delivery fails, your ₦{{ amount|floatformat:0 }} will be fully refunded automatically.
+    </div>
+    {% endif %}
+
+    <!-- Actions -->
+    <div class="space-y-3">
+        <a href="{% url 'dashboard' %}" class="btn btn-primary btn-block">Back to Dashboard</a>
+        {% if back_url %}
+        <a href="{{ back_url }}" class="btn btn-secondary btn-block">Buy Again</a>
+        {% else %}
+        <a href="{% url 'vtu:buy_data' %}" class="btn btn-secondary btn-block">Buy Again</a>
+        {% endif %}
+    </div>
+    
+    <script>
+        function copyCode(text, btn) {
+            navigator.clipboard.writeText(text).then(function() {
+                var oldText = btn.innerText;
+                btn.innerText = "Copied!";
+                btn.classList.add("text-status-success-text");
+                setTimeout(function() {
+                    btn.innerText = oldText;
+                    btn.classList.remove("text-status-success-text");
+                }, 2000);
+            });
+        }
+        // Re-init feather icons on HTMX swap
+        if (typeof feather !== 'undefined') {
+            feather.replace();
+        }
+    </script>
+</div>
