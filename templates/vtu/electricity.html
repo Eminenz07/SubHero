@@ -65,6 +65,13 @@
     <div class="form-group">
       <label class="form-label" for="meter_number">Meter Number</label>
       <input class="form-input font-mono" type="text" name="meter_number" id="meter_number" placeholder="11–13 digit meter number" inputmode="numeric" required value="{{ form_data.meter_number|default:'' }}">
+      <!-- Verification Badge Container -->
+      <div id="meter-verification-box" class="hidden mt-2">
+        <div class="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold border" id="meter-verification-badge">
+          <i data-feather="loader" class="w-3.5 h-3.5 animate-spin" id="meter-verification-icon"></i>
+          <span id="meter-verification-text">Verifying meter number...</span>
+        </div>
+      </div>
     </div>
 
     <!-- Amount -->
@@ -119,6 +126,8 @@
   let pinState = [];
   const backdrop = document.getElementById('custom-backdrop');
   const pinSheet = document.getElementById('custom-sheet-pin');
+  let isMeterVerified = false;
+  let verifyTimeout = null;
 
   function setAmount(amt) {
     document.getElementById('id_amount').value = amt;
@@ -131,9 +140,10 @@
     const phone = document.getElementById('phone_number').value.trim();
     const disco = document.getElementById('disco_id').value;
     if (!disco) { alert('Please select a distribution company.'); return; }
-    if (!meter) { alert('Please enter your meter number.'); return; }
+    if (!meter || meter.length < 11 || meter.length > 13) { alert('Please enter a valid meter number (11-13 digits).'); return; }
     if (!amount || parseFloat(amount) < 500) { alert('Minimum amount is ₦500.'); return; }
     if (!phone) { alert('Please enter your phone number.'); return; }
+    
     const discoText = document.getElementById('disco_id').options[document.getElementById('disco_id').selectedIndex].text;
     document.getElementById('pin-subtitle').textContent = `₦${parseFloat(amount).toLocaleString('en-NG',{maximumFractionDigits:0})} electricity for meter ${meter}`;
     pinState = []; refreshPinBoxes();
@@ -165,6 +175,64 @@
       else if (i === pinState.length) { box.classList.add('border-brand-accent'); }
     }
   }
+
+  // Live validation
+  function verifyMeter() {
+    const disco = document.getElementById('disco_id').value;
+    const meter = document.getElementById('meter_number').value.trim();
+    const type = document.querySelector('input[name="meter_type"]:checked').value;
+    const box = document.getElementById('meter-verification-box');
+    const badge = document.getElementById('meter-verification-badge');
+    const icon = document.getElementById('meter-verification-icon');
+    const text = document.getElementById('meter-verification-text');
+
+    if (!disco || !meter || meter.length < 11 || meter.length > 13) {
+      box.classList.add('hidden');
+      isMeterVerified = false;
+      return;
+    }
+
+    box.classList.remove('hidden');
+    badge.className = "flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold border bg-amber-50 border-amber-100 text-amber-600";
+    if (icon) icon.outerHTML = '<i data-feather="loader" class="w-3.5 h-3.5 animate-spin" id="meter-verification-icon"></i>';
+    text.textContent = "Verifying meter number...";
+    if (typeof feather !== 'undefined') feather.replace();
+
+    fetch(`/vtu/api/verify-utility/?action=electricity&disco_id=${disco}&number=${meter}&meter_type=${type}`)
+      .then(res => res.json())
+      .then(data => {
+        const currentIcon = document.getElementById('meter-verification-icon');
+        if (data.status === 'success') {
+          isMeterVerified = true;
+          badge.className = "flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold border bg-emerald-50 border-emerald-100 text-emerald-600";
+          if (currentIcon) currentIcon.outerHTML = '<i data-feather="check-circle" class="w-3.5 h-3.5" id="meter-verification-icon"></i>';
+          text.textContent = `✓ Registered: ${data.customer_name}`;
+        } else {
+          isMeterVerified = false;
+          badge.className = "flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold border bg-red-50 border-red-100 text-red-600";
+          if (currentIcon) currentIcon.outerHTML = '<i data-feather="alert-circle" class="w-3.5 h-3.5" id="meter-verification-icon"></i>';
+          text.textContent = data.message || "Invalid meter number.";
+        }
+        if (typeof feather !== 'undefined') feather.replace();
+      })
+      .catch(err => {
+        isMeterVerified = false;
+        const currentIcon = document.getElementById('meter-verification-icon');
+        badge.className = "flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold border bg-red-50 border-red-100 text-red-600";
+        if (currentIcon) currentIcon.outerHTML = '<i data-feather="alert-circle" class="w-3.5 h-3.5" id="meter-verification-icon"></i>';
+        text.textContent = "Validation offline. Tap Continue to proceed.";
+        if (typeof feather !== 'undefined') feather.replace();
+      });
+  }
+
+  function debounceVerify() {
+    clearTimeout(verifyTimeout);
+    verifyTimeout = setTimeout(verifyMeter, 600);
+  }
+
+  document.getElementById('meter_number').addEventListener('input', debounceVerify);
+  document.getElementById('disco_id').addEventListener('change', verifyMeter);
+  document.querySelectorAll('input[name="meter_type"]').forEach(r => r.addEventListener('change', verifyMeter));
 
   // Sync CTA with pre-filled amount
   const preAmount = document.getElementById('id_amount').value;

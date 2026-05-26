@@ -75,6 +75,13 @@
     <div class="form-group">
       <label class="form-label" for="card_number">Smart Card / IUC Number</label>
       <input class="form-input font-mono" type="text" name="card_number" id="card_number" placeholder="e.g. 7029123456" inputmode="numeric" required value="{{ form_data.card_number|default:'' }}">
+      <!-- Verification Badge Container -->
+      <div id="smartcard-verification-box" class="hidden mt-2">
+        <div class="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold border" id="smartcard-verification-badge">
+          <i data-feather="loader" class="w-3.5 h-3.5 animate-spin" id="smartcard-verification-icon"></i>
+          <span id="smartcard-verification-text">Verifying smartcard...</span>
+        </div>
+      </div>
     </div>
 
     <!-- Phone Number -->
@@ -121,6 +128,8 @@
   let pinState = [];
   const backdrop = document.getElementById('custom-backdrop');
   const pinSheet = document.getElementById('custom-sheet-pin');
+  let isCardVerified = false;
+  let verifyTimeout = null;
 
   function selectProvider(p) {
     activeProvider = p;
@@ -134,6 +143,9 @@
     const planEl = document.getElementById('plans-' + p);
     if (planEl) planEl.classList.remove('hidden');
     document.querySelectorAll('.plan-card').forEach(c => c.classList.remove('selected'));
+    
+    // Clear smartcard verify status when provider changes
+    verifySmartcard();
   }
 
   function selectPlan(planId, price) {
@@ -148,8 +160,9 @@
     const card = document.getElementById('card_number').value.trim();
     const phone = document.getElementById('phone_number').value.trim();
     if (!activePlanId) { alert('Please select a package.'); return; }
-    if (!card) { alert('Please enter your smart card/IUC number.'); return; }
+    if (!card || card.length < 10 || card.length > 11) { alert('Please enter a valid smart card/IUC number (10-11 digits).'); return; }
     if (!phone) { alert('Please enter your phone number.'); return; }
+    
     document.getElementById('pin-subtitle').textContent = `Confirm ₦${activePrice.toLocaleString('en-NG',{maximumFractionDigits:0})} subscription for card ${card}`;
     pinState = []; refreshPinBoxes();
     backdrop.classList.add('active'); pinSheet.classList.add('active'); document.body.style.overflow = 'hidden';
@@ -180,6 +193,61 @@
       else if (i === pinState.length) { box.classList.add('border-brand-accent'); }
     }
   }
+
+  // Live Smartcard validation
+  function verifySmartcard() {
+    const provider = activeProvider;
+    const card = document.getElementById('card_number').value.trim();
+    const box = document.getElementById('smartcard-verification-box');
+    const badge = document.getElementById('smartcard-verification-badge');
+    const icon = document.getElementById('smartcard-verification-icon');
+    const text = document.getElementById('smartcard-verification-text');
+
+    if (!provider || !card || card.length < 10 || card.length > 11) {
+      box.classList.add('hidden');
+      isCardVerified = false;
+      return;
+    }
+
+    box.classList.remove('hidden');
+    badge.className = "flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold border bg-amber-50 border-amber-100 text-amber-600";
+    if (icon) icon.outerHTML = '<i data-feather="loader" class="w-3.5 h-3.5 animate-spin" id="smartcard-verification-icon"></i>';
+    text.textContent = "Verifying smartcard number...";
+    if (typeof feather !== 'undefined') feather.replace();
+
+    fetch(`/vtu/api/verify-utility/?action=cable&provider=${provider}&number=${card}`)
+      .then(res => res.json())
+      .then(data => {
+        const currentIcon = document.getElementById('smartcard-verification-icon');
+        if (data.status === 'success') {
+          isCardVerified = true;
+          badge.className = "flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold border bg-emerald-50 border-emerald-100 text-emerald-600";
+          if (currentIcon) currentIcon.outerHTML = '<i data-feather="check-circle" class="w-3.5 h-3.5" id="smartcard-verification-icon"></i>';
+          text.textContent = `✓ Registered: ${data.customer_name}`;
+        } else {
+          isCardVerified = false;
+          badge.className = "flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold border bg-red-50 border-red-100 text-red-600";
+          if (currentIcon) currentIcon.outerHTML = '<i data-feather="alert-circle" class="w-3.5 h-3.5" id="smartcard-verification-icon"></i>';
+          text.textContent = data.message || "Invalid smartcard number.";
+        }
+        if (typeof feather !== 'undefined') feather.replace();
+      })
+      .catch(err => {
+        isCardVerified = false;
+        const currentIcon = document.getElementById('smartcard-verification-icon');
+        badge.className = "flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold border bg-red-50 border-red-100 text-red-600";
+        if (currentIcon) currentIcon.outerHTML = '<i data-feather="alert-circle" class="w-3.5 h-3.5" id="smartcard-verification-icon"></i>';
+        text.textContent = "Validation offline. Tap Continue to proceed.";
+        if (typeof feather !== 'undefined') feather.replace();
+      });
+  }
+
+  function debounceVerify() {
+    clearTimeout(verifyTimeout);
+    verifyTimeout = setTimeout(verifySmartcard, 600);
+  }
+
+  document.getElementById('card_number').addEventListener('input', debounceVerify);
 
   // Auto-select pre-filled plan on page load
   if (activePlanId) {

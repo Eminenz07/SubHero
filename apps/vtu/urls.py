@@ -28,4 +28,7 @@ urlpatterns = [
 
     # Receipt Polling Ajax
     path("receipt/status/<str:order_type>/<uuid:order_id>/", views.ReceiptStatusAjaxView.as_view(), name="receipt_status"),
+
+    # Utility Verification
+    path("api/verify-utility/", views.VerifyUtilityAjaxView.as_view(), name="verify_utility"),
 ]

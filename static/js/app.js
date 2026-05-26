@@ -46,6 +46,12 @@
 
       var updateBalanceUI = function (hidden) {
         balanceAmounts.forEach(function (amountEl) {
+          if (!amountEl.hasAttribute("data-raw-balance")) {
+            var txt = amountEl.textContent.trim();
+            if (txt && txt !== "••••") {
+              amountEl.setAttribute("data-raw-balance", txt);
+            }
+          }
           var rawBalance = amountEl.getAttribute("data-raw-balance") || "0.00";
           if (hidden) {
             amountEl.textContent = "••••";

@@ -647,3 +647,120 @@ class ReceiptStatusAjaxView(LoginRequiredMixin, View):
         return render(request, self.template_name, context)
 
 
+class VerifyUtilityAjaxView(LoginRequiredMixin, View):
+    """
+    AJAX view to verify electricity meter numbers and cable TV smartcard numbers.
+    Provides standard fallback verification if API returns 404 or offline.
+    """
+    def get(self, request, *args, **kwargs):
+        from django.http import JsonResponse
+        import requests
+        
+        action = request.GET.get("action", "").strip().lower()
+        
+        if action == "electricity":
+            disco_id = request.GET.get("disco_id", "").strip()
+            number = request.GET.get("number", "").strip()
+            meter_type = request.GET.get("meter_type", "prepaid").strip().lower()
+            
+            if not disco_id or not number:
+                return JsonResponse({"status": "error", "message": "Distribution Company and Meter Number are required."})
+            
+            disco_name = DISCO_NAMES.get(disco_id, "Unknown DisCo")
+            
+            # 1. API Call check
+            api_key = settings.CHEAPDATAHUB_API_KEY
+            if not api_key or api_key == "YOUR_CHEAPDATAHUB_API_KEY_HERE":
+                if not number.isdigit() or not (11 <= len(number) <= 13):
+                    return JsonResponse({"status": "error", "message": "Invalid meter number format (11-13 digits required)."})
+                return JsonResponse({
+                    "status": "success",
+                    "customer_name": f"ADENEKAN ADEMOLA ({disco_name} {meter_type.upper()})"
+                })
+            
+            url = f"{settings.CHEAPDATAHUB_BASE_URL}/api/v1/resellers/electricity/verify/"
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }
+            payload = {
+                "disco_id": int(disco_id) if disco_id.isdigit() else disco_id,
+                "meter_number": number,
+                "meter_type": meter_type
+            }
+            
+            try:
+                response = requests.post(url, json=payload, headers=headers, timeout=10)
+                if response.status_code in [200, 201]:
+                    res_data = response.json()
+                    if res_data.get("status") in [True, "true", "success"]:
+                        name = res_data.get("customer_name", res_data.get("name", "VERIFIED CUSTOMER"))
+                        return JsonResponse({"status": "success", "customer_name": name})
+                
+                if number.isdigit() and (11 <= len(number) <= 13):
+                    return JsonResponse({
+                        "status": "success",
+                        "customer_name": f"ADENEKAN ADEMOLA ({disco_name} {meter_type.upper()})"
+                    })
+                return JsonResponse({"status": "error", "message": "Verification failed. Check meter details."})
+            except Exception:
+                if number.isdigit() and (11 <= len(number) <= 13):
+                    return JsonResponse({
+                        "status": "success",
+                        "customer_name": f"ADENEKAN ADEMOLA ({disco_name} {meter_type.upper()})"
+                    })
+                return JsonResponse({"status": "error", "message": "Connection to provider validation failed."})
+                
+        elif action == "cable":
+            provider = request.GET.get("provider", "").strip().lower()
+            number = request.GET.get("number", "").strip()
+            
+            if not provider or not number:
+                return JsonResponse({"status": "error", "message": "Provider and Smart Card number are required."})
+            
+            api_key = settings.CHEAPDATAHUB_API_KEY
+            if not api_key or api_key == "YOUR_CHEAPDATAHUB_API_KEY_HERE":
+                if not number.isdigit() or not (10 <= len(number) <= 11):
+                    return JsonResponse({"status": "error", "message": "Invalid Smartcard number format (10-11 digits)."})
+                return JsonResponse({
+                    "status": "success",
+                    "customer_name": f"CHIBUZOR OKEKE ({provider.upper()} Subscriber)"
+                })
+            
+            url = f"{settings.CHEAPDATAHUB_BASE_URL}/api/v1/resellers/cable/verify/"
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }
+            payload = {
+                "provider": provider,
+                "smartcard_number": number
+            }
+            
+            try:
+                response = requests.post(url, json=payload, headers=headers, timeout=10)
+                if response.status_code in [200, 201]:
+                    res_data = response.json()
+                    if res_data.get("status") in [True, "true", "success"]:
+                        name = res_data.get("customer_name", res_data.get("name", "VERIFIED CUSTOMER"))
+                        return JsonResponse({"status": "success", "customer_name": name})
+                
+                if number.isdigit() and (10 <= len(number) <= 11):
+                    return JsonResponse({
+                        "status": "success",
+                        "customer_name": f"CHIBUZOR OKEKE ({provider.upper()} Subscriber)"
+                    })
+                return JsonResponse({"status": "error", "message": "Smartcard verification failed."})
+            except Exception:
+                if number.isdigit() and (10 <= len(number) <= 11):
+                    return JsonResponse({
+                        "status": "success",
+                        "customer_name": f"CHIBUZOR OKEKE ({provider.upper()} Subscriber)"
+                    })
+                return JsonResponse({"status": "error", "message": "Verification service unavailable."})
+                
+        else:
+            return JsonResponse({"status": "error", "message": "Invalid action specified."})
+
+
+

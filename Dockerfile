@@ -45,8 +45,12 @@ ENV PYTHONUNBUFFERED=1 \
 # Pre-compile static files during build using a dummy SECRET_KEY and DATABASE_URL
 RUN SECRET_KEY=build-dummy-key-for-collectstatic DATABASE_URL=sqlite:///:memory: python manage.py collectstatic --noinput
 
+# Copy start script
+COPY start.sh .
+RUN chmod +x start.sh
+
 # Expose server port
 EXPOSE 8000
 
-# Start Gunicorn server
-CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--threads", "2"]
+# Start using script
+CMD ["./start.sh"]
