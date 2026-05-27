@@ -11,7 +11,9 @@
     <!-- Status Header -->
     <div class="text-center mb-6">
         <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3
-            {% if txn.status == 'SUCCESS' %}
+            {% if txn.txn_type == 'REFUND' %}
+                bg-blue-50 text-blue-600
+            {% elif txn.status == 'SUCCESS' %}
                 bg-status-success-bg text-status-success-text
             {% elif txn.status == 'PENDING' %}
                 bg-status-warning-bg text-status-warning-text
@@ -20,7 +22,9 @@
             {% else %}
                 bg-[#E0F2FE] text-[#0369A1]
             {% endif %}">
-            {% if txn.status == 'SUCCESS' %}
+            {% if txn.txn_type == 'REFUND' %}
+                <i data-feather="refresh-cw" class="w-8 h-8"></i>
+            {% elif txn.status == 'SUCCESS' %}
                 <i data-feather="check" class="w-8 h-8"></i>
             {% elif txn.status == 'PENDING' %}
                 <i data-feather="clock" class="w-8 h-8"></i>
@@ -32,7 +36,9 @@
         </div>
         
         <div class="font-mono text-[28px] font-bold tracking-[-1px]
-            {% if txn.txn_type == 'FUND' or txn.txn_type == 'P2P_RECEIVE' or txn.txn_type == 'REFUND' %}
+            {% if txn.txn_type == 'REFUND' %}
+                text-blue-600
+            {% elif txn.txn_type == 'FUND' or txn.txn_type == 'P2P_RECEIVE' %}
                 text-status-success-text
             {% else %}
                 text-text-primary
@@ -41,7 +47,9 @@
         </div>
         
         <div class="text-[10px] font-semibold px-3 py-1 rounded-pill inline-block tracking-[0.3px] mt-2
-            {% if txn.status == 'SUCCESS' %}
+            {% if txn.txn_type == 'REFUND' %}
+                bg-blue-50 text-blue-600
+            {% elif txn.status == 'SUCCESS' %}
                 bg-status-success-bg text-status-success-text
             {% elif txn.status == 'PENDING' %}
                 bg-status-warning-bg text-status-warning-text
@@ -49,7 +57,12 @@
                 bg-status-danger-bg text-status-danger-text
             {% else %}
                 bg-[#E0F2FE] text-[#0369A1]
-            {% endif %}">{{ txn.get_status_display }}</div>
+            {% endif %}">
+            {% if txn.txn_type == 'REFUND' %}
+                {% if txn.status == 'SUCCESS' %}Refunded{% elif txn.status == 'PENDING' %}Refund Pending{% else %}Refund Failed{% endif %}
+            {% else %}
+                {{ txn.get_status_display }}
+            {% endif %}</div>
     </div>
 
     {% if order %}

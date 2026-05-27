@@ -140,7 +140,9 @@
         {% for txn in request.user.wallet.transactions.all|slice:":5" %}
         <a href="{% url 'wallet:transaction_detail' txn_id=txn.id %}" class="flex items-center gap-[14px] py-3.5 px-4 active:bg-surface-page transition-colors no-underline">
             <div class="w-[44px] h-[44px] rounded-xl flex items-center justify-center shrink-0
-                {% if txn.txn_type == 'FUND' or txn.txn_type == 'P2P_RECEIVE' or txn.txn_type == 'REFUND' %}
+                {% if txn.txn_type == 'REFUND' %}
+                    bg-blue-50 text-blue-600
+                {% elif txn.txn_type == 'FUND' or txn.txn_type == 'P2P_RECEIVE' %}
                     bg-green-50 text-status-success-text
                 {% elif txn.txn_type == 'VTU' %}
                     bg-blue-50 text-blue-500
@@ -165,7 +167,9 @@
             </div>
             <div class="text-right shrink-0">
                 <div class="font-mono text-[14px] font-medium
-                    {% if txn.txn_type == 'FUND' or txn.txn_type == 'P2P_RECEIVE' or txn.txn_type == 'REFUND' %}
+                    {% if txn.txn_type == 'REFUND' %}
+                        text-blue-600
+                    {% elif txn.txn_type == 'FUND' or txn.txn_type == 'P2P_RECEIVE' %}
                         text-status-success-text
                     {% else %}
                         text-text-primary
@@ -173,11 +177,23 @@
                     {% if txn.txn_type == 'FUND' or txn.txn_type == 'P2P_RECEIVE' or txn.txn_type == 'REFUND' %}+{% else %}-{% endif %}₦{{ txn.amount|floatformat:2 }}
                 </div>
                 <div class="text-[10px] font-semibold px-[7px] py-[2px] rounded-pill inline-block tracking-[0.3px] mt-[3px]
-                    {% if txn.status == 'SUCCESS' %}
+                    {% if txn.txn_type == 'REFUND' %}
+                        bg-blue-50 text-blue-600
+                    {% elif txn.status == 'SUCCESS' %}
                         bg-status-success-bg text-status-success-text
-                    {% else %}
+                    {% elif txn.status == 'PENDING' %}
                         bg-status-warning-bg text-status-warning-text
-                    {% endif %}">{{ txn.get_status_display }}</div>
+                    {% elif txn.status == 'FAILED' %}
+                        bg-status-danger-bg text-status-danger-text
+                    {% else %}
+                        bg-[#E0F2FE] text-[#0369A1]
+                    {% endif %}">
+                    {% if txn.txn_type == 'REFUND' %}
+                        {% if txn.status == 'SUCCESS' %}Refunded{% elif txn.status == 'PENDING' %}Refund Pending{% else %}Refund Failed{% endif %}
+                    {% else %}
+                        {{ txn.get_status_display }}
+                    {% endif %}
+                </div>
             </div>
         </a>
         {% if not forloop.last %}
