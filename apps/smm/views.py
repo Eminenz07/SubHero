@@ -13,7 +13,7 @@ from apps.core.utils import get_client_ip, generate_reference
 from apps.wallet.models import Wallet, WalletTransaction
 from apps.wallet.services import InsufficientBalanceError, WalletFrozenError
 from apps.smm.models import SMMService, SMMOrder
-from apps.smm.tasks import process_smm_order
+from apps.smm.tasks import process_smm_order, refund_smm_order
 
 logger = logging.getLogger(__name__)
 
@@ -221,9 +221,19 @@ class SmmIndexView(LoginRequiredMixin, PinRequiredMixin, View):
         except WalletFrozenError:
             messages.error(request, "Your wallet is currently frozen. Please contact support.")
             return render(request, self.template_name, context)
-        except Exception as e:
+        except Exception:
             logger.exception("SMM purchase failed")
-            messages.error(request, f"Transaction failed: {str(e)}")
+            # Emergency fallback: if the order was created and debited but task dispatch crashed, refund
+            try:
+                _order = locals().get('order')
+                if _order and _order.pk and _order.status not in (SMMOrder.Status.SUCCESS, SMMOrder.Status.FAILED):
+                    _order.status = SMMOrder.Status.FAILED
+                    _order.save(update_fields=["status"])
+                    WalletTransaction.objects.filter(reference=_order.reference).update(status=WalletTransaction.Status.FAILED)
+                    refund_smm_order(_order.id)
+            except Exception as refund_err:
+                logger.exception("Emergency SMM refund also failed: %s", refund_err)
+            messages.error(request, "Transaction failed. Your wallet has been refunded if any amount was deducted.")
             return render(request, self.template_name, context)
 
 

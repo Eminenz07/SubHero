@@ -26,6 +26,9 @@ from apps.vtu.tasks import (
     process_electricity_order,
     process_exam_pin_order,
     sync_cable_plans, sync_exam_products,
+    refund_vtu_order, refund_airtime_order,
+    refund_cable_order, refund_electricity_order,
+    refund_exam_pin_order,
 )
 
 logger = logging.getLogger(__name__)
@@ -174,7 +177,17 @@ class BuyDataView(LoginRequiredMixin, PinRequiredMixin, View):
             messages.error(request, "Your wallet is currently frozen. Please contact support.")
         except Exception:
             logger.exception("VTU data purchase failed")
-            messages.error(request, "Transaction failed. Please try again.")
+            # Emergency fallback: if order was created and debited, mark FAILED and refund
+            try:
+                _order = locals().get('order')
+                if _order and _order.pk and _order.status not in (VTUOrder.Status.SUCCESS, VTUOrder.Status.FAILED):
+                    _order.status = VTUOrder.Status.FAILED
+                    _order.save(update_fields=["status"])
+                    WalletTransaction.objects.filter(reference=_order.reference).update(status=WalletTransaction.Status.FAILED)
+                    refund_vtu_order(_order.id)
+            except Exception as refund_err:
+                logger.exception("Emergency VTU refund also failed: %s", refund_err)
+            messages.error(request, "Transaction failed. Your wallet has been refunded if any amount was deducted.")
         return render(request, self.template_name, context)
 
 
@@ -268,7 +281,16 @@ class BuyAirtimeView(LoginRequiredMixin, PinRequiredMixin, View):
             messages.error(request, "Your wallet is currently frozen. Please contact support.")
         except Exception:
             logger.exception("Airtime purchase failed")
-            messages.error(request, "Transaction failed. Please try again.")
+            try:
+                _order = locals().get('order')
+                if _order and _order.pk and _order.status not in (AirtimeOrder.Status.SUCCESS, AirtimeOrder.Status.FAILED):
+                    _order.status = AirtimeOrder.Status.FAILED
+                    _order.save(update_fields=["status"])
+                    WalletTransaction.objects.filter(reference=_order.reference).update(status=WalletTransaction.Status.FAILED)
+                    refund_airtime_order(_order.id)
+            except Exception as refund_err:
+                logger.exception("Emergency Airtime refund also failed: %s", refund_err)
+            messages.error(request, "Transaction failed. Your wallet has been refunded if any amount was deducted.")
         return render(request, self.template_name, context)
 
 
@@ -363,7 +385,16 @@ class BuyCableView(LoginRequiredMixin, PinRequiredMixin, View):
             messages.error(request, "Your wallet is currently frozen. Please contact support.")
         except Exception:
             logger.exception("Cable TV purchase failed")
-            messages.error(request, "Transaction failed. Please try again.")
+            try:
+                _order = locals().get('order')
+                if _order and _order.pk and _order.status not in (CableOrder.Status.SUCCESS, CableOrder.Status.FAILED):
+                    _order.status = CableOrder.Status.FAILED
+                    _order.save(update_fields=["status"])
+                    WalletTransaction.objects.filter(reference=_order.reference).update(status=WalletTransaction.Status.FAILED)
+                    refund_cable_order(_order.id)
+            except Exception as refund_err:
+                logger.exception("Emergency Cable refund also failed: %s", refund_err)
+            messages.error(request, "Transaction failed. Your wallet has been refunded if any amount was deducted.")
         return render(request, self.template_name, context)
 
 
@@ -478,7 +509,16 @@ class BuyElectricityView(LoginRequiredMixin, PinRequiredMixin, View):
             messages.error(request, "Your wallet is currently frozen. Please contact support.")
         except Exception:
             logger.exception("Electricity purchase failed")
-            messages.error(request, "Transaction failed. Please try again.")
+            try:
+                _order = locals().get('order')
+                if _order and _order.pk and _order.status not in (ElectricityOrder.Status.SUCCESS, ElectricityOrder.Status.FAILED):
+                    _order.status = ElectricityOrder.Status.FAILED
+                    _order.save(update_fields=["status"])
+                    WalletTransaction.objects.filter(reference=_order.reference).update(status=WalletTransaction.Status.FAILED)
+                    refund_electricity_order(_order.id)
+            except Exception as refund_err:
+                logger.exception("Emergency Electricity refund also failed: %s", refund_err)
+            messages.error(request, "Transaction failed. Your wallet has been refunded if any amount was deducted.")
         return render(request, self.template_name, context)
 
 
@@ -573,7 +613,16 @@ class BuyExamPinView(LoginRequiredMixin, PinRequiredMixin, View):
             messages.error(request, "Your wallet is currently frozen. Please contact support.")
         except Exception:
             logger.exception("Exam PIN purchase failed")
-            messages.error(request, "Transaction failed. Please try again.")
+            try:
+                _order = locals().get('order')
+                if _order and _order.pk and _order.status not in (ExamPinOrder.Status.SUCCESS, ExamPinOrder.Status.FAILED):
+                    _order.status = ExamPinOrder.Status.FAILED
+                    _order.save(update_fields=["status"])
+                    WalletTransaction.objects.filter(reference=_order.reference).update(status=WalletTransaction.Status.FAILED)
+                    refund_exam_pin_order(_order.id)
+            except Exception as refund_err:
+                logger.exception("Emergency Exam PIN refund also failed: %s", refund_err)
+            messages.error(request, "Transaction failed. Your wallet has been refunded if any amount was deducted.")
         return render(request, self.template_name, context)
 
 

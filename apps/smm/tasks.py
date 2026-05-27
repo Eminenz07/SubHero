@@ -19,7 +19,7 @@ def process_smm_order(self, order_id):
     """
     PRD Section 6.4: Processes a customer SMM order atomically.
     1. Debits the customer's wallet.
-    2. Sends the order request to JustAnotherPanel API.
+    2. Sends the order request to the social booster gateway API.
     3. Handles failure retries and auto-refunds.
     """
     try:
@@ -32,16 +32,16 @@ def process_smm_order(self, order_id):
         logger.warning("SMM order %s is not in PROCESSING state (current status: %s).", order_id, order.status)
         return
 
-    # STEP 2: Call JAP SMM API
+    # STEP 2: Call social booster gateway API
     api_key = settings.JAP_API_KEY
     if not api_key:
-        logger.warning("JAP API Key is not configured. Simulating SMM order placement.")
-        order.provider_order_id = "MOCK-JAP-ORDER-12345"
-        order.status = SMMOrder.Status.PROCESSING
+        logger.warning("Social booster gateway API Key is not configured. Cannot process SMM order %s.", order_id)
+        order.status = SMMOrder.Status.FAILED
+        order.provider_order_id = "Failed: Gateway not configured"
         order.save(update_fields=["status", "provider_order_id"])
-        
-        # Update SMM transaction to SUCCESS
-        WalletTransaction.objects.filter(reference=order.reference).update(status=WalletTransaction.Status.SUCCESS)
+        # Update WalletTransaction to FAILED before triggering refund
+        WalletTransaction.objects.filter(reference=order.reference).update(status=WalletTransaction.Status.FAILED)
+        refund_smm_order.delay(order_id)
         return
 
     url = settings.JAP_API_URL
@@ -56,33 +56,35 @@ def process_smm_order(self, order_id):
     try:
         response = requests.post(url, data=payload, timeout=30)
         
-        # Check for HTML/bad HTTP status code first
+        # Check for bad HTTP status code first
         if response.status_code not in [200, 201]:
             msg = response.text[:150] if response.text else "No response body"
-            raise Exception(f"JAP API returned server error [{response.status_code}]: {msg}")
+            raise Exception(f"Social booster gateway error [{response.status_code}]: {msg}")
             
         try:
             response_data = response.json()
         except ValueError:
-            raise Exception(f"JAP API returned invalid HTML response [{response.status_code}]")
+            raise Exception(f"Social booster gateway returned invalid response [{response.status_code}]")
 
         if "order" in response_data:
             order.provider_order_id = str(response_data["order"])
             order.status = SMMOrder.Status.PROCESSING
             order.save(update_fields=["status", "provider_order_id"])
 
-            # Update SMM transaction to SUCCESS
-            WalletTransaction.objects.filter(reference=order.reference).update(status=WalletTransaction.Status.SUCCESS)
+            # Update SMM transaction to PENDING (awaiting delivery confirmation)
+            WalletTransaction.objects.filter(reference=order.reference).update(status=WalletTransaction.Status.PENDING)
 
-            logger.info("JAP SMM order placed successfully: provider_id=%s", order.provider_order_id)
+            logger.info("SMM order placed successfully via booster gateway: provider_id=%s", order.provider_order_id)
         else:
             # Explicit application error (e.g. bad API key, low balance, invalid service) - fail fast immediately!
-            error_msg = response_data.get("error", response_data.get("message", "API returned error"))
-            logger.error("SMM order %s encountered definitive JAP application error. Failing immediately. Reason: %s", order_id, error_msg)
+            error_msg = response_data.get("error", response_data.get("message", "Gateway declined request"))
+            logger.error("SMM order %s encountered definitive gateway application error. Failing immediately. Reason: %s", order_id, error_msg)
             
             order.status = SMMOrder.Status.FAILED
             order.provider_order_id = f"Failed: {error_msg}"[:100]
             order.save(update_fields=["status", "provider_order_id"])
+            # Update WalletTransaction to FAILED before triggering refund
+            WalletTransaction.objects.filter(reference=order.reference).update(status=WalletTransaction.Status.FAILED)
             refund_smm_order.delay(order_id)
             return
 
@@ -98,10 +100,12 @@ def process_smm_order(self, order_id):
             order.status = SMMOrder.Status.FAILED
             order.provider_order_id = f"Failed: {exc_str}"[:100]
             order.save(update_fields=["status", "provider_order_id"])
+            # Update WalletTransaction to FAILED before triggering refund
+            WalletTransaction.objects.filter(reference=order.reference).update(status=WalletTransaction.Status.FAILED)
             refund_smm_order.delay(order_id)
             return
 
-        logger.warning("SMM order %s API call failed. Retrying... Error: %s", order_id, exc_str)
+        logger.warning("SMM order %s gateway call failed. Retrying... Error: %s", order_id, exc_str)
         try:
             self.retry(exc=exc, countdown=30)
         except MaxRetriesExceededError:
@@ -109,6 +113,8 @@ def process_smm_order(self, order_id):
             order.status = SMMOrder.Status.FAILED
             order.provider_order_id = f"Failed: {exc_str}"[:100]
             order.save(update_fields=["status", "provider_order_id"])
+            # Update WalletTransaction to FAILED before triggering refund
+            WalletTransaction.objects.filter(reference=order.reference).update(status=WalletTransaction.Status.FAILED)
             refund_smm_order.delay(order_id)
 
 
@@ -152,9 +158,17 @@ def refund_smm_order(order_id):
             # Warning Notification
             try:
                 from apps.notifications.models import Notification
-                reason = "Provider API error"
+                reason = "Gateway processing error"
                 if order.provider_order_id and order.provider_order_id.startswith("Failed:"):
-                    reason = order.provider_order_id.replace("Failed: ", "")
+                    raw_reason = order.provider_order_id.replace("Failed: ", "")
+                    # Sanitize any internal provider names from customer-facing messages
+                    raw_reason = (
+                        raw_reason
+                        .replace("JustAnotherPanel", "our booster gateway")
+                        .replace("JAP", "our booster gateway")
+                        .replace("just-another-panel", "our booster gateway")
+                    )
+                    reason = raw_reason
                 
                 Notification.add(
                     user=order.user,
@@ -189,7 +203,7 @@ def poll_smm_orders():
     logger.info("SMM orders polling triggered.")
     api_key = settings.JAP_API_KEY
     if not api_key:
-        logger.info("JAP API Key is not set. Skipping SMM polling.")
+        logger.info("Social booster gateway API Key is not set. Skipping SMM polling.")
         return
 
     processing_orders = SMMOrder.objects.filter(status=SMMOrder.Status.PROCESSING)
@@ -286,19 +300,21 @@ def poll_smm_orders():
                     )
 
             elif status in ["Failed", "Canceled", "Cancelled"]:
-                logger.warning("JAP SMM Order %s returned status: %s. Reversing payment.", order.reference, status)
+                logger.warning("SMM Order %s returned gateway status: %s. Reversing payment.", order.reference, status)
+                # Mark transaction as FAILED before refund
+                WalletTransaction.objects.filter(reference=order.reference).update(status=WalletTransaction.Status.FAILED)
                 refund_smm_order.delay(order.id)
 
         except Exception as e:
-            logger.error("Failed to poll status for JAP SMM Order %s: %s", order.provider_order_id, str(e))
+            logger.error("Failed to poll status for SMM Order %s: %s", order.provider_order_id, str(e))
 
 
 @shared_task
 def sync_smm_catalogue():
     """
-    Synchronizes JAP active services. Applied daily at 3:00 AM (Celery Beat).
+    Synchronizes active social booster services. Applied daily at 3:00 AM (Celery Beat).
     """
-    logger.info("Synchronizing SMM Catalogue from JAP Panel...")
+    logger.info("Synchronizing SMM Catalogue from booster gateway...")
     api_key = settings.JAP_API_KEY
     if not api_key:
         # Pre-populate catalogue for local manual developer verification
@@ -393,6 +409,6 @@ def sync_smm_catalogue():
                 }
             )
             count += 1
-        logger.info("JAP SMM catalog synced successfully. Mapped and updated %d services.", count)
+        logger.info("SMM catalogue synced successfully via booster gateway. Mapped and updated %d services.", count)
     except Exception as e:
-        logger.error("Failed to sync SMM catalogue from JAP API: %s", str(e))
+        logger.error("Failed to sync SMM catalogue from booster gateway: %s", str(e))
