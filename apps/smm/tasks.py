@@ -152,7 +152,7 @@ def refund_smm_order(order_id):
                 balance_after=wallet.balance,
                 reference=f"REFUND-{order.reference}",
                 status=WalletTransaction.Status.SUCCESS,
-                description=f"Refund for failed SMM booster order: {order.service.name}"
+                description=f"Refund · {order.service.name} (SMM)"
             )
 
             # Warning Notification

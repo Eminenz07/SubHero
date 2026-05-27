@@ -89,12 +89,12 @@ def process_vtu_order(self, order_id):
             
             if response.status_code not in [200, 201]:
                 msg = response.text[:150] if response.text else "No response body"
-                raise Exception(f"CheapDataHub API error [{response.status_code}]: {msg}")
+                raise Exception(f"Vending gateway error [{response.status_code}]: {msg}")
             
             try:
                 response_data = response.json()
             except ValueError:
-                raise Exception(f"CheapDataHub API returned invalid HTML response [{response.status_code}]")
+                raise Exception(f"Vending gateway returned invalid response [{response.status_code}]")
 
             if response_data.get("status") in ["true", "success", True]:
                 order.status = VTUOrder.Status.SUCCESS
@@ -123,7 +123,7 @@ def process_vtu_order(self, order_id):
                 return
             else:
                 msg = response_data.get("message", response_data.get("error", "Provider declined the request"))
-                raise Exception(f"CheapDataHub VTU failed: {msg}")
+                raise Exception(f"Vending request failed: {msg}")
 
         except (requests.exceptions.Timeout, requests.exceptions.ConnectionError, Exception) as exc:
             logger.warning("VTU order %s: attempt %s of %s failed: %s", order_id, attempt, max_attempts, str(exc))
@@ -176,7 +176,7 @@ def refund_vtu_order(order_id):
                 balance_after=wallet.balance,
                 reference=f"REFUND-{order.reference}",
                 status=WalletTransaction.Status.SUCCESS,
-                description=f"Refund for failed VTU purchase: {order.plan_name} to {order.recipient}"
+                description=f"Refund · {order.plan_name} to {order.recipient}"
             )
 
             # Dynamic Warning Notification
@@ -185,6 +185,8 @@ def refund_vtu_order(order_id):
                 reason = "Provider API error"
                 if order.provider_ref and order.provider_ref.startswith("Failed:"):
                     reason = order.provider_ref.replace("Failed: ", "")
+                # Sanitize provider names for customer safety
+                reason = reason.replace("CheapDataHub", "vending gateway").replace("CheapData", "vending gateway")
                 
                 Notification.add(
                     user=order.user,
@@ -350,7 +352,7 @@ def _generic_refund(order, order_type_label, refund_prefix):
             balance_after=wallet.balance,
             reference=refund_ref,
             status=WalletTransaction.Status.SUCCESS,
-            description=f"Refund for failed {order_type_label} order {order.reference}",
+            description=f"Refund · {order_type_label} order {order.reference}",
         )
         logger.info("%s refund success: ₦%s restored to User %s", order_type_label, order.amount, order.user.id)
 
@@ -408,12 +410,12 @@ def process_airtime_order(self, order_id):
             
             if response.status_code not in [200, 201]:
                 msg = response.text[:150] if response.text else "No response body"
-                raise Exception(f"CheapDataHub API error [{response.status_code}]: {msg}")
+                raise Exception(f"Vending gateway error [{response.status_code}]: {msg}")
             
             try:
                 data = response.json()
             except ValueError:
-                raise Exception(f"CheapDataHub API returned invalid HTML response [{response.status_code}]")
+                raise Exception(f"Vending gateway returned invalid response [{response.status_code}]")
 
             if data.get("status") in ["true", "success", True]:
                 order.status = AirtimeOrder.Status.SUCCESS
@@ -437,7 +439,7 @@ def process_airtime_order(self, order_id):
                 return
             else:
                 msg = data.get("message", data.get("error", "Provider declined"))
-                raise Exception(f"CheapDataHub Airtime failed: {msg}")
+                raise Exception(f"Airtime vending request failed: {msg}")
 
         except (requests.exceptions.Timeout, requests.exceptions.ConnectionError, Exception) as exc:
             logger.warning("Airtime order %s: attempt %s of %s failed: %s", order_id, attempt, max_attempts, str(exc))
@@ -504,12 +506,12 @@ def process_cable_order(self, order_id):
             
             if response.status_code not in [200, 201]:
                 msg = response.text[:150] if response.text else "No response body"
-                raise Exception(f"CheapDataHub API error [{response.status_code}]: {msg}")
+                raise Exception(f"Vending gateway error [{response.status_code}]: {msg}")
             
             try:
                 data = response.json()
             except ValueError:
-                raise Exception(f"CheapDataHub API returned invalid HTML response [{response.status_code}]")
+                raise Exception(f"Vending gateway returned invalid response [{response.status_code}]")
 
             if data.get("status") in ["true", "success", True]:
                 order.status = CableOrder.Status.SUCCESS
@@ -533,7 +535,7 @@ def process_cable_order(self, order_id):
                 return
             else:
                 msg = data.get("message", data.get("error", "Provider declined"))
-                raise Exception(f"CheapDataHub Cable failed: {msg}")
+                raise Exception(f"Cable TV subscription request failed: {msg}")
 
         except (requests.exceptions.Timeout, requests.exceptions.ConnectionError, Exception) as exc:
             logger.warning("Cable order %s: attempt %s of %s failed: %s", order_id, attempt, max_attempts, str(exc))
@@ -671,12 +673,12 @@ def process_electricity_order(self, order_id):
             
             if response.status_code not in [200, 201]:
                 msg = response.text[:150] if response.text else "No response body"
-                raise Exception(f"CheapDataHub API error [{response.status_code}]: {msg}")
+                raise Exception(f"Vending gateway error [{response.status_code}]: {msg}")
             
             try:
                 data = response.json()
             except ValueError:
-                raise Exception(f"CheapDataHub API returned invalid HTML response [{response.status_code}]")
+                raise Exception(f"Vending gateway returned invalid response [{response.status_code}]")
 
             if data.get("status") in ["true", "success", True]:
                 order.status = ElectricityOrder.Status.SUCCESS
@@ -705,7 +707,7 @@ def process_electricity_order(self, order_id):
                 return
             else:
                 msg = data.get("message", data.get("error", "Provider declined"))
-                raise Exception(f"CheapDataHub Electricity failed: {msg}")
+                raise Exception(f"Electricity vending request failed: {msg}")
 
         except (requests.exceptions.Timeout, requests.exceptions.ConnectionError, Exception) as exc:
             logger.warning("Electricity order %s: attempt %s of %s failed: %s", order_id, attempt, max_attempts, str(exc))
@@ -771,12 +773,12 @@ def process_exam_pin_order(self, order_id):
             
             if response.status_code not in [200, 201]:
                 msg = response.text[:150] if response.text else "No response body"
-                raise Exception(f"CheapDataHub API error [{response.status_code}]: {msg}")
+                raise Exception(f"Vending gateway error [{response.status_code}]: {msg}")
             
             try:
                 data = response.json()
             except ValueError:
-                raise Exception(f"CheapDataHub API returned invalid HTML response [{response.status_code}]")
+                raise Exception(f"Vending gateway returned invalid response [{response.status_code}]")
 
             if data.get("status") in ["true", "success", True]:
                 # Parse delivered PINs from response
@@ -808,7 +810,7 @@ def process_exam_pin_order(self, order_id):
                 return
             else:
                 msg = data.get("message", data.get("error", "Provider declined"))
-                raise Exception(f"CheapDataHub Exam PIN failed: {msg}")
+                raise Exception(f"Exam PIN vending request failed: {msg}")
 
         except (requests.exceptions.Timeout, requests.exceptions.ConnectionError, Exception) as exc:
             logger.warning("Exam PIN order %s: attempt %s of %s failed: %s", order_id, attempt, max_attempts, str(exc))

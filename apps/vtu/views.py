@@ -148,7 +148,7 @@ class BuyDataView(LoginRequiredMixin, PinRequiredMixin, View):
                 locked_wallet, txn = _atomic_debit(
                     wallet, plan.subhero_price, reference,
                     WalletTransaction.TxnType.VTU,
-                    f"{network.upper()} {plan.name} Data for {phone_number}",
+                    f"Mobile Data · {network.upper()} {plan.name} → {phone_number}",
                     get_client_ip(request),
                 )
                 order = VTUOrder.objects.create(
@@ -253,7 +253,7 @@ class BuyAirtimeView(LoginRequiredMixin, PinRequiredMixin, View):
                 locked_wallet, txn = _atomic_debit(
                     wallet, amount, reference,
                     WalletTransaction.TxnType.VTU,
-                    f"{network.upper()} ₦{amount:,.0f} Airtime for {phone_number}",
+                    f"Airtime · {network.upper()} ₦{amount:,.0f} → {phone_number}",
                     get_client_ip(request),
                 )
                 order = AirtimeOrder.objects.create(
@@ -356,7 +356,7 @@ class BuyCableView(LoginRequiredMixin, PinRequiredMixin, View):
                 locked_wallet, txn = _atomic_debit(
                     wallet, plan.subhero_price, reference,
                     WalletTransaction.TxnType.VTU,
-                    f"{provider.upper()} {plan.name} for card {card_number}",
+                    f"Cable TV · {provider.upper()} {plan.name} → Card {card_number}",
                     get_client_ip(request),
                 )
                 order = CableOrder.objects.create(
@@ -479,7 +479,7 @@ class BuyElectricityView(LoginRequiredMixin, PinRequiredMixin, View):
                 locked_wallet, txn = _atomic_debit(
                     wallet, amount, reference,
                     WalletTransaction.TxnType.VTU,
-                    f"{disco_name} ₦{amount:,.0f} Electricity for meter {meter_number}",
+                    f"Electricity · {disco_name} {meter_type.capitalize()} Token → Meter {meter_number}",
                     get_client_ip(request),
                 )
                 order = ElectricityOrder.objects.create(
@@ -583,7 +583,7 @@ class BuyExamPinView(LoginRequiredMixin, PinRequiredMixin, View):
                 locked_wallet, txn = _atomic_debit(
                     wallet, total, reference,
                     WalletTransaction.TxnType.VTU,
-                    f"{product.exam_name} x{quantity} Exam PIN(s)",
+                    f"Exam PIN · {product.exam_name} ×{quantity}",
                     get_client_ip(request),
                 )
                 order = ExamPinOrder.objects.create(
