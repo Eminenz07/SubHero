@@ -254,11 +254,21 @@ class TransactionDetailView(LoginRequiredMixin, PinRequiredMixin, View):
                             if order:
                                 order_type = "smm"
 
+        # Resolve provider failure reference safely across all order types
+        order_failure_ref = ""
+        if order:
+            order_failure_ref = (
+                getattr(order, "provider_ref", None)
+                or getattr(order, "provider_order_id", None)
+                or ""
+            )
+
         return render(request, self.template_name, {
             "wallet": wallet,
             "txn": txn,
             "order": order,
             "order_type": order_type,
+            "order_failure_ref": order_failure_ref,
         })
 
 
