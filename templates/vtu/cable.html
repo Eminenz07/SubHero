@@ -177,6 +177,9 @@
       setTimeout(() => {
         document.getElementById('id_hidden_pin').value = pinState.join('');
         
+        // Visually dismiss keypad before showing global loader
+        closeCustomSheets();
+        
         // Show premium glassmorphic loader
         const overlay = document.getElementById('global-loading-overlay');
         if (overlay) {

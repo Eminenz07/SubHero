@@ -86,9 +86,17 @@ def process_vtu_order(self, order_id):
         try:
             logger.info("VTU order %s: calling CheapDataHub API (attempt %s/%s)", order_id, attempt, max_attempts)
             response = requests.post(url, json=payload, headers=headers, timeout=20)
-            response_data = response.json()
+            
+            if response.status_code not in [200, 201]:
+                msg = response.text[:150] if response.text else "No response body"
+                raise Exception(f"CheapDataHub API error [{response.status_code}]: {msg}")
+            
+            try:
+                response_data = response.json()
+            except ValueError:
+                raise Exception(f"CheapDataHub API returned invalid HTML response [{response.status_code}]")
 
-            if response.status_code in [200, 201] and response_data.get("status") in ["true", "success", True]:
+            if response_data.get("status") in ["true", "success", True]:
                 order.status = VTUOrder.Status.SUCCESS
                 order.provider_ref = response_data.get("reference", response_data.get("id", "CDH-SUCCESS"))
                 order.delivered_at = timezone.now()
@@ -114,24 +122,20 @@ def process_vtu_order(self, order_id):
                     logger.error("Notification creation failed: %s", str(e))
                 return
             else:
-                http_code = response.status_code
                 msg = response_data.get("message", response_data.get("error", "Provider declined the request"))
-                # Definitive failures: fail fast — no retry, immediate refund
-                if http_code in [400, 401, 402, 403, 404, 422]:
-                    logger.error("VTU order %s: definitive API failure [%s]: %s. Refunding immediately.", order_id, http_code, msg)
-                    order.status = VTUOrder.Status.FAILED
-                    order.provider_ref = f"API Error [{http_code}]: {msg}"[:200]
-                    order.save(update_fields=["status", "provider_ref"])
-                    refund_vtu_order(order_id)
-                    return
-                raise Exception(f"CheapDataHub VTU failed [{http_code}]: {msg}")
+                raise Exception(f"CheapDataHub VTU failed: {msg}")
 
         except (requests.exceptions.Timeout, requests.exceptions.ConnectionError, Exception) as exc:
             logger.warning("VTU order %s: attempt %s of %s failed: %s", order_id, attempt, max_attempts, str(exc))
-            if attempt == max_attempts:
-                logger.error("VTU order %s exceeded all retries. Failing and refunding.", order_id)
+            exc_str = str(exc)
+            is_definitive = any(kw in exc_str for kw in [
+                "400", "401", "402", "403", "404", "422", 
+                "Unauthorized", "Forbidden", "Insufficient", "wallet", "API Key"
+            ])
+            if attempt == max_attempts or is_definitive:
+                logger.error("VTU order %s exceeded all retries or encountered definitive failure. Failing and refunding. Reason: %s", order_id, exc_str)
                 order.status = VTUOrder.Status.FAILED
-                order.provider_ref = f"Failed: {str(exc)}"[:200]
+                order.provider_ref = f"Failed: {exc_str}"[:200]
                 order.save(update_fields=["status", "provider_ref"])
                 refund_vtu_order(order_id)
                 return
@@ -401,9 +405,17 @@ def process_airtime_order(self, order_id):
         try:
             logger.info("Airtime order %s: calling CheapDataHub API (attempt %s/%s)", order_id, attempt, max_attempts)
             response = requests.post(url, json=payload, headers=headers, timeout=20)
-            data = response.json()
+            
+            if response.status_code not in [200, 201]:
+                msg = response.text[:150] if response.text else "No response body"
+                raise Exception(f"CheapDataHub API error [{response.status_code}]: {msg}")
+            
+            try:
+                data = response.json()
+            except ValueError:
+                raise Exception(f"CheapDataHub API returned invalid HTML response [{response.status_code}]")
 
-            if response.status_code in [200, 201] and data.get("status") in ["true", "success", True]:
+            if data.get("status") in ["true", "success", True]:
                 order.status = AirtimeOrder.Status.SUCCESS
                 order.provider_ref = data.get("reference", data.get("id", "CDH-AIRTIME"))
                 order.delivered_at = timezone.now()
@@ -424,24 +436,20 @@ def process_airtime_order(self, order_id):
                     logger.error("Notification failed: %s", str(e))
                 return
             else:
-                http_code = response.status_code
                 msg = data.get("message", data.get("error", "Provider declined"))
-                # Definitive failures: fail fast — no retry, immediate refund
-                if http_code in [400, 401, 402, 403, 404, 422]:
-                    logger.error("Airtime order %s: definitive API failure [%s]: %s. Refunding immediately.", order_id, http_code, msg)
-                    order.status = AirtimeOrder.Status.FAILED
-                    order.provider_ref = f"API Error [{http_code}]: {msg}"[:200]
-                    order.save(update_fields=["status", "provider_ref"])
-                    refund_airtime_order(order_id)
-                    return
-                raise Exception(f"CheapDataHub Airtime failed [{http_code}]: {msg}")
+                raise Exception(f"CheapDataHub Airtime failed: {msg}")
 
         except (requests.exceptions.Timeout, requests.exceptions.ConnectionError, Exception) as exc:
             logger.warning("Airtime order %s: attempt %s of %s failed: %s", order_id, attempt, max_attempts, str(exc))
-            if attempt == max_attempts:
-                logger.error("Airtime order %s exceeded all retries. Failing and refunding.", order_id)
+            exc_str = str(exc)
+            is_definitive = any(kw in exc_str for kw in [
+                "400", "401", "402", "403", "404", "422", 
+                "Unauthorized", "Forbidden", "Insufficient", "wallet", "API Key"
+            ])
+            if attempt == max_attempts or is_definitive:
+                logger.error("Airtime order %s exceeded all retries or encountered definitive failure. Failing and refunding. Reason: %s", order_id, exc_str)
                 order.status = AirtimeOrder.Status.FAILED
-                order.provider_ref = f"Failed: {str(exc)}"[:200]
+                order.provider_ref = f"Failed: {exc_str}"[:200]
                 order.save(update_fields=["status", "provider_ref"])
                 refund_airtime_order(order_id)
                 return
@@ -493,9 +501,17 @@ def process_cable_order(self, order_id):
         try:
             logger.info("Cable order %s: calling CheapDataHub API (attempt %s/%s)", order_id, attempt, max_attempts)
             response = requests.post(url, json=payload, headers=headers, timeout=20)
-            data = response.json()
+            
+            if response.status_code not in [200, 201]:
+                msg = response.text[:150] if response.text else "No response body"
+                raise Exception(f"CheapDataHub API error [{response.status_code}]: {msg}")
+            
+            try:
+                data = response.json()
+            except ValueError:
+                raise Exception(f"CheapDataHub API returned invalid HTML response [{response.status_code}]")
 
-            if response.status_code in [200, 201] and data.get("status") in ["true", "success", True]:
+            if data.get("status") in ["true", "success", True]:
                 order.status = CableOrder.Status.SUCCESS
                 order.provider_ref = data.get("reference", data.get("id", "CDH-CABLE"))
                 order.delivered_at = timezone.now()
@@ -516,24 +532,20 @@ def process_cable_order(self, order_id):
                     logger.error("Notification failed: %s", str(e))
                 return
             else:
-                http_code = response.status_code
                 msg = data.get("message", data.get("error", "Provider declined"))
-                # Definitive failures: fail fast — no retry, immediate refund
-                if http_code in [400, 401, 402, 403, 404, 422]:
-                    logger.error("Cable order %s: definitive API failure [%s]: %s. Refunding immediately.", order_id, http_code, msg)
-                    order.status = CableOrder.Status.FAILED
-                    order.provider_ref = f"API Error [{http_code}]: {msg}"[:200]
-                    order.save(update_fields=["status", "provider_ref"])
-                    refund_cable_order(order_id)
-                    return
-                raise Exception(f"CheapDataHub Cable failed [{http_code}]: {msg}")
+                raise Exception(f"CheapDataHub Cable failed: {msg}")
 
         except (requests.exceptions.Timeout, requests.exceptions.ConnectionError, Exception) as exc:
             logger.warning("Cable order %s: attempt %s of %s failed: %s", order_id, attempt, max_attempts, str(exc))
-            if attempt == max_attempts:
-                logger.error("Cable order %s exceeded all retries. Failing and refunding.", order_id)
+            exc_str = str(exc)
+            is_definitive = any(kw in exc_str for kw in [
+                "400", "401", "402", "403", "404", "422", 
+                "Unauthorized", "Forbidden", "Insufficient", "wallet", "API Key"
+            ])
+            if attempt == max_attempts or is_definitive:
+                logger.error("Cable order %s exceeded all retries or encountered definitive failure. Failing and refunding. Reason: %s", order_id, exc_str)
                 order.status = CableOrder.Status.FAILED
-                order.provider_ref = f"Failed: {str(exc)}"[:200]
+                order.provider_ref = f"Failed: {exc_str}"[:200]
                 order.save(update_fields=["status", "provider_ref"])
                 refund_cable_order(order_id)
                 return
@@ -656,9 +668,17 @@ def process_electricity_order(self, order_id):
         try:
             logger.info("Electricity order %s: calling CheapDataHub API (attempt %s/%s)", order_id, attempt, max_attempts)
             response = requests.post(url, json=payload, headers=headers, timeout=30)
-            data = response.json()
+            
+            if response.status_code not in [200, 201]:
+                msg = response.text[:150] if response.text else "No response body"
+                raise Exception(f"CheapDataHub API error [{response.status_code}]: {msg}")
+            
+            try:
+                data = response.json()
+            except ValueError:
+                raise Exception(f"CheapDataHub API returned invalid HTML response [{response.status_code}]")
 
-            if response.status_code in [200, 201] and data.get("status") in ["true", "success", True]:
+            if data.get("status") in ["true", "success", True]:
                 order.status = ElectricityOrder.Status.SUCCESS
                 order.provider_ref = data.get("reference", data.get("id", "CDH-ELEC"))
                 order.token = data.get("token", data.get("data", {}).get("token", ""))
@@ -684,24 +704,20 @@ def process_electricity_order(self, order_id):
                     logger.error("Notification failed: %s", str(e))
                 return
             else:
-                http_code = response.status_code
                 msg = data.get("message", data.get("error", "Provider declined"))
-                # Definitive failures: fail fast — no retry, immediate refund
-                if http_code in [400, 401, 402, 403, 404, 422]:
-                    logger.error("Electricity order %s: definitive API failure [%s]: %s. Refunding immediately.", order_id, http_code, msg)
-                    order.status = ElectricityOrder.Status.FAILED
-                    order.provider_ref = f"API Error [{http_code}]: {msg}"[:200]
-                    order.save(update_fields=["status", "provider_ref"])
-                    refund_electricity_order(order_id)
-                    return
-                raise Exception(f"CheapDataHub Electricity failed [{http_code}]: {msg}")
+                raise Exception(f"CheapDataHub Electricity failed: {msg}")
 
         except (requests.exceptions.Timeout, requests.exceptions.ConnectionError, Exception) as exc:
             logger.warning("Electricity order %s: attempt %s of %s failed: %s", order_id, attempt, max_attempts, str(exc))
-            if attempt == max_attempts:
-                logger.error("Electricity order %s exceeded all retries. Failing and refunding.", order_id)
+            exc_str = str(exc)
+            is_definitive = any(kw in exc_str for kw in [
+                "400", "401", "402", "403", "404", "422", 
+                "Unauthorized", "Forbidden", "Insufficient", "wallet", "API Key"
+            ])
+            if attempt == max_attempts or is_definitive:
+                logger.error("Electricity order %s exceeded all retries or encountered definitive failure. Failing and refunding. Reason: %s", order_id, exc_str)
                 order.status = ElectricityOrder.Status.FAILED
-                order.provider_ref = f"Failed: {str(exc)}"[:200]
+                order.provider_ref = f"Failed: {exc_str}"[:200]
                 order.save(update_fields=["status", "provider_ref"])
                 refund_electricity_order(order_id)
                 return
@@ -752,9 +768,17 @@ def process_exam_pin_order(self, order_id):
         try:
             logger.info("Exam PIN order %s: calling CheapDataHub API (attempt %s/%s)", order_id, attempt, max_attempts)
             response = requests.post(url, json=payload, headers=headers, timeout=30)
-            data = response.json()
+            
+            if response.status_code not in [200, 201]:
+                msg = response.text[:150] if response.text else "No response body"
+                raise Exception(f"CheapDataHub API error [{response.status_code}]: {msg}")
+            
+            try:
+                data = response.json()
+            except ValueError:
+                raise Exception(f"CheapDataHub API returned invalid HTML response [{response.status_code}]")
 
-            if response.status_code in [200, 201] and data.get("status") in ["true", "success", True]:
+            if data.get("status") in ["true", "success", True]:
                 # Parse delivered PINs from response
                 raw_pins = data.get("pins", data.get("data", {}).get("pins", []))
                 if isinstance(raw_pins, list):
@@ -783,24 +807,20 @@ def process_exam_pin_order(self, order_id):
                     logger.error("Notification failed: %s", str(e))
                 return
             else:
-                http_code = response.status_code
                 msg = data.get("message", data.get("error", "Provider declined"))
-                # Definitive failures: fail fast — no retry, immediate refund
-                if http_code in [400, 401, 402, 403, 404, 422]:
-                    logger.error("Exam PIN order %s: definitive API failure [%s]: %s. Refunding immediately.", order_id, http_code, msg)
-                    order.status = ExamPinOrder.Status.FAILED
-                    order.provider_ref = f"API Error [{http_code}]: {msg}"[:200]
-                    order.save(update_fields=["status", "provider_ref"])
-                    refund_exam_pin_order(order_id)
-                    return
-                raise Exception(f"CheapDataHub Exam PIN failed [{http_code}]: {msg}")
+                raise Exception(f"CheapDataHub Exam PIN failed: {msg}")
 
         except (requests.exceptions.Timeout, requests.exceptions.ConnectionError, Exception) as exc:
             logger.warning("Exam PIN order %s: attempt %s of %s failed: %s", order_id, attempt, max_attempts, str(exc))
-            if attempt == max_attempts:
-                logger.error("Exam PIN order %s exceeded all retries. Failing and refunding.", order_id)
+            exc_str = str(exc)
+            is_definitive = any(kw in exc_str for kw in [
+                "400", "401", "402", "403", "404", "422", 
+                "Unauthorized", "Forbidden", "Insufficient", "wallet", "API Key"
+            ])
+            if attempt == max_attempts or is_definitive:
+                logger.error("Exam PIN order %s exceeded all retries or encountered definitive failure. Failing and refunding. Reason: %s", order_id, exc_str)
                 order.status = ExamPinOrder.Status.FAILED
-                order.provider_ref = f"Failed: {str(exc)}"[:200]
+                order.provider_ref = f"Failed: {exc_str}"[:200]
                 order.save(update_fields=["status", "provider_ref"])
                 refund_exam_pin_order(order_id)
                 return

@@ -375,6 +375,17 @@
         const pinCode = pinState.join('');
         document.getElementById('id_hidden_pin').value = pinCode;
         
+        // Visually dismiss keypad before showing global loader
+        closeCustomSheets();
+        
+        // Show premium glassmorphic loader
+        const overlay = document.getElementById('global-loading-overlay');
+        if (overlay) {
+            document.getElementById('loading-overlay-title').textContent = "Placing SMM Booster Request...";
+            document.getElementById('loading-overlay-subtitle').textContent = "Submitting social media booster request to JustAnotherPanel. Please do not close or refresh this page.";
+            overlay.style.display = 'flex';
+        }
+        
         // Disable numpad buttons to prevent duplicate submits
         document.querySelectorAll('#custom-sheet-pin button').forEach(b => b.disabled = true);
         

@@ -299,6 +299,9 @@
         const pinCode = pinState.join('');
         document.getElementById('id_hidden_pin').value = pinCode;
         
+        // Visually dismiss keypad before showing global loader
+        closeCustomSheets();
+        
         // Show premium glassmorphic loader
         const overlay = document.getElementById('global-loading-overlay');
         if (overlay) {

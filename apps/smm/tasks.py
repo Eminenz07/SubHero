@@ -55,9 +55,18 @@ def process_smm_order(self, order_id):
 
     try:
         response = requests.post(url, data=payload, timeout=30)
-        response_data = response.json()
+        
+        # Check for HTML/bad HTTP status code first
+        if response.status_code not in [200, 201]:
+            msg = response.text[:150] if response.text else "No response body"
+            raise Exception(f"JAP API returned server error [{response.status_code}]: {msg}")
+            
+        try:
+            response_data = response.json()
+        except ValueError:
+            raise Exception(f"JAP API returned invalid HTML response [{response.status_code}]")
 
-        if response.status_code in [200, 201] and "order" in response_data:
+        if "order" in response_data:
             order.provider_order_id = str(response_data["order"])
             order.status = SMMOrder.Status.PROCESSING
             order.save(update_fields=["status", "provider_order_id"])
@@ -67,21 +76,38 @@ def process_smm_order(self, order_id):
 
             logger.info("JAP SMM order placed successfully: provider_id=%s", order.provider_order_id)
         else:
+            # Explicit application error (e.g. bad API key, low balance, invalid service) - fail fast immediately!
             error_msg = response_data.get("error", response_data.get("message", "API returned error"))
-            raise Exception(f"JAP API error: {error_msg}")
+            logger.error("SMM order %s encountered definitive JAP application error. Failing immediately. Reason: %s", order_id, error_msg)
+            
+            order.status = SMMOrder.Status.FAILED
+            order.provider_order_id = f"Failed: {error_msg}"[:100]
+            order.save(update_fields=["status", "provider_order_id"])
+            refund_smm_order.delay(order_id)
+            return
 
-    except requests.exceptions.Timeout:
-        raise Exception("JAP API timed out. Your order will be retried automatically.")
-    except requests.exceptions.ConnectionError:
-        raise Exception("Could not connect to SMM provider. Your order will be retried automatically.")
-    except Exception as exc:
-        logger.warning("SMM order %s API call failed. Retrying... Error: %s", order_id, str(exc))
+    except (requests.exceptions.Timeout, requests.exceptions.ConnectionError, Exception) as exc:
+        exc_str = str(exc)
+        is_definitive = any(kw in exc_str for kw in [
+            "400", "401", "402", "403", "404", "422", 
+            "Unauthorized", "Forbidden", "Insufficient", "wallet", "API Key"
+        ])
+        
+        if is_definitive:
+            logger.error("SMM order %s encountered definitive failure. Failing immediately. Reason: %s", order_id, exc_str)
+            order.status = SMMOrder.Status.FAILED
+            order.provider_order_id = f"Failed: {exc_str}"[:100]
+            order.save(update_fields=["status", "provider_order_id"])
+            refund_smm_order.delay(order_id)
+            return
+
+        logger.warning("SMM order %s API call failed. Retrying... Error: %s", order_id, exc_str)
         try:
             self.retry(exc=exc, countdown=30)
         except MaxRetriesExceededError:
             logger.error("SMM order %s exceeded all retries. Initiating refund.", order_id)
             order.status = SMMOrder.Status.FAILED
-            order.provider_order_id = f"Failed: {str(exc)}"[:100]
+            order.provider_order_id = f"Failed: {exc_str}"[:100]
             order.save(update_fields=["status", "provider_order_id"])
             refund_smm_order.delay(order_id)
 
