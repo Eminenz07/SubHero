@@ -59,7 +59,7 @@ def _check_pin(request, context, template):
     return True, None
 
 
-def _atomic_debit(wallet, amount, reference, txn_type, description, ip):
+def _atomic_debit(wallet, amount, reference, txn_type, description, ip, status=WalletTransaction.Status.PENDING):
     """Atomically locks and debits the wallet. Returns (locked_wallet, txn)."""
     locked_wallet = Wallet.objects.select_for_update().get(id=wallet.id)
     if locked_wallet.is_frozen:
@@ -76,7 +76,7 @@ def _atomic_debit(wallet, amount, reference, txn_type, description, ip):
         balance_before=balance_before,
         balance_after=locked_wallet.balance,
         reference=reference,
-        status=WalletTransaction.Status.SUCCESS,
+        status=status,
         description=description,
         ip_address=ip,
     )

@@ -183,7 +183,7 @@ class SmmIndexView(LoginRequiredMixin, PinRequiredMixin, View):
                     balance_before=balance_before,
                     balance_after=locked_wallet.balance,
                     reference=reference,
-                    status=WalletTransaction.Status.SUCCESS,
+                    status=WalletTransaction.Status.PENDING,
                     description=f"SMM Booster: {service_name} ×{quantity:,} for {url}",
                     ip_address=get_client_ip(request)
                 )

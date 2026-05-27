@@ -39,6 +39,9 @@ def process_smm_order(self, order_id):
         order.provider_order_id = "MOCK-JAP-ORDER-12345"
         order.status = SMMOrder.Status.PROCESSING
         order.save(update_fields=["status", "provider_order_id"])
+        
+        # Update SMM transaction to SUCCESS
+        WalletTransaction.objects.filter(reference=order.reference).update(status=WalletTransaction.Status.SUCCESS)
         return
 
     url = settings.JAP_API_URL
@@ -58,6 +61,9 @@ def process_smm_order(self, order_id):
             order.provider_order_id = str(response_data["order"])
             order.status = SMMOrder.Status.PROCESSING
             order.save(update_fields=["status", "provider_order_id"])
+
+            # Update SMM transaction to SUCCESS
+            WalletTransaction.objects.filter(reference=order.reference).update(status=WalletTransaction.Status.SUCCESS)
 
             logger.info("JAP SMM order placed successfully: provider_id=%s", order.provider_order_id)
         else:
@@ -101,6 +107,9 @@ def refund_smm_order(order_id):
 
             order.status = SMMOrder.Status.FAILED
             order.save(update_fields=["status"])
+
+            # Update original SMM debit WalletTransaction to FAILED
+            WalletTransaction.objects.filter(reference=order.reference).update(status=WalletTransaction.Status.FAILED)
 
             # Create Refund Transaction log
             WalletTransaction.objects.create(

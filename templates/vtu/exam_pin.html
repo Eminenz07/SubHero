@@ -177,7 +177,7 @@
         if (overlay) {
             document.getElementById('loading-overlay-title').textContent = "Vending Exam PINs...";
             document.getElementById('loading-overlay-subtitle').textContent = "Generating scratch card PIN via CheapDataHub. Please do not close or refresh this page.";
-            overlay.classList.remove('hidden');
+            overlay.style.display = 'flex';
         }
         
         document.querySelectorAll('#custom-sheet-pin button').forEach(b => b.disabled = true);

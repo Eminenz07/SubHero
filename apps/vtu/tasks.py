@@ -49,6 +49,9 @@ def process_vtu_order(self, order_id):
         order.delivered_at = timezone.now()
         order.save(update_fields=["status", "provider_ref", "delivered_at"])
         
+        # Update WalletTransaction to SUCCESS
+        WalletTransaction.objects.filter(reference=order.reference).update(status=WalletTransaction.Status.SUCCESS)
+        
         # Notify user via SMS
         send_transaction_sms.delay(
             order.user.phone_number,
@@ -90,6 +93,9 @@ def process_vtu_order(self, order_id):
                 order.provider_ref = response_data.get("reference", response_data.get("id", "CDH-SUCCESS"))
                 order.delivered_at = timezone.now()
                 order.save(update_fields=["status", "provider_ref", "delivered_at"])
+
+                # Update corresponding WalletTransaction to SUCCESS
+                WalletTransaction.objects.filter(reference=order.reference).update(status=WalletTransaction.Status.SUCCESS)
 
                 send_transaction_sms.delay(
                     order.user.phone_number,
@@ -153,6 +159,9 @@ def refund_vtu_order(order_id):
 
             order.status = VTUOrder.Status.FAILED
             order.save(update_fields=["status"])
+
+            # Update original debit WalletTransaction to FAILED
+            WalletTransaction.objects.filter(reference=order.reference).update(status=WalletTransaction.Status.FAILED)
 
             # Create Refund Transaction log
             WalletTransaction.objects.create(
@@ -326,6 +335,9 @@ def _generic_refund(order, order_type_label, refund_prefix):
         order.status = "FAILED"
         order.save(update_fields=["status"])
 
+        # Update original debit WalletTransaction to FAILED
+        WalletTransaction.objects.filter(reference=order.reference).update(status=WalletTransaction.Status.FAILED)
+
         WalletTransaction.objects.create(
             wallet=wallet,
             txn_type=WalletTransaction.TxnType.REFUND,
@@ -396,6 +408,9 @@ def process_airtime_order(self, order_id):
                 order.provider_ref = data.get("reference", data.get("id", "CDH-AIRTIME"))
                 order.delivered_at = timezone.now()
                 order.save(update_fields=["status", "provider_ref", "delivered_at"])
+
+                # Update corresponding WalletTransaction to SUCCESS
+                WalletTransaction.objects.filter(reference=order.reference).update(status=WalletTransaction.Status.SUCCESS)
 
                 send_transaction_sms.delay(
                     order.user.phone_number,
@@ -485,6 +500,9 @@ def process_cable_order(self, order_id):
                 order.provider_ref = data.get("reference", data.get("id", "CDH-CABLE"))
                 order.delivered_at = timezone.now()
                 order.save(update_fields=["status", "provider_ref", "delivered_at"])
+
+                # Update corresponding WalletTransaction to SUCCESS
+                WalletTransaction.objects.filter(reference=order.reference).update(status=WalletTransaction.Status.SUCCESS)
 
                 send_transaction_sms.delay(
                     order.user.phone_number,
@@ -648,6 +666,9 @@ def process_electricity_order(self, order_id):
                 order.delivered_at = timezone.now()
                 order.save(update_fields=["status", "provider_ref", "token", "units", "delivered_at"])
 
+                # Update corresponding WalletTransaction to SUCCESS
+                WalletTransaction.objects.filter(reference=order.reference).update(status=WalletTransaction.Status.SUCCESS)
+
                 token_msg = f" Token: {order.token}" if order.token else ""
                 send_transaction_sms.delay(
                     order.user.phone_number,
@@ -746,6 +767,9 @@ def process_exam_pin_order(self, order_id):
                 order.delivered_pins = pins_text
                 order.delivered_at = timezone.now()
                 order.save(update_fields=["status", "provider_ref", "delivered_pins", "delivered_at"])
+
+                # Update corresponding WalletTransaction to SUCCESS
+                WalletTransaction.objects.filter(reference=order.reference).update(status=WalletTransaction.Status.SUCCESS)
 
                 send_transaction_sms.delay(
                     order.user.phone_number,
