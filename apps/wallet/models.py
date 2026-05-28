@@ -52,6 +52,31 @@ class Wallet(models.Model):
         help_text="Admin can freeze for fraud review",
     )
     created_at = models.DateTimeField(auto_now_add=True)
+    
+    # KYC Details (PRD B2C Virtual Account Requirements)
+    bvn = models.CharField(
+        max_length=11,
+        blank=True,
+        null=True,
+        help_text="NIBSS verified Bank Verification Number"
+    )
+    dob = models.DateField(
+        blank=True,
+        null=True,
+        help_text="Date of Birth registered with BVN"
+    )
+    gender = models.CharField(
+        max_length=2,
+        blank=True,
+        null=True,
+        choices=[("1", "Male"), ("2", "Female")],
+        help_text="Gender choice matching GTBank/Squad requirements ('1' for Male, '2' for Female)"
+    )
+    address = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Residential Address matching BVN profile"
+    )
 
     class Meta:
         db_table = "wallet_wallet"

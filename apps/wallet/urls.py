@@ -17,4 +17,6 @@ urlpatterns = [
     path("transactions/<uuid:txn_id>/", views.TransactionDetailView.as_view(), name="transaction_detail"),
     # HTMX endpoint: lookup recipient by phone
     path("lookup-recipient/", views.LookupRecipientView.as_view(), name="lookup_recipient"),
+    # AJAX endpoint: generate virtual account on-demand
+    path("generate-virtual-account/", views.GenerateVirtualAccountView.as_view(), name="generate_virtual_account"),
 ]

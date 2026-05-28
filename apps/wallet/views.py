@@ -311,3 +311,79 @@ class LookupRecipientView(LoginRequiredMixin, View):
             return HttpResponse(
                 '<div class="text-xs text-status-danger mt-1">User not found.</div>'
             )
+
+
+class GenerateVirtualAccountView(LoginRequiredMixin, PinRequiredMixin, View):
+    """
+    AJAX endpoint to collect user KYC details and generate their dedicated virtual account.
+    """
+    def post(self, request):
+        from datetime import datetime
+        from django.http import JsonResponse
+        from apps.payments.services import create_virtual_account
+
+        wallet = get_object_or_404(Wallet, user=request.user)
+        
+        # Guard if already generated
+        if wallet.virtual_account_number:
+            return JsonResponse({
+                "success": True, 
+                "message": "Virtual account already generated.", 
+                "account_number": wallet.virtual_account_number
+            })
+            
+        bvn = request.POST.get("bvn", "").strip()
+        dob_str = request.POST.get("dob", "").strip()
+        gender = request.POST.get("gender", "").strip()
+        address = request.POST.get("address", "").strip()
+        
+        # Validation
+        if not bvn or len(bvn) != 11 or not bvn.isdigit():
+            return JsonResponse({"success": False, "error": "A valid 11-digit BVN is required."}, status=400)
+            
+        if not dob_str:
+            return JsonResponse({"success": False, "error": "Date of birth is required."}, status=400)
+            
+        try:
+            # HTML5 date picker returns YYYY-MM-DD
+            dob = datetime.strptime(dob_str, "%Y-%m-%d").date()
+        except ValueError:
+            return JsonResponse({"success": False, "error": "Invalid Date of Birth format. Please use YYYY-MM-DD."}, status=400)
+            
+        if gender not in ["1", "2"]:
+            return JsonResponse({"success": False, "error": "Please select a valid gender."}, status=400)
+            
+        if not address or len(address) < 5:
+            return JsonResponse({"success": False, "error": "Please provide a valid residential address."}, status=400)
+            
+        # Save to wallet
+        wallet.bvn = bvn
+        wallet.dob = dob
+        wallet.gender = gender
+        wallet.address = address
+        wallet.save(update_fields=["bvn", "dob", "gender", "address"])
+        
+        # Invoke GTBank/Squad Virtual Account generation
+        result = create_virtual_account(request.user)
+        
+        if result.get("success"):
+            wallet.virtual_account_number = result["virtual_account_number"]
+            wallet.virtual_account_bank = result["bank_name"]
+            wallet.save(update_fields=["virtual_account_number", "virtual_account_bank"])
+            return JsonResponse({
+                "success": True,
+                "message": "Virtual account generated successfully!",
+                "virtual_account_number": wallet.virtual_account_number,
+                "virtual_account_bank": wallet.virtual_account_bank
+            })
+        else:
+            # Clear invalid details so they can retry
+            wallet.bvn = None
+            wallet.dob = None
+            wallet.gender = None
+            wallet.address = None
+            wallet.save(update_fields=["bvn", "dob", "gender", "address"])
+            return JsonResponse({
+                "success": False,
+                "error": result.get("message") or "Failed to generate virtual account. Please check your BVN details."
+            }, status=400)
