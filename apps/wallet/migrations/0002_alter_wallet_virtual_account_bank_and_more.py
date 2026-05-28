@@ -3,6 +3,11 @@
 from django.db import migrations, models
 
 
+def blank_to_null(apps, schema_editor):
+    Wallet = apps.get_model('wallet', 'Wallet')
+    Wallet.objects.filter(virtual_account_number="").update(virtual_account_number=None)
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -10,6 +15,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.RunPython(blank_to_null, reverse_code=migrations.RunPython.noop),
         migrations.AlterField(
             model_name='wallet',
             name='virtual_account_bank',
