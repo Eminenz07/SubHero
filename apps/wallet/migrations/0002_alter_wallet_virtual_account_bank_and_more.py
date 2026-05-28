@@ -15,15 +15,24 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(blank_to_null, reverse_code=migrations.RunPython.noop),
+        # Step 1: Alter the field to allow NULL (lifting the not-null constraint)
         migrations.AlterField(
             model_name='wallet',
-            name='virtual_account_bank',
-            field=models.CharField(blank=True, default='', help_text='Bank name for display', max_length=100),
+            name='virtual_account_number',
+            field=models.CharField(blank=True, help_text='Assigned by gateway', max_length=20, null=True, unique=False),
         ),
+        # Step 2: Now that nulls are permitted, convert all empty strings to NULL
+        migrations.RunPython(blank_to_null, reverse_code=migrations.RunPython.noop),
+        # Step 3: Now apply the unique index (safe because empty duplicates are now NULL)
         migrations.AlterField(
             model_name='wallet',
             name='virtual_account_number',
             field=models.CharField(blank=True, help_text='Assigned by gateway', max_length=20, null=True, unique=True),
+        ),
+        # Step 4: Alter the bank field to increase length
+        migrations.AlterField(
+            model_name='wallet',
+            name='virtual_account_bank',
+            field=models.CharField(blank=True, default='', help_text='Bank name for display', max_length=100),
         ),
     ]
