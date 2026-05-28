@@ -54,8 +54,8 @@ class WalletOverviewView(LoginRequiredMixin, PinRequiredMixin, View):
 
 class FundWalletView(LoginRequiredMixin, PinRequiredMixin, View):
     """
-    PRD Table 27: /wallet/fund/ — Shows user's virtual account for bank transfer.
-    PRD Section 6.2.1: User funds by transferring to their Providus account.
+    PRD Table 27: /wallet/fund/ — Shows user's virtual account for bank transfer
+    and supports card payments via Squad.
     """
 
     template_name = "wallet/fund.html"
@@ -65,8 +65,10 @@ class FundWalletView(LoginRequiredMixin, PinRequiredMixin, View):
 
         return render(request, self.template_name, {
             "wallet": wallet,
+            "squad_public_key": settings.SQUAD_PUBLIC_KEY,
             "min_amount": settings.FUND_MIN_AMOUNT,
             "max_amount": settings.FUND_MAX_AMOUNT,
+            "daily_limit": settings.FUND_DAILY_LIMIT,
         })
 
 

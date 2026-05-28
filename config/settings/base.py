@@ -261,6 +261,27 @@ PROVIDUS_WEBHOOK_SECRET = config("PROVIDUS_WEBHOOK_SECRET", default="")
 PROVIDUS_BASE_URL = config("PROVIDUS_BASE_URL", default="https://vps.providusbank.com/vps/api")
 PROVIDUS_MOCK = config("PROVIDUS_MOCK", default=True, cast=bool)
 
+# =============================================================
+# SQUAD PAYMENT GATEWAY (GTBank Integration)
+# =============================================================
+SQUAD_ENV = config('SQUAD_ENV', default='sandbox')
+
+SQUAD_SANDBOX_SECRET_KEY = config('SQUAD_SANDBOX_SECRET_KEY', default="")
+SQUAD_SANDBOX_PUBLIC_KEY = config('SQUAD_SANDBOX_PUBLIC_KEY', default="")
+SQUAD_LIVE_SECRET_KEY = config('SQUAD_LIVE_SECRET_KEY', default="")
+SQUAD_LIVE_PUBLIC_KEY = config('SQUAD_LIVE_PUBLIC_KEY', default="")
+
+if SQUAD_ENV == 'live':
+    SQUAD_SECRET_KEY = SQUAD_LIVE_SECRET_KEY
+    SQUAD_PUBLIC_KEY = SQUAD_LIVE_PUBLIC_KEY
+    SQUAD_BASE_URL = 'https://api-d.squadco.com'
+else:
+    SQUAD_SECRET_KEY = SQUAD_SANDBOX_SECRET_KEY
+    SQUAD_PUBLIC_KEY = SQUAD_SANDBOX_PUBLIC_KEY
+    SQUAD_BASE_URL = 'https://sandbox-api-d.squadco.com'
+
+SQUAD_WEBHOOK_SECRET = SQUAD_SECRET_KEY
+
 # Wallet limits — PRD Section 6.2
 FUND_MIN_AMOUNT = 100          # ₦100 minimum funding
 FUND_MAX_AMOUNT = 500_000      # ₦500,000 max single funding

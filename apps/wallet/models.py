@@ -37,11 +37,12 @@ class Wallet(models.Model):
     virtual_account_number = models.CharField(
         max_length=20,
         blank=True,
-        default="",
-        help_text="Assigned by Providus/Bloc",
+        null=True,
+        unique=True,
+        help_text="Assigned by gateway",
     )
     virtual_account_bank = models.CharField(
-        max_length=50,
+        max_length=100,
         blank=True,
         default="",
         help_text="Bank name for display",

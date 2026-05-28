@@ -57,7 +57,8 @@ def create_wallet(user):
     Called after OTP verification during registration.
     PRD Section 6.1.1: Wallet + virtual account auto-created on registration.
     """
-    from apps.payments.services import get_providus_client
+    from apps.payments.services import create_virtual_account
+    from apps.payments.tasks import create_virtual_account_async
 
     # Idempotent: don't create if already exists
     wallet, created = Wallet.objects.get_or_create(user=user)
@@ -65,29 +66,33 @@ def create_wallet(user):
         logger.info("Wallet already exists for user=%s", user.id)
         return wallet
 
-    # Provision virtual account
+    # Provision virtual account using Squad
     try:
-        client = get_providus_client()
-        account_info = client.create_virtual_account(
-            account_name=f"SUBHERO - {user.full_name}",
-            user_reference=str(user.id),
-        )
-        wallet.virtual_account_number = account_info["account_number"]
-        wallet.virtual_account_bank = account_info["bank_name"]
-        wallet.save(update_fields=["virtual_account_number", "virtual_account_bank"])
-
-        logger.info(
-            "Wallet created: user=%s, account=%s",
-            user.id,
-            wallet.virtual_account_number,
-        )
+        result = create_virtual_account(user)
+        if result.get("success"):
+            wallet.virtual_account_number = result["virtual_account_number"]
+            wallet.virtual_account_bank = result["bank_name"]
+            wallet.save(update_fields=["virtual_account_number", "virtual_account_bank"])
+            logger.info(
+                "Wallet and Virtual account created: user=%s, account=%s",
+                user.id,
+                wallet.virtual_account_number,
+            )
+        else:
+            # Don't fail registration - retry in background
+            create_virtual_account_async.delay(str(user.id))
+            logger.warning(
+                "Virtual account creation failed, queued for retry: user=%s, msg=%s",
+                user.id,
+                result.get("message"),
+            )
     except Exception as e:
         logger.error(
-            "Virtual account provisioning failed: user=%s, error=%s",
+            "Virtual account provisioning crashed, queued for retry: user=%s, error=%s",
             user.id,
             str(e),
         )
-        # Wallet exists but without virtual account — can be retried later
+        create_virtual_account_async.delay(str(user.id))
 
     return wallet
 
