@@ -51,6 +51,7 @@ class RegisterView(View):
         form = RegistrationForm(request.POST)
         if form.is_valid():
             from django.contrib.auth import get_user_model
+            from django.contrib.auth import login
 
             User = get_user_model()
 
@@ -59,25 +60,39 @@ class RegisterView(View):
                 email=form.cleaned_data["email"],
                 password=form.cleaned_data["password"],
                 full_name=form.cleaned_data["full_name"],
-                is_verified=False,
+                is_verified=True,  # OTP temporarily suspended for testing
                 is_active=True,
             )
 
-            # Store phone in session for OTP verification
-            request.session["otp_phone"] = user.phone_number
-            request.session["otp_purpose"] = "registration"
+            # Auto-login after verification
+            login(request, user, backend="apps.accounts.backends.PhoneAuthBackend")
+            request.session.cycle_key()
 
-            # Send OTP
-            send_otp(user.phone_number)
+            # Auto-create wallet + virtual account (PRD Section 6.1.1)
+            try:
+                from apps.wallet.services import create_wallet
+                create_wallet(user)
+            except Exception as e:
+                logger.error(
+                    "Wallet creation failed during registration: user=%s, error=%s",
+                    user.id, str(e),
+                )
 
-            logger.info(
-                "Registration initiated: phone=%s, ip=%s",
-                user.phone_number,
-                get_client_ip(request),
-            )
+            # Welcome notification
+            try:
+                from apps.notifications.models import Notification
+                Notification.add(
+                    user,
+                    "Welcome to SubHero!",
+                    f"Hi {user.full_name}, your account has been successfully verified. Fund your wallet to start purchasing VTU and SMM services!",
+                    level="success"
+                )
+            except Exception as ex:
+                logger.error("Welcome notification creation failed: %s", str(ex))
 
-            messages.success(request, "Account created! Please verify your phone number.")
-            return redirect("accounts:verify_otp")
+            logger.info("Registration auto-verified (OTP suspended): phone=%s", user.phone_number)
+            messages.success(request, "Registration successful! Please set your transaction PIN.")
+            return redirect("accounts:set_pin")
 
         return render(request, self.template_name, {"form": form})
 
@@ -159,13 +174,15 @@ class LoginView(View):
             messages.error(request, "Invalid credentials. Please try again.")
             return render(request, self.template_name, {"form": form})
 
-        # Check if user is verified
+        # Auto-verify existing accounts temporarily for developer testing
         if not user.is_verified:
-            request.session["otp_phone"] = user.phone_number
-            request.session["otp_purpose"] = "registration"
-            send_otp(user.phone_number)
-            messages.info(request, "Please verify your phone number first.")
-            return redirect("accounts:verify_otp")
+            user.is_verified = True
+            user.save(update_fields=["is_verified"])
+            try:
+                from apps.wallet.services import create_wallet
+                create_wallet(user)
+            except Exception as e:
+                logger.error("Wallet auto-creation failed for login: %s", str(e))
 
         # Successful login
         # Reset failed attempts
