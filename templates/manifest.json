@@ -1,0 +1,17 @@
+{
+  "short_name": "SubHero",
+  "name": "SubHero — Nigerian VTU & SMM Platform",
+  "description": "Premium Nigerian VTU and SMM Services. Instant airtime, data, and social media marketing.",
+  "icons": [
+    {
+      "src": "/static/favicon.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#060B14",
+  "theme_color": "#00C46A",
+  "display": "standalone",
+  "orientation": "portrait"
+}

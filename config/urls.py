@@ -10,6 +10,10 @@ from django.urls import include, path
 from django.views.generic import TemplateView
 
 urlpatterns = [
+    # PWA files served at root
+    path("manifest.json", TemplateView.as_view(template_name="manifest.json", content_type="application/json"), name="manifest_json"),
+    path("sw.js", TemplateView.as_view(template_name="sw.js", content_type="application/javascript"), name="service_worker"),
+
     # Admin — URL configurable via .env (PRD Section 7.6)
     path(settings.ADMIN_URL, admin.site.urls),
 

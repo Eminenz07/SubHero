@@ -697,6 +697,149 @@
         margin: 0 auto;
         max-width: 1080px;
     }
+
+    /* =============================================================
+       PWA INSTALL BANNER
+       ============================================================= */
+    .pwa-banner {
+        position: fixed;
+        bottom: 24px;
+        left: 24px;
+        right: 24px;
+        z-index: 1000;
+        background: rgba(13, 19, 33, 0.85);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        border: 1px solid rgba(0, 196, 106, 0.25);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 196, 106, 0.05);
+        border-radius: 20px;
+        padding: 1.25rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        transform: translateY(180%);
+        transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .pwa-banner.show {
+        transform: translateY(0);
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .pwa-banner__header {
+        display: flex;
+        align-items: center;
+        gap: 0.875rem;
+    }
+
+    .pwa-banner__icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        flex-shrink: 0;
+    }
+
+    .pwa-banner__icon img {
+        width: 32px;
+        height: 32px;
+        object-fit: contain;
+    }
+
+    .pwa-banner__info {
+        flex: 1;
+        text-align: left;
+    }
+
+    .pwa-banner__title {
+        font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+        font-size: 16px;
+        font-weight: 700;
+        color: #FFFFFF;
+        margin: 0 0 2px 0;
+    }
+
+    .pwa-banner__desc {
+        font-size: 12px;
+        color: var(--landing-text-secondary);
+        margin: 0;
+        line-height: 1.4;
+    }
+
+    .pwa-banner__actions {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        justify-content: flex-end;
+    }
+
+    .pwa-btn {
+        padding: 0.6rem 1.25rem;
+        font-size: 13px;
+        font-weight: 600;
+        border-radius: 100px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-align: center;
+        text-decoration: none;
+        border: none;
+    }
+
+    .pwa-btn--cancel {
+        color: var(--landing-text-secondary);
+        background: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .pwa-btn--cancel:hover {
+        color: #FFFFFF;
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .pwa-btn--install {
+        color: #FFFFFF;
+        background: var(--landing-accent);
+        box-shadow: 0 4px 15px rgba(0, 196, 106, 0.2);
+    }
+
+    .pwa-btn--install:hover {
+        background: #00D474;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(0, 196, 106, 0.3);
+    }
+
+    /* Desktop positioning */
+    @media (min-width: 640px) {
+        .pwa-banner {
+            max-width: 420px;
+            left: auto;
+            right: 24px;
+            bottom: 24px;
+            flex-direction: row;
+            align-items: center;
+            gap: 1.25rem;
+            padding: 1rem 1.25rem;
+        }
+
+        .pwa-banner__actions {
+            flex-direction: column;
+            gap: 0.5rem;
+            align-items: stretch;
+        }
+
+        .pwa-btn {
+            padding: 0.5rem 1rem;
+        }
+    }
 </style>
 
 <!-- ============================================================= -->
@@ -706,7 +849,7 @@
     <a href="/" class="landing-nav-logo">Sub<span>Hero</span></a>
     <div class="landing-nav-actions">
         {% if request.user.is_authenticated %}
-            <a href="{% url 'wallet:overview' %}" class="nav-link nav-link--accent">Dashboard</a>
+            <a href="{% url 'dashboard' %}" class="nav-link nav-link--accent">Dashboard</a>
         {% else %}
             <a href="{% url 'accounts:login' %}" class="nav-link nav-link--ghost">Login</a>
             <a href="{% url 'accounts:register' %}" class="nav-link nav-link--accent">Sign up</a>
@@ -740,7 +883,7 @@
 
         <div class="landing-hero__ctas">
             {% if request.user.is_authenticated %}
-                <a href="{% url 'wallet:overview' %}" class="cta-primary">
+                <a href="{% url 'dashboard' %}" class="cta-primary">
                     Go to Dashboard
                     <i data-feather="arrow-right" style="width:18px;height:18px;"></i>
                 </a>
@@ -947,7 +1090,7 @@
         </p>
 
         {% if request.user.is_authenticated %}
-            <a href="{% url 'wallet:overview' %}" class="cta-primary" style="margin:0 auto;">
+            <a href="{% url 'dashboard' %}" class="cta-primary" style="margin:0 auto;">
                 Go to Dashboard
                 <i data-feather="arrow-right" style="width:18px;height:18px;"></i>
             </a>
@@ -978,6 +1121,23 @@
         </div>
     </div>
 </section>
+
+<!-- PWA Install Banner -->
+<div id="pwa-install-banner" class="pwa-banner">
+    <div class="pwa-banner__header">
+        <div class="pwa-banner__icon">
+            <img src="/static/favicon.png" alt="SubHero Icon">
+        </div>
+        <div class="pwa-banner__info">
+            <h4 class="pwa-banner__title">Install SubHero App</h4>
+            <p class="pwa-banner__desc">Access airtime, data, and social media tools instantly from your home screen.</p>
+        </div>
+    </div>
+    <div class="pwa-banner__actions">
+        <button id="pwa-cancel-btn" class="pwa-btn pwa-btn--cancel">Not now</button>
+        <button id="pwa-install-btn" class="pwa-btn pwa-btn--install">Install</button>
+    </div>
+</div>
 
 <!-- ============================================================= -->
 <!-- FOOTER                                                          -->
@@ -1060,6 +1220,57 @@
         document.addEventListener('touchstart', (e) => {
             startY = e.touches[0].clientY;
         }, { passive: true });
+
+        // ── PWA Custom Install Banner Logic ──
+        let deferredPrompt;
+        const pwaBanner = document.getElementById('pwa-install-banner');
+        const pwaInstallBtn = document.getElementById('pwa-install-btn');
+        const pwaCancelBtn = document.getElementById('pwa-cancel-btn');
+
+        // Check if user dismissed it in the last 24 hours
+        const dismissedTime = localStorage.getItem('pwa-install-dismissed');
+        const isDismissedRecently = dismissedTime && (Date.now() - dismissedTime < 24 * 60 * 60 * 1000);
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // Prevent default browser info bar
+            e.preventDefault();
+            // Stash event
+            deferredPrompt = e;
+            
+            // Only show banner if not recently dismissed
+            if (!isDismissedRecently) {
+                setTimeout(() => {
+                    if (pwaBanner) pwaBanner.classList.add('show');
+                }, 2000);
+            }
+        });
+
+        if (pwaInstallBtn) {
+            pwaInstallBtn.addEventListener('click', async () => {
+                if (!deferredPrompt) return;
+                // Hide banner
+                if (pwaBanner) pwaBanner.classList.remove('show');
+                // Show prompt
+                deferredPrompt.prompt();
+                // Wait for user choice
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log(`User response to install: ${outcome}`);
+                deferredPrompt = null;
+            });
+        }
+
+        if (pwaCancelBtn) {
+            pwaCancelBtn.addEventListener('click', () => {
+                if (pwaBanner) pwaBanner.classList.remove('show');
+                localStorage.setItem('pwa-install-dismissed', Date.now());
+            });
+        }
+
+        window.addEventListener('appinstalled', () => {
+            console.log('App installed successfully');
+            if (pwaBanner) pwaBanner.classList.remove('show');
+            deferredPrompt = null;
+        });
     });
 </script>
 {% endblock %}
