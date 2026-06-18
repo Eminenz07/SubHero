@@ -23,8 +23,8 @@
                 <i data-feather="credit-card" class="w-[22px] h-[22px]"></i>
             </div>
             <div>
-                <div class="text-[14px] font-semibold text-text-primary">Card Payment</div>
-                <div class="text-[12px] text-text-muted">Instant credit via Squad secure inline card checkout</div>
+                <div class="text-[14px] font-semibold text-text-primary">Online Checkout (Card / Transfer / USSD)</div>
+                <div class="text-[12px] text-text-muted">Instant wallet credit via secure online gateway</div>
             </div>
         </div>
 
@@ -52,7 +52,7 @@
 
             <!-- Submit Button -->
             <button id="fund-card-btn" onclick="payWithCard()" class="btn btn-primary btn-block py-3 rounded-xl font-bold flex items-center justify-center gap-2">
-                <span id="btn-text">Fund with Card</span>
+                <span id="btn-text">Pay with Card / Transfer / USSD</span>
                 <i data-feather="arrow-right" class="w-4 h-4"></i>
             </button>
         </div>
@@ -201,9 +201,6 @@
     </div>
 </div>
 
-<!-- Load Squad Widget Script only on this page -->
-<script src="https://checkout.squadco.com/widget/squad.min.js"></script>
-
 <script>
 function setAmount(amount) {
     document.getElementById('amount-input').value = amount;
@@ -269,25 +266,12 @@ function payWithCard() {
         return response.json();
     })
     .then(data => {
-        // Initialize Squad modal using values
-        const squadInstance = new squad({
-            onClose: () => {
-                // Reset button state on modal close
-                btn.disabled = false;
-                btnText.textContent = "Fund with Card";
-            },
-            onSuccess: (response) => {
-                // Redirect user to processing callback view
-                window.location.href = "{% url 'payments:payment_callback' %}?transaction_ref=" + response.transaction_ref;
-            },
-            key: "{{ squad_public_key }}",
-            email: "{{ request.user.email }}",
-            amount: amount * 100,  // Squad widget expects KOBO
-            currency_code: 'NGN',
-            transaction_ref: data.reference
-        });
-        squadInstance.setup();
-        squadInstance.open();
+        if (data.checkout_url) {
+            // Redirect directly to Squad's secure hosted payment page
+            window.location.href = data.checkout_url;
+        } else {
+            throw new Error("No checkout URL was provided by the payment gateway.");
+        }
     })
     .catch(err => {
         logger = console;
@@ -295,7 +279,7 @@ function payWithCard() {
         errorDiv.textContent = err.message || "An unexpected error occurred. Please try again.";
         errorDiv.classList.remove('hidden');
         btn.disabled = false;
-        btnText.textContent = "Fund with Card";
+        btnText.textContent = "Pay with Card / Transfer / USSD";
     });
 }
 

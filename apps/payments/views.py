@@ -5,11 +5,13 @@ Handles interactive card payments, bank callbacks, and live transactional webhoo
 Uses Squad (by GTBank) for funding logic.
 """
 
+import hashlib
 import json
 import logging
 from decimal import Decimal, InvalidOperation
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, get_object_or_404
@@ -19,6 +21,7 @@ from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 
 from apps.wallet.models import Wallet
+from apps.payments.models import WebhookLog
 from apps.payments.services import (
     initialize_card_payment,
     verify_webhook_signature
@@ -98,16 +101,48 @@ class SquadWebhookView(View):
     """
     DUPLICATE_TTL = 48 * 60 * 60  # 48 Hours idempotency window
 
+    # Squad sends these event types for successful payments
+    HANDLED_EVENTS = [
+        "charge_successful",     # Card / Bank Transfer / USSD checkout
+        "charge_completed",      # Backward-compat alias (just in case)
+        "virtual_account_payment",  # Direct bank transfer to virtual account
+    ]
+
+    def _log_webhook(self, reference, amount, sig_valid, status, error="", source_ip=None, payload_hash=""):
+        """Create audit log entry for every incoming webhook."""
+        try:
+            WebhookLog.objects.create(
+                provider="SQUAD",
+                reference=reference or "UNKNOWN",
+                amount=amount,
+                signature_valid=sig_valid,
+                status=status,
+                error_message=error,
+                source_ip=source_ip,
+                payload_hash=payload_hash,
+            )
+        except Exception as log_err:
+            logger.error("Failed to write WebhookLog: %s", str(log_err))
+
     def post(self, request, *args, **kwargs):
+        source_ip = request.META.get("HTTP_X_FORWARDED_FOR", request.META.get("REMOTE_ADDR", ""))
+        if source_ip and "," in source_ip:
+            source_ip = source_ip.split(",")[0].strip()
+        payload_hash = hashlib.sha256(request.body).hexdigest() if request.body else ""
+
         # 1. Signature retrieval & validation
         sig = request.headers.get("x-squad-encrypted-body", "")
         if not sig:
             logger.error("Squad Webhook error: Missing digital signature header 'x-squad-encrypted-body'.")
+            self._log_webhook("", None, False, WebhookLog.Status.REJECTED,
+                              "Missing signature header", source_ip, payload_hash)
             return HttpResponse("Missing signature header", status=400)
 
         # 2. Digital HMAC payload signature check
         if not verify_webhook_signature(request.body, sig):
             logger.error("Squad Webhook error: Digital signature HMAC validation failed.")
+            self._log_webhook("", None, False, WebhookLog.Status.REJECTED,
+                              "HMAC signature mismatch", source_ip, payload_hash)
             return HttpResponse("Signature verification failed", status=400)
 
         # 3. Parse JSON Body
@@ -115,22 +150,28 @@ class SquadWebhookView(View):
             data = json.loads(request.body)
         except json.JSONDecodeError:
             logger.error("Squad Webhook error: Received invalid non-JSON body.")
+            self._log_webhook("", None, True, WebhookLog.Status.FAILED,
+                              "Invalid JSON body", source_ip, payload_hash)
             return HttpResponse("Invalid JSON", status=400)
 
         event = data.get("Event", "")
         body = data.get("Body", {})
-        
-        logger.info("Squad Webhook received event: %s", event)
 
-        # 4. Handle only completed payment events (card or bank transfer)
-        if event not in ["charge_completed", "virtual_account_payment"]:
-            logger.info("Squad Webhook: Ignoring unhandled event type: %s", event)
+        logger.info("Squad Webhook received event: '%s' | Full keys: %s", event, list(data.keys()))
+
+        # 4. Handle only completed payment events
+        if event not in self.HANDLED_EVENTS:
+            logger.info("Squad Webhook: Ignoring unhandled event type: '%s'", event)
+            self._log_webhook("", None, True, WebhookLog.Status.RECEIVED,
+                              f"Unhandled event: {event}", source_ip, payload_hash)
             return HttpResponse("Event ignored", status=200)
 
         # 5. Extract payment variables
-        transaction_ref = body.get("transaction_ref") or body.get("reference")
+        transaction_ref = body.get("transaction_ref") or body.get("reference") or data.get("TransactionRef", "")
         if not transaction_ref:
             logger.error("Squad Webhook error: Webhook body is missing transaction reference.")
+            self._log_webhook("", None, True, WebhookLog.Status.FAILED,
+                              "Missing transaction reference", source_ip, payload_hash)
             return HttpResponse("Missing transaction reference", status=400)
 
         amount_kobo = body.get("amount", 0)
@@ -138,15 +179,38 @@ class SquadWebhookView(View):
             amount_naira = Decimal(str(amount_kobo)) / Decimal("100.00")
         except (InvalidOperation, ValueError):
             logger.error("Squad Webhook error: Invalid amount format in body: %s", amount_kobo)
+            self._log_webhook(transaction_ref, None, True, WebhookLog.Status.FAILED,
+                              f"Invalid amount: {amount_kobo}", source_ip, payload_hash)
             return HttpResponse("Invalid amount", status=400)
 
-        user_id = body.get("meta", {}).get("user_id", "")
+        # BUG FIX: Squad returns metadata under "metadata" key, NOT "meta"
+        metadata = body.get("metadata", {}) or body.get("meta", {}) or {}
+        user_id = metadata.get("user_id", "")
         virtual_account_number = body.get("virtual_account_number", "")
+
+        # Fallback: if no user_id from metadata, try to find user by email
+        if not user_id:
+            customer_email = body.get("email", "") or body.get("customer_email", "")
+            if customer_email:
+                User = get_user_model()
+                try:
+                    user = User.objects.get(email__iexact=customer_email)
+                    user_id = str(user.id)
+                    logger.info("Squad Webhook: Resolved user_id=%s from email=%s", user_id, customer_email)
+                except User.DoesNotExist:
+                    logger.warning("Squad Webhook: Could not find user by email=%s", customer_email)
+
+        logger.info(
+            "Squad Webhook processing: event=%s, ref=%s, amount=₦%s, user_id=%s, virtual_acct=%s",
+            event, transaction_ref, amount_naira, user_id or "(none)", virtual_account_number or "(none)"
+        )
 
         # 6. Idempotency Check via Redis cache
         redis_key = f"squad_webhook:{transaction_ref}"
         if cache.get(redis_key):
             logger.warning("Squad Webhook duplicate detected: ref=%s (request ignored)", transaction_ref)
+            self._log_webhook(transaction_ref, amount_naira, True, WebhookLog.Status.DUPLICATE,
+                              "", source_ip, payload_hash)
             return HttpResponse("Webhook reference already processed", status=200)
 
         # Cache reference immediately (48-hour timeout window)
@@ -161,5 +225,10 @@ class SquadWebhookView(View):
             raw_payload=data
         )
 
-        # 8. Return 200 OK fast to avoid transaction retries from Squad
+        # 8. Log successful webhook processing
+        self._log_webhook(transaction_ref, amount_naira, True, WebhookLog.Status.PROCESSED,
+                          "", source_ip, payload_hash)
+
+        # 9. Return 200 OK fast to avoid transaction retries from Squad
+        logger.info("Squad Webhook dispatched credit_wallet for ref=%s, amount=₦%s", transaction_ref, amount_naira)
         return HttpResponse("Accepted", status=200)

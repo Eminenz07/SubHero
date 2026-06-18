@@ -19,6 +19,7 @@ class WebhookLog(models.Model):
     class Provider(models.TextChoices):
         PROVIDUS = "PROVIDUS", "Providus Bank"
         BLOC = "BLOC", "Bloc"
+        SQUAD = "SQUAD", "Squad (GTBank)"
 
     class Status(models.TextChoices):
         RECEIVED = "RECEIVED", "Received"
