@@ -397,9 +397,9 @@ def process_airtime_order(self, order_id):
     url = f"{settings.CHEAPDATAHUB_BASE_URL}/api/v1/resellers/airtime/purchase/"
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     payload = {
-        "network_id": provider_id,
+        "provider_id": provider_id,
         "phone_number": order.recipient,
-        "amount": str(order.amount),
+        "amount": int(order.amount),
     }
 
     max_attempts = 3
