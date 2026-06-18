@@ -204,7 +204,7 @@ class BuyAirtimeView(LoginRequiredMixin, PinRequiredMixin, View):
         return {
             "wallet": wallet,
             "networks": list(AIRTIME_NETWORKS.keys()),
-            "amounts": [50, 100, 200, 500, 1000, 2000]
+            "amounts": [100, 200, 500, 1000, 2000, 5000]
         }
 
     def get(self, request, *args, **kwargs):
@@ -227,10 +227,10 @@ class BuyAirtimeView(LoginRequiredMixin, PinRequiredMixin, View):
 
         try:
             amount = Decimal(amount_str)
-            if amount < Decimal("50") or amount > Decimal("50000"):
+            if amount < Decimal("100") or amount > Decimal("50000"):
                 raise ValueError
         except (ValueError, Exception):
-            messages.error(request, "Airtime amount must be between ₦50 and ₦50,000.")
+            messages.error(request, "Airtime amount must be between ₦100 and ₦50,000.")
             return render(request, self.template_name, context)
 
         normalized_phone = normalize_phone(phone_number)
