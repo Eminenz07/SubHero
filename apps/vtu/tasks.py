@@ -135,7 +135,7 @@ def process_vtu_order(self, order_id):
             if attempt == max_attempts or is_definitive:
                 logger.error("VTU order %s exceeded all retries or encountered definitive failure. Failing and refunding. Reason: %s", order_id, exc_str)
                 order.status = VTUOrder.Status.FAILED
-                order.provider_ref = f"Failed: {exc_str}"[:200]
+                order.provider_ref = f"Failed: {exc_str}"[:100]
                 order.save(update_fields=["status", "provider_ref"])
                 refund_vtu_order(order_id)
                 return
@@ -451,7 +451,7 @@ def process_airtime_order(self, order_id):
             if attempt == max_attempts or is_definitive:
                 logger.error("Airtime order %s exceeded all retries or encountered definitive failure. Failing and refunding. Reason: %s", order_id, exc_str)
                 order.status = AirtimeOrder.Status.FAILED
-                order.provider_ref = f"Failed: {exc_str}"[:200]
+                order.provider_ref = f"Failed: {exc_str}"[:100]
                 order.save(update_fields=["status", "provider_ref"])
                 refund_airtime_order(order_id)
                 return
@@ -461,8 +461,9 @@ def process_airtime_order(self, order_id):
 @shared_task
 def refund_airtime_order(order_id):
     try:
-        order = AirtimeOrder.objects.select_for_update().get(id=order_id)
-        _generic_refund(order, "Airtime", "REFUND")
+        with transaction.atomic():
+            order = AirtimeOrder.objects.select_for_update().get(id=order_id)
+            _generic_refund(order, "Airtime", "REFUND")
     except Exception as err:
         logger.exception("Airtime refund failed: %s", str(err))
 
@@ -547,7 +548,7 @@ def process_cable_order(self, order_id):
             if attempt == max_attempts or is_definitive:
                 logger.error("Cable order %s exceeded all retries or encountered definitive failure. Failing and refunding. Reason: %s", order_id, exc_str)
                 order.status = CableOrder.Status.FAILED
-                order.provider_ref = f"Failed: {exc_str}"[:200]
+                order.provider_ref = f"Failed: {exc_str}"[:100]
                 order.save(update_fields=["status", "provider_ref"])
                 refund_cable_order(order_id)
                 return
@@ -557,8 +558,9 @@ def process_cable_order(self, order_id):
 @shared_task
 def refund_cable_order(order_id):
     try:
-        order = CableOrder.objects.select_for_update().get(id=order_id)
-        _generic_refund(order, "Cable TV", "REFUND")
+        with transaction.atomic():
+            order = CableOrder.objects.select_for_update().get(id=order_id)
+            _generic_refund(order, "Cable TV", "REFUND")
     except Exception as err:
         logger.exception("Cable refund failed: %s", str(err))
 
@@ -719,7 +721,7 @@ def process_electricity_order(self, order_id):
             if attempt == max_attempts or is_definitive:
                 logger.error("Electricity order %s exceeded all retries or encountered definitive failure. Failing and refunding. Reason: %s", order_id, exc_str)
                 order.status = ElectricityOrder.Status.FAILED
-                order.provider_ref = f"Failed: {exc_str}"[:200]
+                order.provider_ref = f"Failed: {exc_str}"[:100]
                 order.save(update_fields=["status", "provider_ref"])
                 refund_electricity_order(order_id)
                 return
@@ -729,8 +731,9 @@ def process_electricity_order(self, order_id):
 @shared_task
 def refund_electricity_order(order_id):
     try:
-        order = ElectricityOrder.objects.select_for_update().get(id=order_id)
-        _generic_refund(order, "Electricity", "REFUND")
+        with transaction.atomic():
+            order = ElectricityOrder.objects.select_for_update().get(id=order_id)
+            _generic_refund(order, "Electricity", "REFUND")
     except Exception as err:
         logger.exception("Electricity refund failed: %s", str(err))
 
@@ -822,7 +825,7 @@ def process_exam_pin_order(self, order_id):
             if attempt == max_attempts or is_definitive:
                 logger.error("Exam PIN order %s exceeded all retries or encountered definitive failure. Failing and refunding. Reason: %s", order_id, exc_str)
                 order.status = ExamPinOrder.Status.FAILED
-                order.provider_ref = f"Failed: {exc_str}"[:200]
+                order.provider_ref = f"Failed: {exc_str}"[:100]
                 order.save(update_fields=["status", "provider_ref"])
                 refund_exam_pin_order(order_id)
                 return
@@ -832,8 +835,9 @@ def process_exam_pin_order(self, order_id):
 @shared_task
 def refund_exam_pin_order(order_id):
     try:
-        order = ExamPinOrder.objects.select_for_update().get(id=order_id)
-        _generic_refund(order, "Exam PIN", "REFUND")
+        with transaction.atomic():
+            order = ExamPinOrder.objects.select_for_update().get(id=order_id)
+            _generic_refund(order, "Exam PIN", "REFUND")
     except Exception as err:
         logger.exception("Exam PIN refund failed: %s", str(err))
 
