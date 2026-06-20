@@ -21,6 +21,22 @@ from apps.notifications.tasks import send_transaction_sms
 
 logger = logging.getLogger(__name__)
 
+
+def _format_phone(raw_phone: str) -> str:
+    """
+    Formats phone number to standard 11-digit local format (e.g. 08012345678)
+    expected by CheapDataHub to prevent digital signature / phone validation errors.
+    """
+    if not raw_phone:
+        return ""
+    phone = str(raw_phone).replace("+", "").replace(" ", "").strip()
+    if phone.startswith("234"):
+        phone = "0" + phone[3:]
+    if len(phone) == 10 and not phone.startswith("0"):
+        phone = "0" + phone
+    return phone
+
+
 @shared_task(bind=True, max_retries=3)
 def process_vtu_order(self, order_id):
     """
@@ -78,7 +94,7 @@ def process_vtu_order(self, order_id):
     }
     payload = {
         "bundle_id": int(order.plan_id),
-        "phone_number": order.recipient
+        "phone_number": _format_phone(order.recipient)
     }
 
     max_attempts = 3
@@ -398,7 +414,7 @@ def process_airtime_order(self, order_id):
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     payload = {
         "provider_id": provider_id,
-        "phone_number": order.recipient,
+        "phone_number": _format_phone(order.recipient),
         "amount": int(order.amount),
     }
 
@@ -496,7 +512,7 @@ def process_cable_order(self, order_id):
     payload = {
         "plan_id": order.plan_id,
         "smartcard_number": order.card_number,
-        "phone_number": order.phone,
+        "phone_number": _format_phone(order.phone),
     }
 
     max_attempts = 3
@@ -664,7 +680,7 @@ def process_electricity_order(self, order_id):
         "meter_number": order.meter_number,
         "meter_type": order.meter_type,
         "amount": str(order.amount),
-        "phone_number": order.phone,
+        "phone_number": _format_phone(order.phone),
     }
 
     max_attempts = 3

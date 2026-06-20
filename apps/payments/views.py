@@ -48,13 +48,15 @@ def fund_wallet_page(request):
     return render(request, "wallet/fund.html", context)
 
 
-@method_decorator(login_required, name="dispatch")
 class InitiateCardPaymentView(View):
     """
     AJAX endpoint called by the checkout UI to initialize a payment session on Squad
     and acquire a secure checkout URL.
     """
     def post(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return JsonResponse({"error": "Session expired. Please log in again to continue."}, status=401)
+            
         amount_str = request.POST.get("amount", "").strip()
         if not amount_str:
             return JsonResponse({"error": "Amount is required."}, status=400)

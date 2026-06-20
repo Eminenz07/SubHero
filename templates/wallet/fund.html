@@ -259,11 +259,21 @@ function payWithCard() {
         method: 'POST',
         body: formData
     })
-    .then(response => {
+    .then(async response => {
+        const contentType = response.headers.get("content-type");
         if (!response.ok) {
-            return response.json().then(err => { throw new Error(err.error || 'Server error'); });
+            if (contentType && contentType.includes("application/json")) {
+                const err = await response.json();
+                throw new Error(err.error || 'Server error');
+            } else {
+                throw new Error('An unexpected server error occurred. Please try again later.');
+            }
         }
-        return response.json();
+        if (contentType && contentType.includes("application/json")) {
+            return response.json();
+        } else {
+            throw new Error('An unexpected response format was received. Please try again.');
+        }
     })
     .then(data => {
         if (data.checkout_url) {
@@ -334,11 +344,21 @@ function submitKYC() {
         method: 'POST',
         body: formData
     })
-    .then(response => {
+    .then(async response => {
+        const contentType = response.headers.get("content-type");
         if (!response.ok) {
-            return response.json().then(err => { throw new Error(err.error || 'Validation failed'); });
+            if (contentType && contentType.includes("application/json")) {
+                const err = await response.json();
+                throw new Error(err.error || 'Validation failed');
+            } else {
+                throw new Error('An unexpected server error occurred. Please try again later.');
+            }
         }
-        return response.json();
+        if (contentType && contentType.includes("application/json")) {
+            return response.json();
+        } else {
+            throw new Error('An unexpected response format was received. Please try again.');
+        }
     })
     .then(data => {
         // Success! Reload the page to display the account details or start HTMX polling

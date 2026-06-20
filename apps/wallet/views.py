@@ -313,10 +313,18 @@ class LookupRecipientView(LoginRequiredMixin, View):
             )
 
 
-class GenerateVirtualAccountView(LoginRequiredMixin, PinRequiredMixin, View):
+class GenerateVirtualAccountView(View):
     """
     AJAX endpoint to collect user KYC details and generate their dedicated virtual account.
     """
+    def dispatch(self, request, *args, **kwargs):
+        from django.http import JsonResponse
+        if not request.user.is_authenticated:
+            return JsonResponse({"success": False, "error": "Session expired. Please log in again to continue."}, status=401)
+        if not request.user.has_pin:
+            return JsonResponse({"success": False, "error": "Transaction PIN not set. Please set a PIN first."}, status=403)
+        return super().dispatch(request, *args, **kwargs)
+
     def post(self, request):
         from datetime import datetime
         from django.http import JsonResponse
