@@ -161,10 +161,10 @@
         <div>
             <div class="text-xs font-bold text-status-danger-text mb-0.5">Fulfillment Failed</div>
             <div class="text-xs text-status-danger-text/90 font-medium leading-relaxed">
-                {% if "wallet" in order.provider_ref|lower or "insufficient" in order.provider_ref|lower or "402" in order.provider_ref or "wallet" in order.provider_order_id|lower or "insufficient" in order.provider_order_id|lower or "402" in order.provider_order_id %}
+                {% if "wallet" in order.provider_ref|lower or "insufficient" in order.provider_ref|lower or "402" in order.provider_ref %}
                     API wallet balance exhausted or low balance on API side. Your payment has been refunded to your wallet. Please contact support.
                 {% else %}
-                    {{ order.provider_ref|default:order.provider_order_id|default:"Temporary provider connection error." }}
+                    {{ order.provider_ref|default:"Temporary provider connection error." }}
                 {% endif %}
             </div>
         </div>
