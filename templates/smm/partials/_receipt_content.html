@@ -89,8 +89,12 @@
             <div class="text-xs text-status-danger-text/90 font-medium leading-relaxed">
                 {% if "wallet" in order.provider_order_id|lower or "insufficient" in order.provider_order_id|lower or "402" in order.provider_order_id %}
                     API wallet balance exhausted or low balance on API side. Your payment has been refunded to your wallet. Please contact support.
+                {% elif "url" in order.provider_order_id|lower or "link" in order.provider_order_id|lower %}
+                    Invalid target URL or link. Please verify and try again.
+                {% elif "quantity" in order.provider_order_id|lower or "amount" in order.provider_order_id|lower %}
+                    Invalid quantity or amount selected. Please try again.
                 {% else %}
-                    {{ order.provider_order_id|default:"Temporary provider connection error." }}
+                    Temporary connection or provider service issue. Please try again later.
                 {% endif %}
             </div>
         </div>

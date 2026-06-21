@@ -163,8 +163,16 @@
             <div class="text-xs text-status-danger-text/90 font-medium leading-relaxed">
                 {% if "wallet" in order.provider_ref|lower or "insufficient" in order.provider_ref|lower or "402" in order.provider_ref %}
                     API wallet balance exhausted or low balance on API side. Your payment has been refunded to your wallet. Please contact support.
+                {% elif "phone" in order.provider_ref|lower %}
+                    Invalid phone number. Please check the recipient number and network and try again.
+                {% elif "amount" in order.provider_ref|lower %}
+                    Invalid transaction amount. Please check network limits and try again.
+                {% elif "meter" in order.provider_ref|lower %}
+                    Invalid meter number. Please verify your meter details and try again.
+                {% elif "smartcard" in order.provider_ref|lower or "iuc" in order.provider_ref|lower or "card" in order.provider_ref|lower %}
+                    Invalid smartcard or IUC number. Please verify and try again.
                 {% else %}
-                    {{ order.provider_ref|default:"Temporary provider connection error." }}
+                    Temporary connection or provider service issue. Please try again later.
                 {% endif %}
             </div>
         </div>
