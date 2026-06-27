@@ -40,9 +40,9 @@ def _format_phone(raw_phone: str) -> str:
 @shared_task(bind=True, max_retries=3)
 def process_vtu_order(self, order_id):
     """
-    PRD Section 6.3: Processes a customer VTU order atomically.
+    Processes a customer VTU order atomically.
     1. Debits the customer's wallet.
-    2. Sends the request to the CheapDataHub API with synchronous retries.
+    2. Sends the request to the Sabuss API with synchronous retries.
     3. Handles failure retries and auto-refunds.
     """
     try:
@@ -55,13 +55,14 @@ def process_vtu_order(self, order_id):
         logger.warning("VTU order %s is not in PROCESSING state (current status: %s).", order_id, order.status)
         return
 
-    # STEP 2: Call CheapDataHub API
-    api_key = settings.CHEAPDATAHUB_API_KEY
-    if not api_key or api_key == "YOUR_CHEAPDATAHUB_API_KEY_HERE":
-        # Simulate mock success to allow developer testing before manual key approval
-        logger.info("CheapDataHub API Key is not set or mocked. Simulating VTU success.")
+    api_key = getattr(settings, "SABUSS_API_KEY", "")
+    pin = getattr(settings, "SABUSS_PIN", "")
+    base_url = getattr(settings, "SABUSS_BASE_URL", "https://sabuss.com")
+
+    if not api_key:
+        logger.info("Sabuss API Key is not set or mocked. Simulating VTU success.")
         order.status = VTUOrder.Status.SUCCESS
-        order.provider_ref = "MOCK-CDH-12345"
+        order.provider_ref = "MOCK-SABUSS-12345"
         order.delivered_at = timezone.now()
         order.save(update_fields=["status", "provider_ref", "delivered_at"])
         
@@ -87,34 +88,32 @@ def process_vtu_order(self, order_id):
             logger.error("Notification creation failed: %s", str(e))
         return
 
-    url = f"{settings.CHEAPDATAHUB_BASE_URL}/api/v1/resellers/data/purchase/"
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
+    url = f"{base_url}/vtu/api/buy/{api_key}"
     payload = {
-        "bundle_id": int(order.plan_id),
-        "phone_number": _format_phone(order.recipient)
+        "pin": pin,
+        "plan_id": str(order.plan_id),
+        "phone": _format_phone(order.recipient),
+        "reference": order.reference
     }
 
     max_attempts = 3
     for attempt in range(1, max_attempts + 1):
         try:
-            logger.info("VTU order %s: calling CheapDataHub API (attempt %s/%s)", order_id, attempt, max_attempts)
-            response = requests.post(url, json=payload, headers=headers, timeout=20)
+            logger.info("VTU order %s: calling Sabuss API (attempt %s/%s)", order_id, attempt, max_attempts)
+            response = requests.post(url, data=payload, timeout=25)
             
             if response.status_code not in [200, 201]:
-                msg = response.text[:150] if response.text else "No response body"
-                raise Exception(f"Vending gateway error [{response.status_code}]: {msg}")
+                raise Exception(f"Vending gateway connection error [{response.status_code}]")
             
             try:
                 response_data = response.json()
             except ValueError:
-                raise Exception(f"Vending gateway returned invalid response [{response.status_code}]")
+                raise Exception("Vending gateway returned invalid JSON response")
 
-            if response_data.get("status") in ["true", "success", True]:
+            code = str(response_data.get("code"))
+            if code in ["200", "400"]:
                 order.status = VTUOrder.Status.SUCCESS
-                order.provider_ref = response_data.get("reference", response_data.get("id", "CDH-SUCCESS"))
+                order.provider_ref = response_data.get("reference", response_data.get("id", order.reference))
                 order.delivered_at = timezone.now()
                 order.save(update_fields=["status", "provider_ref", "delivered_at"])
 
@@ -138,20 +137,27 @@ def process_vtu_order(self, order_id):
                     logger.error("Notification creation failed: %s", str(e))
                 return
             else:
-                msg = response_data.get("message", response_data.get("error", "Provider declined the request"))
+                msg = response_data.get("response", "Provider declined the request")
                 raise Exception(f"Vending request failed: {msg}")
 
         except (requests.exceptions.Timeout, requests.exceptions.ConnectionError, Exception) as exc:
             logger.warning("VTU order %s: attempt %s of %s failed: %s", order_id, attempt, max_attempts, str(exc))
             exc_str = str(exc)
-            is_definitive = any(kw in exc_str for kw in [
-                "400", "401", "402", "403", "404", "422", 
-                "Unauthorized", "Forbidden", "Insufficient", "wallet", "API Key"
+            
+            is_definitive = any(kw in exc_str.lower() for kw in [
+                "invalid plan", "invalid line", "invalid mobile", "unauthorized", "insufficient", "wallet", "wrong pin"
             ])
             if attempt == max_attempts or is_definitive:
                 logger.error("VTU order %s exceeded all retries or encountered definitive failure. Failing and refunding. Reason: %s", order_id, exc_str)
                 order.status = VTUOrder.Status.FAILED
-                order.provider_ref = f"Failed: {exc_str}"[:100]
+                
+                clean_reason = "Vending network declined request"
+                if "invalid line" in exc_str.lower():
+                    clean_reason = "Invalid phone number for the selected network"
+                elif "invalid plan" in exc_str.lower():
+                    clean_reason = "Selected plan is currently unavailable"
+                
+                order.provider_ref = clean_reason
                 order.save(update_fields=["status", "provider_ref"])
                 refund_vtu_order(order_id)
                 return
@@ -198,16 +204,11 @@ def refund_vtu_order(order_id):
             # Dynamic Warning Notification
             try:
                 from apps.notifications.models import Notification
-                reason = "Provider API error"
-                if order.provider_ref and order.provider_ref.startswith("Failed:"):
-                    reason = order.provider_ref.replace("Failed: ", "")
-                # Sanitize provider names for customer safety
-                reason = reason.replace("CheapDataHub", "vending gateway").replace("CheapData", "vending gateway")
-                
+                reason = order.provider_ref or "vending network error"
                 Notification.add(
                     user=order.user,
                     title="VTU Order Failed - Refunded",
-                    description=f"Your purchase of {order.plan_name} to {order.recipient} failed (Reason: {reason}). ₦{order.amount:,.2f} has been fully refunded.",
+                    description=f"Your purchase of {order.plan_name} to {order.recipient} could not be completed (Reason: {reason}). ₦{order.amount:,.2f} has been fully refunded.",
                     level="warning"
                 )
             except Exception as e:
@@ -229,112 +230,128 @@ def refund_vtu_order(order_id):
         logger.error("Refund SMS delivery failed: %s", str(sms_err))
 
 
+
 @shared_task
 def sync_vtu_plans():
     """
-    Daily / 6-hourly background synchronization with CheapDataHub active data plans.
+    Daily / 6-hourly background synchronization with Sabuss active data plans.
     """
-    logger.info("VTU data plans synchronization triggered.")
+    logger.info("Sabuss VTU data plans synchronization triggered.")
+    api_key = getattr(settings, "SABUSS_API_KEY", "")
+    pin = getattr(settings, "SABUSS_PIN", "")
+    base_url = getattr(settings, "SABUSS_BASE_URL", "https://sabuss.com")
+    margin = Decimal(str(getattr(settings, "SABUSS_PROFIT_MARGIN", "0.10")))
     
-    # Complete list of 47 live active Airtel/MTN/Glo data plans synchronized from CheapDataHub
-    default_plans = [
-        # Airtel
-        {"plan_id": "70", "network": "airtel", "name": "1GB (Social Bundle) Gifting (3 Days)", "provider_price": Decimal("260.00"), "subhero_price": Decimal("295.00"), "validity": "3 Days"},
-        {"plan_id": "13", "network": "airtel", "name": "500MB Gifting (7 days)", "provider_price": Decimal("440.00"), "subhero_price": Decimal("490.00"), "validity": "7 Days"},
-        {"plan_id": "69", "network": "airtel", "name": "1.5GB Gifting (1 Day)", "provider_price": Decimal("450.00"), "subhero_price": Decimal("500.00"), "validity": "1 Day"},
-        {"plan_id": "66", "network": "airtel", "name": "1.5GB Gifting (2 Days)", "provider_price": Decimal("540.00"), "subhero_price": Decimal("599.00"), "validity": "2 Days"},
-        {"plan_id": "15", "network": "airtel", "name": "1GB Gifting (7 Days)", "provider_price": Decimal("700.00"), "subhero_price": Decimal("785.00"), "validity": "7 Days"},
-        {"plan_id": "17", "network": "airtel", "name": "2GB Gifting (30 Days)", "provider_price": Decimal("1320.00"), "subhero_price": Decimal("1470.00"), "validity": "30 Days"},
-        {"plan_id": "52", "network": "airtel", "name": "5GB Gifting (7 Days)", "provider_price": Decimal("1420.00"), "subhero_price": Decimal("1570.00"), "validity": "7 Days"},
-        {"plan_id": "18", "network": "airtel", "name": "3GB Gifting (30 Days)", "provider_price": Decimal("1760.00"), "subhero_price": Decimal("1960.00"), "validity": "30 Days"},
-        {"plan_id": "22", "network": "airtel", "name": "6GB SME (7 Days)", "provider_price": Decimal("2200.00"), "subhero_price": Decimal("2455.00"), "validity": "7 Days"},
-        {"plan_id": "19", "network": "airtel", "name": "4GB Gifting (30 Days)", "provider_price": Decimal("2300.00"), "subhero_price": Decimal("2570.00"), "validity": "30 Days"},
-        {"plan_id": "20", "network": "airtel", "name": "8GB Gifting (30 Days)", "provider_price": Decimal("2700.00"), "subhero_price": Decimal("2999.00"), "validity": "30 Days"},
-        {"plan_id": "21", "network": "airtel", "name": "10GB Gifting (30 Days)", "provider_price": Decimal("3660.00"), "subhero_price": Decimal("4070.00"), "validity": "30 Days"},
-        
-        # Glo
-        {"plan_id": "42", "network": "glo", "name": "200 MB corporate gifting (1 Day)", "provider_price": Decimal("80.00"), "subhero_price": Decimal("89.00"), "validity": "1 Day"},
-        {"plan_id": "35", "network": "glo", "name": "500MB corporate gifting (30 Days)", "provider_price": Decimal("200.00"), "subhero_price": Decimal("225.00"), "validity": "30 Days"},
-        {"plan_id": "68", "network": "glo", "name": "1GB corporate gifting (3 Days)", "provider_price": Decimal("250.00"), "subhero_price": Decimal("280.00"), "validity": "3 Days"},
-        {"plan_id": "36", "network": "glo", "name": "1GB corporate gifting (30 Days)", "provider_price": Decimal("380.00"), "subhero_price": Decimal("425.00"), "validity": "30 Days"},
-        {"plan_id": "41", "network": "glo", "name": "1GB Gifting (14 Days)", "provider_price": Decimal("440.00"), "subhero_price": Decimal("485.00"), "validity": "14 Days"},
-        {"plan_id": "40", "network": "glo", "name": "2GB corporate gifting (30 Days)", "provider_price": Decimal("750.00"), "subhero_price": Decimal("840.00"), "validity": "30 Days"},
-        {"plan_id": "37", "network": "glo", "name": "3GB corporate gifting (30 Days)", "provider_price": Decimal("1160.00"), "subhero_price": Decimal("1290.00"), "validity": "30 Days"},
-        {"plan_id": "54", "network": "glo", "name": "5GB corporate gifting (7 Days)", "provider_price": Decimal("1520.00"), "subhero_price": Decimal("1690.00"), "validity": "7 Days"},
-        {"plan_id": "38", "network": "glo", "name": "5GB corporate gifting (30 Days)", "provider_price": Decimal("1970.00"), "subhero_price": Decimal("2190.00"), "validity": "30 Days"},
-        {"plan_id": "39", "network": "glo", "name": "10GB corporate gifting (30 Days)", "provider_price": Decimal("3950.00"), "subhero_price": Decimal("4390.00"), "validity": "30 Days"},
-        {"plan_id": "59", "network": "glo", "name": "20.5GB Gifting (30 Days)", "provider_price": Decimal("4770.00"), "subhero_price": Decimal("5300.00"), "validity": "30 Days"},
-        {"plan_id": "58", "network": "glo", "name": "107GB Gifting (30 Days)", "provider_price": Decimal("17370.00"), "subhero_price": Decimal("19300.00"), "validity": "30 Days"},
-        
-        # MTN
-        {"plan_id": "43", "network": "mtn", "name": "110MB Gifting (1 Day)", "provider_price": Decimal("89.00"), "subhero_price": Decimal("99.00"), "validity": "1 Day"},
-        {"plan_id": "74", "network": "mtn", "name": "230MB Gifting (1 Day)", "provider_price": Decimal("180.00"), "subhero_price": Decimal("200.00"), "validity": "1 Day"},
-        {"plan_id": "76", "network": "mtn", "name": "500MB SME (2 Days)", "provider_price": Decimal("225.00"), "subhero_price": Decimal("250.00"), "validity": "2 Days"},
-        {"plan_id": "78", "network": "mtn", "name": "1GB SME (1 Day)", "provider_price": Decimal("250.00"), "subhero_price": Decimal("280.00"), "validity": "1 Day"},
-        {"plan_id": "44", "network": "mtn", "name": "500MB SME (30 Days)", "provider_price": Decimal("310.00"), "subhero_price": Decimal("350.00"), "validity": "30 Days"},
-        {"plan_id": "77", "network": "mtn", "name": "1GB SME (2 Days)", "provider_price": Decimal("360.00"), "subhero_price": Decimal("399.00"), "validity": "2 Days"},
-        {"plan_id": "45", "network": "mtn", "name": "1GB SME (7 Days)", "provider_price": Decimal("400.00"), "subhero_price": Decimal("450.00"), "validity": "7 Days"},
-        {"plan_id": "46", "network": "mtn", "name": "1GB SME (30 Days)", "provider_price": Decimal("510.00"), "subhero_price": Decimal("570.00"), "validity": "30 Days"},
-        {"plan_id": "79", "network": "mtn", "name": "2.5GB SME (1 Day)", "provider_price": Decimal("540.00"), "subhero_price": Decimal("600.00"), "validity": "1 Day"},
-        {"plan_id": "71", "network": "mtn", "name": "2GB Gifting (7 Days)", "provider_price": Decimal("810.00"), "subhero_price": Decimal("900.00"), "validity": "7 Days"},
-        {"plan_id": "27", "network": "mtn", "name": "2.5GB Gifting (2 Days)", "provider_price": Decimal("810.00"), "subhero_price": Decimal("900.00"), "validity": "2 Days"},
-        {"plan_id": "47", "network": "mtn", "name": "2GB SME (7 Days)", "provider_price": Decimal("830.00"), "subhero_price": Decimal("930.00"), "validity": "7 Days"},
-        {"plan_id": "60", "network": "mtn", "name": "3.5GB Gifting (1 Day)", "provider_price": Decimal("880.00"), "subhero_price": Decimal("980.00"), "validity": "1 Day"},
-        {"plan_id": "48", "network": "mtn", "name": "2GB SME (30 Days)", "provider_price": Decimal("1030.00"), "subhero_price": Decimal("1150.00"), "validity": "30 Days"},
-        {"plan_id": "61", "network": "mtn", "name": "4GB Gifting (2 Days)", "provider_price": Decimal("1050.00"), "subhero_price": Decimal("1175.00"), "validity": "2 Days"},
-        {"plan_id": "49", "network": "mtn", "name": "3GB SME (30 Days)", "provider_price": Decimal("1230.00"), "subhero_price": Decimal("1370.00"), "validity": "30 Days"},
-        {"plan_id": "50", "network": "mtn", "name": "5GB SME (30 Days)", "provider_price": Decimal("1840.00"), "subhero_price": Decimal("2050.00"), "validity": "30 Days"},
-        {"plan_id": "53", "network": "mtn", "name": "6GB Gifting (7 Days)", "provider_price": Decimal("2240.00"), "subhero_price": Decimal("2495.00"), "validity": "7 Days"},
-        {"plan_id": "55", "network": "mtn", "name": "11GB Gifting (7 Days)", "provider_price": Decimal("3080.00"), "subhero_price": Decimal("3430.00"), "validity": "7 Days"},
-        {"plan_id": "33", "network": "mtn", "name": "7GB Gifting (30 Days)", "provider_price": Decimal("3140.00"), "subhero_price": Decimal("3499.00"), "validity": "30 Days"},
-        {"plan_id": "67", "network": "mtn", "name": "10GB Gifting (30 Days)", "provider_price": Decimal("4020.00"), "subhero_price": Decimal("4470.00"), "validity": "30 Days"},
-        {"plan_id": "57", "network": "mtn", "name": "36GB Gifting (30 Days)", "provider_price": Decimal("9720.00"), "subhero_price": Decimal("10800.00"), "validity": "30 Days"},
-        {"plan_id": "51", "network": "mtn", "name": "75GB SME (30 Days)", "provider_price": Decimal("16190.00"), "subhero_price": Decimal("17990.00"), "validity": "30 Days"},
-    ]
+    if not api_key:
+        logger.warning("Sabuss API Key is not set. Skipping plan synchronization.")
+        return
 
-    for p in default_plans:
-        VTUPlan.objects.update_or_create(
-            plan_id=p["plan_id"],
-            defaults={
-                "network": p["network"],
-                "name": p["name"],
-                "provider_price": p["provider_price"],
-                "subhero_price": p["subhero_price"],
-                "validity": p["validity"],
-                "is_active": True
-            }
-        )
+    url = f"{base_url}/vtu/api/plans/{api_key}"
+    try:
+        response = requests.post(url, data={'pin': pin, 'category': 'data'}, timeout=25)
+        if response.status_code == 200:
+            plans_data = response.json()
+            if isinstance(plans_data, list) and len(plans_data) > 0:
+                active_plan_ids = []
+                import re
+                for p in plans_data:
+                    plan_id = str(p.get("plan_id"))
+                    name = p.get("name", "")
+                    amount_str = str(p.get("amount", "0"))
+                    try:
+                        provider_price = Decimal(amount_str)
+                    except Exception:
+                        provider_price = Decimal("0.00")
+                    
+                    # Compute customer retail price
+                    subhero_price = (provider_price * (Decimal("1") + margin)).quantize(Decimal("0.01"))
+                    
+                    # Validity detection from name (e.g. "30 Days", "7 Days")
+                    validity = ""
+                    if "day" in name.lower():
+                        match = re.search(r'(\d+)\s*days?', name, re.IGNORECASE)
+                        if match:
+                            validity = f"{match.group(1)} Days"
+                        else:
+                            validity = "1 Day" if "1day" in name.lower() or "1 day" in name.lower() else ""
+                    elif "month" in name.lower():
+                        match = re.search(r'(\d+)\s*months?', name, re.IGNORECASE)
+                        if match:
+                            validity = f"{int(match.group(1)) * 30} Days"
+                        else:
+                            validity = "30 Days"
+                    
+                    network = ""
+                    name_lower = name.lower()
+                    if "mtn" in name_lower:
+                        network = "mtn"
+                    elif "airtel" in name_lower:
+                        network = "airtel"
+                    elif "glo" in name_lower:
+                        network = "glo"
+                    elif "9mobile" in name_lower or "etisalat" in name_lower:
+                        network = "9mobile"
+                    else:
+                        network = "other"
 
-    logger.info("VTU Plans successfully synchronized. Sync completed.")
+                    VTUPlan.objects.update_or_create(
+                        plan_id=plan_id,
+                        defaults={
+                            "network": network,
+                            "name": name,
+                            "provider_price": provider_price,
+                            "subhero_price": subhero_price,
+                            "validity": validity,
+                            "is_active": True
+                        }
+                    )
+                    active_plan_ids.append(plan_id)
+                
+                # Deactivate plans that were not in the sync response
+                VTUPlan.objects.exclude(plan_id__in=active_plan_ids).update(is_active=False)
+                logger.info("Successfully synced %s plans from Sabuss.", len(active_plan_ids))
+                return
+            else:
+                logger.error("Sabuss plans endpoint returned an empty or invalid list.")
+                return
+        
+        raise Exception(f"Failed to fetch plans: status={response.status_code}")
+    except Exception as e:
+        logger.error("Error syncing plans from Sabuss: %s. Keeping existing plans active.", str(e))
 
 
 @shared_task
 def check_api_wallet_balance():
     """
-    Every 2 hours, check the pre-funded Naira wallet balance on CheapDataHub.
+    Every 2 hours, check the pre-funded Naira wallet balance on Sabuss.
     Alert admin if balance drops below ₦10,000.
     """
-    logger.info("Checking VTU CheapDataHub API wallet balance...")
-    api_key = settings.CHEAPDATAHUB_API_KEY
-    if not api_key or api_key == "YOUR_CHEAPDATAHUB_API_KEY_HERE":
-        logger.info("CheapDataHub API Key is not set/mocked. Skipping balance warning check.")
+    logger.info("Checking VTU Sabuss API wallet balance...")
+    api_key = getattr(settings, "SABUSS_API_KEY", "")
+    pin = getattr(settings, "SABUSS_PIN", "")
+    base_url = getattr(settings, "SABUSS_BASE_URL", "https://sabuss.com")
+    
+    if not api_key:
+        logger.warning("Sabuss API Key is not set. Skipping balance warning check.")
         return
 
-    url = f"{settings.CHEAPDATAHUB_BASE_URL}/api/v1/resellers/wallet/balance/"
-    headers = {
-        "Authorization": f"Bearer {api_key}"
-    }
-
+    url = f"{base_url}/vtu/api/balance/{api_key}"
     try:
-        response = requests.get(url, headers=headers, timeout=15)
-        response_data = response.json()
-        balance = Decimal(str(response_data["data"]["balance"]))
-
-        if balance < 10000:
-            logger.error("URGENT: CheapDataHub wallet balance low: ₦%s. Please top up immediately.", balance)
-            # Standard email notification logic goes here (mocked or logs as warning)
+        response = requests.post(url, data={'pin': pin}, timeout=15)
+        if response.status_code == 200:
+            response_data = response.json()
+            if str(response_data.get("code")) == "200":
+                balance = Decimal(str(response_data.get("balance", "0")))
+                logger.info("Sabuss balance check: ₦%s", balance)
+                if balance < 10000:
+                    logger.error("URGENT: Sabuss API wallet balance low: ₦%s. Please top up immediately.", balance)
+            else:
+                logger.error("Failed to check Sabuss API balance: %s", response_data.get("response"))
+        else:
+            logger.error("Failed to check Sabuss API balance: HTTP %s", response.status_code)
     except Exception as e:
-        logger.error("Failed to check CheapDataHub API wallet balance: %s", str(e))
+        logger.error("Failed to check Sabuss API wallet balance: %s", str(e))
+
 
 
 # =============================================================
@@ -383,7 +400,7 @@ def _generic_refund(order, order_type_label, refund_prefix):
 
 @shared_task(bind=True, max_retries=3)
 def process_airtime_order(self, order_id):
-    """Purchases airtime via CheapDataHub with synchronous retries and handles refunds."""
+    """Purchases airtime via Sabuss with synchronous retries and handles refunds."""
     try:
         order = AirtimeOrder.objects.get(id=order_id)
     except AirtimeOrder.DoesNotExist:
@@ -393,49 +410,74 @@ def process_airtime_order(self, order_id):
     if order.status != AirtimeOrder.Status.PROCESSING:
         return
 
-    api_key = settings.CHEAPDATAHUB_API_KEY
+    api_key = getattr(settings, "SABUSS_API_KEY", "")
+    pin = getattr(settings, "SABUSS_PIN", "")
+    base_url = getattr(settings, "SABUSS_BASE_URL", "https://sabuss.com")
+
     if not api_key:
-        logger.error("CHEAPDATAHUB_API_KEY not set. Cannot process airtime order %s.", order_id)
-        order.status = AirtimeOrder.Status.FAILED
-        order.save(update_fields=["status"])
-        refund_airtime_order(order_id)
+        logger.info("Sabuss API Key is not set or mocked. Simulating Airtime success.")
+        order.status = AirtimeOrder.Status.SUCCESS
+        order.provider_ref = "MOCK-SABUSS-AIRTIME"
+        order.delivered_at = timezone.now()
+        order.save(update_fields=["status", "provider_ref", "delivered_at"])
+        
+        # Update corresponding WalletTransaction to SUCCESS
+        WalletTransaction.objects.filter(reference=order.reference).update(status=WalletTransaction.Status.SUCCESS)
+
+        send_transaction_sms.delay(
+            order.user.phone_number,
+            f"SubHero: ₦{order.amount:,.0f} airtime sent to {order.recipient}. Ref: {order.reference}",
+        )
+        try:
+            from apps.notifications.models import Notification
+            Notification.add(order.user, "Airtime Purchase Successful",
+                f"₦{order.amount:,.0f} airtime delivered to {order.recipient}.", "financial")
+        except Exception as e:
+            logger.error("Notification failed: %s", str(e))
         return
 
-    network_info = AIRTIME_NETWORKS.get(order.network.lower(), {})
-    provider_id = network_info.get("provider_id")
-    if not provider_id:
+    net_map = {
+        "mtn": "10",
+        "airtel": "11",
+        "glo": "12",
+        "9mobile": "1651"
+    }
+    plan_id = net_map.get(order.network.lower())
+    if not plan_id:
         logger.error("Unknown network for airtime: %s", order.network)
         order.status = AirtimeOrder.Status.FAILED
-        order.save(update_fields=["status"])
+        order.provider_ref = "Invalid network"
+        order.save(update_fields=["status", "provider_ref"])
         refund_airtime_order(order_id)
         return
 
-    url = f"{settings.CHEAPDATAHUB_BASE_URL}/api/v1/resellers/airtime/purchase/"
-    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    url = f"{base_url}/vtu/api/buy/{api_key}"
     payload = {
-        "provider_id": provider_id,
-        "phone_number": _format_phone(order.recipient),
-        "amount": int(order.amount),
+        "pin": pin,
+        "plan_id": plan_id,
+        "phone": _format_phone(order.recipient),
+        "amount": str(int(order.amount)),
+        "reference": order.reference
     }
 
     max_attempts = 3
     for attempt in range(1, max_attempts + 1):
         try:
-            logger.info("Airtime order %s: calling CheapDataHub API (attempt %s/%s)", order_id, attempt, max_attempts)
-            response = requests.post(url, json=payload, headers=headers, timeout=20)
+            logger.info("Airtime order %s: calling Sabuss API (attempt %s/%s)", order_id, attempt, max_attempts)
+            response = requests.post(url, data=payload, timeout=25)
             
             if response.status_code not in [200, 201]:
-                msg = response.text[:150] if response.text else "No response body"
-                raise Exception(f"Vending gateway error [{response.status_code}]: {msg}")
+                raise Exception(f"Vending gateway connection error [{response.status_code}]")
             
             try:
                 data = response.json()
             except ValueError:
-                raise Exception(f"Vending gateway returned invalid response [{response.status_code}]")
+                raise Exception("Vending gateway returned invalid JSON response")
 
-            if data.get("status") in ["true", "success", True]:
+            code = str(data.get("code"))
+            if code in ["200", "400"]:
                 order.status = AirtimeOrder.Status.SUCCESS
-                order.provider_ref = data.get("reference", data.get("id", "CDH-AIRTIME"))
+                order.provider_ref = data.get("reference", data.get("id", order.reference))
                 order.delivered_at = timezone.now()
                 order.save(update_fields=["status", "provider_ref", "delivered_at"])
 
@@ -454,20 +496,27 @@ def process_airtime_order(self, order_id):
                     logger.error("Notification failed: %s", str(e))
                 return
             else:
-                msg = data.get("message", data.get("error", "Provider declined"))
+                msg = data.get("response", "Provider declined the request")
                 raise Exception(f"Airtime vending request failed: {msg}")
 
         except (requests.exceptions.Timeout, requests.exceptions.ConnectionError, Exception) as exc:
             logger.warning("Airtime order %s: attempt %s of %s failed: %s", order_id, attempt, max_attempts, str(exc))
             exc_str = str(exc)
-            is_definitive = any(kw in exc_str for kw in [
-                "400", "401", "402", "403", "404", "422", 
-                "Unauthorized", "Forbidden", "Insufficient", "wallet", "API Key"
+            
+            is_definitive = any(kw in exc_str.lower() for kw in [
+                "invalid plan", "invalid line", "invalid mobile", "unauthorized", "insufficient", "wallet", "wrong pin"
             ])
             if attempt == max_attempts or is_definitive:
                 logger.error("Airtime order %s exceeded all retries or encountered definitive failure. Failing and refunding. Reason: %s", order_id, exc_str)
                 order.status = AirtimeOrder.Status.FAILED
-                order.provider_ref = f"Failed: {exc_str}"[:100]
+                
+                clean_reason = "Vending network declined request"
+                if "invalid line" in exc_str.lower():
+                    clean_reason = "Invalid phone number for the selected network"
+                elif "invalid plan" in exc_str.lower():
+                    clean_reason = "Selected airtime product is currently unavailable"
+
+                order.provider_ref = clean_reason
                 order.save(update_fields=["status", "provider_ref"])
                 refund_airtime_order(order_id)
                 return

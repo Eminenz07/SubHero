@@ -355,6 +355,15 @@ CHEAPDATAHUB_API_KEY = config("CHEAPDATAHUB_API_KEY", default="")
 CHEAPDATAHUB_BASE_URL = config("CHEAPDATAHUB_BASE_URL", default="https://www.cheapdatahub.ng")
 
 # =============================================================
+# SABUSS — Outbound Data & Airtime API
+# =============================================================
+SABUSS_API_KEY = config("SABUSS_API_KEY", default="REDACTED_SABUSS_KEY")
+SABUSS_PIN = config("SABUSS_PIN", default="1282")
+SABUSS_BASE_URL = config("SABUSS_BASE_URL", default="https://sabuss.com")
+SABUSS_PROFIT_MARGIN = config("SABUSS_PROFIT_MARGIN", default=0.10, cast=float)
+
+
+# =============================================================
 # JUSTANOTHERPANEL (JAP) — Outbound SMM API
 # =============================================================
 JAP_API_KEY = config("JAP_API_KEY", default="")

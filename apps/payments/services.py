@@ -176,7 +176,7 @@ def create_virtual_account(user):
             }
         else:
             logger.error("Squad virtual account creation failed: status=%s, response=%s", response.status_code, response.text)
-            return {"success": False, "message": f"Squad API error: {response.status_code}"}
+            return {"success": False, "message": "We were unable to verify your details with the provider. Please verify your BVN info and try again."}
             
     except requests.RequestException as e:
         logger.error("Squad API connection error during virtual account generation: %s", str(e))
