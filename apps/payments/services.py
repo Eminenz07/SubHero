@@ -15,6 +15,24 @@ from django.conf import settings
 logger = logging.getLogger(__name__)
 
 
+def sanitize_squad_error(msg):
+    """
+    Sanitizes Squad error messages to be user-friendly and prevent leakage of
+    internal error codes or backend integration details.
+    """
+    if not msg:
+        return "An error occurred with the payment provider. Please try again."
+        
+    msg_lower = msg.lower()
+    
+    # Check for BVN / details mismatch
+    if any(keyword in msg_lower for keyword in ["bvn", "dob", "date of birth", "gender", "match", "mismatch", "invalid"]):
+        return "The details provided do not match your BVN registration records. Please verify your BVN, Date of Birth, and name, and try again."
+        
+    # Generic user-friendly error for raw status codes or backend errors
+    return "We were unable to verify your identity with the bank network. Please check your details and try again."
+
+
 def _headers() -> dict:
     """
     Returns standard headers for Squad API authentication.
@@ -63,7 +81,7 @@ def initialize_card_payment(amount_naira, email, user_id):
             else:
                 msg = data.get("message", "API response error status")
                 logger.error("Squad initiate response error: status=%s, msg=%s", response.status_code, msg)
-                return {"success": False, "message": msg}
+                return {"success": False, "message": sanitize_squad_error(msg)}
         elif response.status_code == 403 and settings.SQUAD_ENV == 'sandbox':
             logger.warning("Squad Sandbox API returned 403 (likely Fly.io IP blocked). Falling back to mock transaction reference.")
             return {
@@ -73,7 +91,7 @@ def initialize_card_payment(amount_naira, email, user_id):
             }
         else:
             logger.error("Squad initiate failed: status=%s, response=%s", response.status_code, response.text)
-            return {"success": False, "message": f"Squad API error: {response.status_code}"}
+            return {"success": False, "message": "Unable to initialize payment gateway. Please try again later."}
             
     except requests.RequestException as e:
         logger.error("Squad API connection error during payment initiation: %s", str(e))
@@ -164,7 +182,7 @@ def create_virtual_account(user):
             else:
                 msg = data.get("message", "API response error status")
                 logger.error("Squad virtual account response error: %s", msg)
-                return {"success": False, "message": msg}
+                return {"success": False, "message": sanitize_squad_error(msg)}
         elif response.status_code == 403 and settings.SQUAD_ENV == 'sandbox':
             logger.warning("Squad Sandbox API returned 403 (likely Fly.io IP blocked). Falling back to mock virtual account.")
             import random
