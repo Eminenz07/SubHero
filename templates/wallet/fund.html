@@ -101,7 +101,7 @@
                 <span class="font-bold text-text-primary uppercase">SUBHERO - {{ request.user.full_name|upper }}</span>
             </div>
         </div>
-        {% elif not wallet.bvn %}
+        {% else %}
         <!-- KYC Form to Generate Virtual Account -->
         <div id="kyc-form-container" class="space-y-4 text-left">
             <div class="bg-brand-accent/10 border border-brand-accent/25 rounded-xl p-3.5 text-xs text-text-secondary leading-relaxed">
@@ -161,14 +161,6 @@
                 <span id="generate-btn-text">Generate Dedicated Account</span>
                 <i data-feather="plus" class="w-4 h-4"></i>
             </button>
-        </div>
-        {% else %}
-        <!-- Dynamic Polling Banner (KYC submitted, waiting for generation) -->
-        <div class="bg-amber-50 border border-amber-100 rounded-xl p-4 mb-4 flex items-center gap-3 text-left">
-            <i data-feather="clock" class="w-5 h-5 text-amber-600 shrink-0 animate-spin" style="animation-duration: 3s;"></i>
-            <div class="text-[12px] text-amber-700 font-semibold leading-relaxed">
-                Your dedicated virtual account is currently being generated. This panel will update automatically within seconds...
-            </div>
         </div>
         {% endif %}
 
