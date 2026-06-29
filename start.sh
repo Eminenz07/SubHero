@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Run database migrations
+echo "Running database migrations..."
+python manage.py migrate --noinput
+
 # Start Celery worker in the background
 echo "Starting Celery worker..."
 celery -A config worker --loglevel=info --concurrency=1 &
