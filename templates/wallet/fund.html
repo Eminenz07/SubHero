@@ -108,6 +108,20 @@
                 <span class="font-bold text-brand-primary">KYC Verification Required:</span> To comply with CBN regulations, please provide your BVN and basic details. These details are verified securely against the bank network to generate your dedicated GTBank account.
             </div>
             
+            <!-- Legal Name Fields -->
+            <div class="grid grid-cols-2 gap-3">
+                <div class="flex flex-col gap-1.5">
+                    <label for="first-name-input" class="text-xs font-semibold text-text-secondary">Legal First Name</label>
+                    <input type="text" id="first-name-input" placeholder="As on BVN" 
+                           class="w-full px-4 py-3 rounded-xl border border-surface-border text-sm font-semibold text-text-primary focus:outline-none focus:border-brand-primary transition-colors placeholder:text-text-muted/65" />
+                </div>
+                <div class="flex flex-col gap-1.5">
+                    <label for="last-name-input" class="text-xs font-semibold text-text-secondary">Legal Last Name</label>
+                    <input type="text" id="last-name-input" placeholder="As on BVN" 
+                           class="w-full px-4 py-3 rounded-xl border border-surface-border text-sm font-semibold text-text-primary focus:outline-none focus:border-brand-primary transition-colors placeholder:text-text-muted/65" />
+                </div>
+            </div>
+
             <!-- BVN Field -->
             <div class="flex flex-col gap-1.5">
                 <label for="bvn-input" class="text-xs font-semibold text-text-secondary">BVN (11 Digits)</label>
@@ -294,6 +308,8 @@ function payWithCard() {
 }
 
 function submitKYC() {
+    const firstNameInput = document.getElementById('first-name-input');
+    const lastNameInput = document.getElementById('last-name-input');
     const bvnInput = document.getElementById('bvn-input');
     const dobInput = document.getElementById('dob-input');
     const genderInput = document.getElementById('gender-input');
@@ -304,11 +320,23 @@ function submitKYC() {
 
     errorDiv.classList.add('hidden');
 
+    const firstName = firstNameInput.value.trim();
+    const lastName = lastNameInput.value.trim();
     const bvn = bvnInput.value.trim();
     const dob = dobInput.value.trim();
     const gender = genderInput.value.trim();
     const address = addressInput.value.trim();
 
+    if (!firstName || firstName.length < 2) {
+        errorDiv.textContent = "Please enter your legal First Name as registered on your BVN.";
+        errorDiv.classList.remove('hidden');
+        return;
+    }
+    if (!lastName || lastName.length < 2) {
+        errorDiv.textContent = "Please enter your legal Last Name as registered on your BVN.";
+        errorDiv.classList.remove('hidden');
+        return;
+    }
     if (!bvn || bvn.length !== 11 || isNaN(bvn)) {
         errorDiv.textContent = "Please enter a valid 11-digit BVN.";
         errorDiv.classList.remove('hidden');
@@ -334,6 +362,8 @@ function submitKYC() {
     btnText.textContent = "Verifying & generating...";
 
     const formData = new FormData();
+    formData.append('first_name', firstName);
+    formData.append('last_name', lastName);
     formData.append('bvn', bvn);
     formData.append('dob', dob);
     formData.append('gender', gender);

@@ -340,14 +340,22 @@ class GenerateVirtualAccountView(View):
                 "account_number": wallet.virtual_account_number
             })
             
+        first_name = request.POST.get("first_name", "").strip()
+        last_name = request.POST.get("last_name", "").strip()
         bvn = request.POST.get("bvn", "").strip()
         dob_str = request.POST.get("dob", "").strip()
         gender = request.POST.get("gender", "").strip()
         address = request.POST.get("address", "").strip()
         
         # Validation
+        if not first_name or len(first_name) < 2:
+            return JsonResponse({"success": False, "error": "A valid First Name matching your BVN is required."}, status=400)
+            
+        if not last_name or len(last_name) < 2:
+            return JsonResponse({"success": False, "error": "A valid Last Name matching your BVN is required."}, status=400)
+
         if not bvn or len(bvn) != 11 or not bvn.isdigit():
-            return JsonResponse({"success": False, "error": "A valid 11-digit BVN is required."}, status=400)
+            return JsonResponse({"success": False, "error": "A valid 11-digit Bank Verification Number (BVN) is required."}, status=400)
             
         if not dob_str:
             return JsonResponse({"success": False, "error": "Date of birth is required."}, status=400)
@@ -372,7 +380,7 @@ class GenerateVirtualAccountView(View):
         wallet.save(update_fields=["bvn", "dob", "gender", "address"])
         
         # Invoke GTBank/Squad Virtual Account generation
-        result = create_virtual_account(request.user)
+        result = create_virtual_account(request.user, first_name=first_name, last_name=last_name)
         
         if result.get("success"):
             wallet.virtual_account_number = result["virtual_account_number"]

@@ -105,7 +105,7 @@ def initialize_card_payment(amount_naira, email, user_id):
         return {"success": False, "message": "Connection to payment gateway failed."}
 
 
-def create_virtual_account(user):
+def create_virtual_account(user, first_name=None, last_name=None):
     """
     Creates a dedicated permanent virtual account for the user on Squad.
     Requires customer KYC mapping (BVN, DOB, Gender, Address) per GTBank Squad rules.
@@ -129,10 +129,14 @@ def create_virtual_account(user):
             "message": "KYC details (BVN, Date of Birth, Gender, and Address) are required to generate a virtual account."
         }
     
-    # Split full name safely
-    names = user.full_name.split(None, 1)
-    first_name = names[0] if names else "User"
-    last_name = names[1] if len(names) > 1 else "User"
+    # Split full name safely or use provided legal names
+    if first_name and last_name:
+        first_name = first_name.strip()
+        last_name = last_name.strip()
+    else:
+        names = user.full_name.split(None, 1)
+        first_name = names[0] if names else "User"
+        last_name = names[1] if len(names) > 1 else "User"
     
     # Normalize phone number (strip international prefix if it starts with +234)
     mobile_num = user.phone_number.replace("+234", "")
