@@ -58,6 +58,7 @@
         </div>
     </div>
 
+    {% comment %}
     <!-- CARD 2: Bank Transfer (With HTMX dynamic polling if acct number is not ready) -->
     <div id="acct-card" 
           {% if not wallet.virtual_account_number and wallet.bvn %}
@@ -184,6 +185,7 @@
             </div>
         </div>
     </div>
+    {% endcomment %}
 
     <!-- Limits Info -->
     <div class="card card-padding border border-surface-border bg-white rounded-2xl shadow-sm">
