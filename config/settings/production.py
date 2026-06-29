@@ -36,6 +36,7 @@ DATABASES = {
         conn_max_age=CONN_MAX_AGE,
     )
 }
+DATABASES["default"]["DISABLE_SERVER_SIDE_CURSORS"] = True
 
 # =============================================================
 # CACHE & SESSIONS — Resilient Production Fallbacks
