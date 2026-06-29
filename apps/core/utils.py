@@ -21,11 +21,11 @@ logger = logging.getLogger(__name__)
 def generate_reference(prefix="SH"):
     """
     Generate a unique transaction reference.
-    Format: SH-{timestamp_hex}-{random_chars}
+    Format: SH{timestamp_hex}{random_chars}  (no hyphens — Sabuss rejects them)
     """
     ts = hex(int(time.time()))[2:]
     rand = "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
-    return f"{prefix}-{ts}-{rand}"
+    return f"{prefix}{ts}{rand}"
 
 
 def generate_uuid():
