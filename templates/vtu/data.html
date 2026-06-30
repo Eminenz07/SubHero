@@ -313,6 +313,24 @@
       document.getElementById('cta-price-display').textContent = '₦' + activePrice.toLocaleString('en-US', { maximumFractionDigits: 0 });
     }
   }
+
+  function filterByCategory(catName) {
+    const grid = document.getElementById('plans-grid');
+    if (!grid) return;
+
+    // Deselect any currently selected plan first
+    document.querySelectorAll('.plan-card').forEach(card => {
+      card.classList.remove('selected');
+      const cat = card.getAttribute('data-category');
+      card.setAttribute('data-hidden', cat === catName ? 'false' : 'true');
+    });
+
+    // Reset selection state — user must explicitly pick a plan
+    document.getElementById('id_plan_id').value = '';
+    document.getElementById('cta-price-display').textContent = 'Select a plan';
+    activePlanId = '';
+    activePrice = 0.0;
+  }
   
   function closeCustomSheets() {
     backdrop.classList.remove('active');

@@ -79,38 +79,6 @@
   {% endfor %}
 </div>
 
-<script>
-(function() {
-  // Filter plans by selected category — purely show/hide, no form action
-  window.filterByCategory = function(catName) {
-    const grid = document.getElementById('plans-grid');
-    if (!grid) return;
-
-    // Deselect any currently selected plan first
-    document.querySelectorAll('.plan-card').forEach(card => {
-      card.classList.remove('selected');
-      const cat = card.getAttribute('data-category');
-      card.setAttribute('data-hidden', cat === catName ? 'false' : 'true');
-    });
-
-    // Reset selection state — user must explicitly pick a plan
-    document.getElementById('id_plan_id').value = '';
-    document.getElementById('cta-price-display').textContent = 'Select a plan';
-    if (typeof activePlanId !== 'undefined') {
-      activePlanId = '';
-      activePrice = 0.0;
-    }
-  };
-
-  // On load: ensure only first category is visible, no plan auto-selected
-  const firstCat = '{{ first_cat }}';
-  document.querySelectorAll('.plan-card').forEach(card => {
-    const cat = card.getAttribute('data-category');
-    card.setAttribute('data-hidden', cat === firstCat ? 'false' : 'true');
-  });
-})();
-</script>
-
 {% endwith %}
 {% else %}
 <div class="text-center py-8 text-text-muted text-sm">

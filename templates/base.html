@@ -205,19 +205,19 @@
     </div>
 
     <!-- Premium Glassmorphic Loading Overlay -->
-    <div id="global-loading-overlay" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[99999] flex flex-col items-center justify-center text-white" style="display: none;">
+    <div id="global-loading-overlay" class="fixed inset-0 z-[99999] flex flex-col items-center justify-center text-white" style="display: none; background: rgba(9, 15, 30, 0.96) !important; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);">
         <div class="relative flex items-center justify-center mb-6">
             <!-- Outer spinning gradient ring -->
-            <div class="w-20 h-20 rounded-full border-4 border-slate-800 border-t-emerald-500 animate-spin"></div>
+            <div class="w-20 h-20 rounded-full border-4 border-t-emerald-500 animate-spin" style="border-color: rgba(255,255,255,0.1) !important; border-top-color: #10b981 !important;"></div>
             <!-- Inner stationary logo/pulsing circle -->
-            <div class="absolute w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center animate-pulse">
-                <svg class="w-6 h-6 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <div class="absolute w-12 h-12 rounded-full flex items-center justify-center animate-pulse" style="background-color: rgba(16, 185, 129, 0.15) !important;">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="color: #10b981 !important;">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                 </svg>
             </div>
         </div>
-        <h3 class="text-lg font-bold tracking-wide mb-1 text-center" id="loading-overlay-title">Processing transaction...</h3>
-        <p class="text-xs text-slate-400 text-center px-6 leading-relaxed max-w-xs" id="loading-overlay-subtitle">Connecting to secure provider. Please do not refresh or close this page.</p>
+        <h3 class="text-xl font-extrabold tracking-wide mb-2 text-center" id="loading-overlay-title" style="color: #ffffff !important; font-family: system-ui, -apple-system, sans-serif !important; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">Processing transaction...</h3>
+        <p class="text-sm text-center px-6 leading-relaxed max-w-xs" id="loading-overlay-subtitle" style="color: #94a3b8 !important; font-family: system-ui, -apple-system, sans-serif !important;">Connecting to secure provider. Please do not refresh or close this page.</p>
     </div>
 
     <!-- PWA Install Banner -->
