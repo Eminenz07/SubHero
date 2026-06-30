@@ -144,6 +144,30 @@
         </div>
     </section>
 
+    <!-- Preferences Section -->
+    <section class="space-y-2">
+        <h3 class="px-1 text-[11px] font-bold text-text-secondary tracking-[0.5px] uppercase">Preferences</h3>
+        <div class="space-y-2">
+            <!-- Dark Mode Toggle -->
+            <div class="w-full bg-white flex items-center justify-between p-4 rounded-card border border-surface-border/50 transition-all group text-left">
+                <div class="flex items-center gap-3.5">
+                    <div class="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center text-brand-primary">
+                        <i data-feather="moon" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <span class="block text-[14px] font-bold text-text-primary">Dark Mode Theme</span>
+                        <span class="block text-[11px] text-text-secondary">Toggle between light and dark display mode</span>
+                    </div>
+                </div>
+                <!-- Custom Switch -->
+                <label class="relative inline-flex items-center cursor-pointer" style="margin-right: 4px;">
+                    <input type="checkbox" id="dark-theme-toggle" class="sr-only peer" onchange="toggleDarkTheme(this.checked)">
+                    <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-accent"></div>
+                </label>
+            </div>
+        </div>
+    </section>
+
     <!-- Support Section -->
     <section class="space-y-2">
         <h3 class="px-1 text-[11px] font-bold text-text-secondary tracking-[0.5px] uppercase">Support</h3>
@@ -321,6 +345,26 @@
       sheet.classList.remove('active');
     });
     document.body.style.overflow = '';
+  }
+
+  // Dark Mode Toggle Logic
+  document.addEventListener('DOMContentLoaded', () => {
+    const darkThemeToggle = document.getElementById('dark-theme-toggle');
+    if (darkThemeToggle) {
+      // Sync checkbox state with actual DOM class
+      const isDark = document.documentElement.classList.contains('dark');
+      darkThemeToggle.checked = isDark;
+    }
+  });
+
+  function toggleDarkTheme(checked) {
+    if (checked) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
   }
 </script>
 {% endblock %}

@@ -261,6 +261,9 @@ PROVIDUS_WEBHOOK_SECRET = config("PROVIDUS_WEBHOOK_SECRET", default="")
 PROVIDUS_BASE_URL = config("PROVIDUS_BASE_URL", default="https://vps.providusbank.com/vps/api")
 PROVIDUS_MOCK = config("PROVIDUS_MOCK", default=True, cast=bool)
 
+# VTU/CheapDataHub/Sabuss Mock Toggle
+VTU_MOCK = config("VTU_MOCK", default=True, cast=bool)
+
 # =============================================================
 # SQUAD PAYMENT GATEWAY (GTBank Integration)
 # =============================================================
@@ -346,7 +349,7 @@ LOGGING = {
 MAX_LOGIN_ATTEMPTS = 5
 LOGIN_LOCKOUT_SECONDS = 900  # 15 minutes
 MAX_PIN_ATTEMPTS = 3
-PIN_LOCKOUT_SECONDS = 1800  # 30 minutes
+PIN_LOCKOUT_SECONDS = 900  # 15 minutes
 
 # =============================================================
 # CHEAPDATAHUB — Outbound VTU API

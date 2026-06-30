@@ -96,6 +96,7 @@ DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="SubHero <noreply@subh
 # TERMII — Real SMS in production
 # =============================================================
 TERMII_MOCK = config("TERMII_MOCK", default=False, cast=bool)
+VTU_MOCK = config("VTU_MOCK", default=False, cast=bool)
 
 # =============================================================
 # CELERY — Real async in production

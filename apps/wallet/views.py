@@ -109,7 +109,8 @@ class P2PTransferView(LoginRequiredMixin, PinRequiredMixin, View):
             pin_lockout_key = f"pin_lockout:{request.user.id}"
 
             if cache.get(pin_lockout_key):
-                messages.error(request, "PIN locked. Try again in 30 minutes.")
+                lockout_mins = settings.PIN_LOCKOUT_SECONDS // 60
+                messages.error(request, f"PIN locked. Try again in {lockout_mins} minutes.")
                 return render(request, self.template_name, {
                     "form": form, "wallet": wallet,
                 })
@@ -125,7 +126,8 @@ class P2PTransferView(LoginRequiredMixin, PinRequiredMixin, View):
                         "PIN lockout: user=%s, ip=%s",
                         request.user.id, client_ip,
                     )
-                    messages.error(request, "Too many incorrect PIN attempts. Wallet locked for 30 minutes.")
+                    lockout_mins = settings.PIN_LOCKOUT_SECONDS // 60
+                    messages.error(request, f"Too many incorrect PIN attempts. Wallet locked for {lockout_mins} minutes.")
                 else:
                     messages.error(request, f"Incorrect PIN. {settings.MAX_PIN_ATTEMPTS - attempts} attempts remaining.")
 

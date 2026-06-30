@@ -59,7 +59,7 @@ def process_vtu_order(self, order_id):
     pin = getattr(settings, "SABUSS_PIN", "")
     base_url = getattr(settings, "SABUSS_BASE_URL", "https://sabuss.com")
 
-    if not api_key:
+    if getattr(settings, "VTU_MOCK", False) or not api_key:
         logger.info("Sabuss API Key is not set or mocked. Simulating VTU success.")
         order.status = VTUOrder.Status.SUCCESS
         order.provider_ref = "MOCK-SABUSS-12345"
@@ -434,7 +434,7 @@ def process_airtime_order(self, order_id):
     pin = getattr(settings, "SABUSS_PIN", "")
     base_url = getattr(settings, "SABUSS_BASE_URL", "https://sabuss.com")
 
-    if not api_key:
+    if getattr(settings, "VTU_MOCK", False) or not api_key:
         logger.info("Sabuss API Key is not set or mocked. Simulating Airtime success.")
         order.status = AirtimeOrder.Status.SUCCESS
         order.provider_ref = "MOCK-SABUSS-AIRTIME"
@@ -567,6 +567,27 @@ def process_cable_order(self, order_id):
         return
 
     if order.status != CableOrder.Status.PROCESSING:
+        return
+
+    if getattr(settings, "VTU_MOCK", False):
+        logger.info("VTU_MOCK is active. Simulating Cable success.")
+        order.status = CableOrder.Status.SUCCESS
+        order.provider_ref = "MOCK-CDH-CABLE"
+        order.delivered_at = timezone.now()
+        order.save(update_fields=["status", "provider_ref", "delivered_at"])
+        
+        WalletTransaction.objects.filter(reference=order.reference).update(status=WalletTransaction.Status.SUCCESS)
+        
+        send_transaction_sms.delay(
+            order.user.phone_number,
+            f"SubHero: {order.provider.upper()} {order.plan_name} renewed for card {order.card_number}. Ref: {order.reference}",
+        )
+        try:
+            from apps.notifications.models import Notification
+            Notification.add(order.user, "Cable TV Subscription Successful",
+                f"{order.provider.upper()} {order.plan_name} activated on {order.card_number}.", "financial")
+        except Exception as e:
+            logger.error("Notification failed: %s", str(e))
         return
 
     api_key = settings.CHEAPDATAHUB_API_KEY
@@ -735,6 +756,29 @@ def process_electricity_order(self, order_id):
     if order.status != ElectricityOrder.Status.PROCESSING:
         return
 
+    if getattr(settings, "VTU_MOCK", False):
+        logger.info("VTU_MOCK is active. Simulating Electricity success.")
+        order.status = ElectricityOrder.Status.SUCCESS
+        order.provider_ref = "MOCK-CDH-ELEC"
+        order.token = "4321-8765-0912-3456-7890"
+        order.units = "45.8"
+        order.delivered_at = timezone.now()
+        order.save(update_fields=["status", "provider_ref", "token", "units", "delivered_at"])
+        
+        WalletTransaction.objects.filter(reference=order.reference).update(status=WalletTransaction.Status.SUCCESS)
+        
+        send_transaction_sms.delay(
+            order.user.phone_number,
+            f"SubHero: ₦{order.amount:,.0f} electricity vended for {order.meter_number}. Token: {order.token} Ref: {order.reference}",
+        )
+        try:
+            from apps.notifications.models import Notification
+            Notification.add(order.user, "Electricity Purchase Successful",
+                f"₦{order.amount:,.0f} vended for meter {order.meter_number}. Token: {order.token}.", "financial")
+        except Exception as e:
+            logger.error("Notification failed: %s", str(e))
+        return
+
     api_key = settings.CHEAPDATAHUB_API_KEY
     if not api_key:
         order.status = ElectricityOrder.Status.FAILED
@@ -837,6 +881,31 @@ def process_exam_pin_order(self, order_id):
         return
 
     if order.status != ExamPinOrder.Status.PROCESSING:
+        return
+
+    if getattr(settings, "VTU_MOCK", False):
+        logger.info("VTU_MOCK is active. Simulating Exam PIN success.")
+        pins_list = [f"MOCK-PIN-{i}-12345-67890" for i in range(1, order.quantity + 1)]
+        pins_text = "\n".join(pins_list)
+        
+        order.status = ExamPinOrder.Status.SUCCESS
+        order.provider_ref = "MOCK-CDH-EXAM"
+        order.pins = pins_text
+        order.delivered_at = timezone.now()
+        order.save(update_fields=["status", "provider_ref", "pins", "delivered_at"])
+        
+        WalletTransaction.objects.filter(reference=order.reference).update(status=WalletTransaction.Status.SUCCESS)
+        
+        send_transaction_sms.delay(
+            order.user.phone_number,
+            f"SubHero: {order.quantity} {order.exam_name} PIN(s) delivered. Check your dashboard. Ref: {order.reference}",
+        )
+        try:
+            from apps.notifications.models import Notification
+            Notification.add(order.user, "Exam PINs Purchased Successfully",
+                f"Your purchase of {order.quantity} {order.exam_name} PIN(s) was successful.", "financial")
+        except Exception as e:
+            logger.error("Notification failed: %s", str(e))
         return
 
     api_key = settings.CHEAPDATAHUB_API_KEY

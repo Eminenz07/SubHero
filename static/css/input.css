@@ -325,3 +325,89 @@
 .htmx-request .htmx-hide-on-request {
   display: none;
 }
+
+/* =============================================================
+   DARK THEME OVERRIDES (Class-based)
+   ============================================================= */
+html.dark {
+  color-scheme: dark;
+}
+
+html.dark body {
+  background-color: #030712 !important; /* slate-950 */
+}
+
+/* Override App Shell and main page containers */
+html.dark .app-shell,
+html.dark .bg-surface-page,
+html.dark .bg-slate-200 {
+  background-color: #0b1528 !important; /* dark brand background */
+}
+
+html.dark .bg-white,
+html.dark .bg-surface-card,
+html.dark .card,
+html.dark .plan-card,
+html.dark .network-tab,
+html.dark .bottom-sheet,
+html.dark .form-input,
+html.dark .bottom-nav,
+html.dark .top-bar {
+  background-color: #111e36 !important; /* dark card background */
+  border-color: #1f2e4d !important;
+  color: #f1f5f9 !important;
+}
+
+html.dark .bottom-nav a {
+  color: #94a3b8 !important;
+}
+
+html.dark .bottom-nav a.active {
+  color: #00c46a !important;
+}
+
+html.dark .text-text-primary,
+html.dark .text-slate-900,
+html.dark h1, html.dark h2, html.dark h3, html.dark h4, html.dark h5, html.dark h6,
+html.dark .form-label,
+html.dark .plan-data {
+  color: #f1f5f9 !important;
+}
+
+html.dark .text-text-secondary,
+html.dark .text-slate-600,
+html.dark .text-text-muted,
+html.dark .plan-validity,
+html.dark p,
+html.dark .text-slate-500 {
+  color: #94a3b8 !important;
+}
+
+html.dark .border-surface-border,
+html.dark .border-t,
+html.dark .border-b,
+html.dark .border,
+html.dark .border-slate-100 {
+  border-color: #1f2e4d !important;
+}
+
+html.dark .category-select {
+  background-color: #1e2d4a !important;
+  border-color: #2b3d63 !important;
+  color: #f1f5f9 !important;
+}
+
+html.dark .network-tab.active-mtn,
+html.dark .network-tab.active-airtel,
+html.dark .network-tab.active-glo,
+html.dark .network-tab.active-9mobile {
+  background-color: rgba(0, 107, 62, 0.25) !important;
+  border-color: #00c46a !important;
+  color: #00c46a !important;
+}
+
+html.dark .alert {
+  background-color: #1e2d4a !important;
+  border: 1px solid #2b3d63 !important;
+}
+

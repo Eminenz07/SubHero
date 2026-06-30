@@ -101,7 +101,8 @@ class SmmIndexView(LoginRequiredMixin, PinRequiredMixin, View):
         pin_lockout_key = f"pin_lockout:{request.user.id}"
 
         if cache.get(pin_lockout_key):
-            messages.error(request, "PIN locked due to too many attempts. Try again in 30 minutes.")
+            lockout_mins = settings.PIN_LOCKOUT_SECONDS // 60
+            messages.error(request, f"PIN locked due to too many attempts. Try again in {lockout_mins} minutes.")
             return render(request, self.template_name, context)
 
         # 3. Basic validations
@@ -122,8 +123,9 @@ class SmmIndexView(LoginRequiredMixin, PinRequiredMixin, View):
             attempts = cache.get(pin_attempts_key, 0) + 1
             cache.set(pin_attempts_key, attempts, 300)
             if attempts >= 3:
-                cache.set(pin_lockout_key, True, 1800)
-                messages.error(request, "Incorrect PIN. You have been locked out for 30 minutes.")
+                cache.set(pin_lockout_key, True, settings.PIN_LOCKOUT_SECONDS)
+                lockout_mins = settings.PIN_LOCKOUT_SECONDS // 60
+                messages.error(request, f"Incorrect PIN. You have been locked out for {lockout_mins} minutes.")
             else:
                 remaining = 3 - attempts
                 messages.error(request, f"Incorrect transaction PIN. {remaining} attempts remaining.")
