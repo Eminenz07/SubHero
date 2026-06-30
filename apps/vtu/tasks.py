@@ -890,9 +890,9 @@ def process_exam_pin_order(self, order_id):
         
         order.status = ExamPinOrder.Status.SUCCESS
         order.provider_ref = "MOCK-CDH-EXAM"
-        order.pins = pins_text
+        order.delivered_pins = pins_text
         order.delivered_at = timezone.now()
-        order.save(update_fields=["status", "provider_ref", "pins", "delivered_at"])
+        order.save(update_fields=["status", "provider_ref", "delivered_pins", "delivered_at"])
         
         WalletTransaction.objects.filter(reference=order.reference).update(status=WalletTransaction.Status.SUCCESS)
         
