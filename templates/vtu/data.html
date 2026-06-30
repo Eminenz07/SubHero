@@ -176,7 +176,7 @@
 {% block page_cta %}
 <div class="bg-white border-t border-surface-border p-4 flex-shrink-0">
   <button type="button" class="btn btn-primary btn-block text-base" id="cta-button" onclick="continueToPin()">
-    Continue — <span id="cta-price-display">₦0</span> →
+    <span id="cta-price-display">Select a plan</span>
   </button>
 </div>
 {% endblock %}
@@ -240,23 +240,17 @@
     const containerEl = document.getElementById('vtu-plans-container');
     containerEl.innerHTML = '<div class="text-center py-6 text-text-muted">Loading plans...</div>';
     
+    // Reset plan selection
+    document.getElementById('id_plan_id').value = '';
+    document.getElementById('cta-price-display').textContent = 'Select a plan';
+    activePlanId = '';
+    activePrice = 0.0;
+    
     // Fetch network plans dynamically
     fetch(`/vtu/ajax/plans/?network=${network}`)
       .then(response => response.text())
       .then(html => {
         containerEl.innerHTML = html;
-        
-        // Auto-select the first loaded plan card
-        const firstCard = containerEl.querySelector('.plan-card');
-        if (firstCard) {
-          const firstPlanId = firstCard.getAttribute('data-plan-id');
-          selectPlan(firstPlanId);
-        } else {
-          document.getElementById('id_plan_id').value = '';
-          document.getElementById('cta-price-display').textContent = '₦0';
-          activePlanId = '';
-          activePrice = 0.0;
-        }
       });
   }
   
@@ -329,6 +323,10 @@
   }
   
   function continueToPin() {
+    if (!activePlanId) {
+      alert('Please select a data plan first.');
+      return;
+    }
     const phone = document.getElementById('phone_number').value.trim();
     if (!phone) {
       alert('Please enter a recipient phone number.');
