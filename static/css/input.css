@@ -327,37 +327,76 @@
 }
 
 /* =============================================================
-   DARK THEME OVERRIDES (Class-based)
+   DARK THEME OVERRIDES (Class-based: html.dark)
    ============================================================= */
 html.dark {
   color-scheme: dark;
 }
 
 html.dark body {
-  background-color: #030712 !important; /* slate-950 */
+  background-color: #030712 !important;
 }
 
-/* Override App Shell and main page containers */
+/* ------- Shell & page-level backgrounds ------- */
 html.dark .app-shell,
 html.dark .bg-surface-page,
-html.dark .bg-slate-200 {
-  background-color: #0b1528 !important; /* dark brand background */
+html.dark .bg-slate-200,
+html.dark .bg-slate-50,
+html.dark .bg-\[\#F5F7FA\] {
+  background-color: #0b1528 !important;
 }
 
+/* ------- Cards, containers & surfaces ------- */
 html.dark .bg-white,
 html.dark .bg-surface-card,
 html.dark .card,
 html.dark .plan-card,
 html.dark .network-tab,
 html.dark .bottom-sheet,
-html.dark .form-input,
 html.dark .bottom-nav,
 html.dark .top-bar {
-  background-color: #111e36 !important; /* dark card background */
+  background-color: #111e36 !important;
   border-color: #1f2e4d !important;
   color: #f1f5f9 !important;
 }
 
+/* ------- Form inputs & selects ------- */
+html.dark .form-input,
+html.dark .form-select,
+html.dark input[type="text"],
+html.dark input[type="password"],
+html.dark input[type="number"],
+html.dark input[type="tel"],
+html.dark input[type="email"],
+html.dark select,
+html.dark textarea {
+  background-color: #0b1528 !important;
+  border-color: #1f2e4d !important;
+  color: #f1f5f9 !important;
+}
+
+html.dark .form-input::placeholder,
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #475569 !important;
+}
+
+html.dark .form-input:focus,
+html.dark .form-select:focus,
+html.dark input:focus,
+html.dark select:focus,
+html.dark textarea:focus {
+  border-color: var(--brand-primary, #006B3E) !important;
+  box-shadow: 0 0 0 3px rgba(0, 107, 62, 0.15) !important;
+}
+
+/* ------- Select dropdown arrow fix ------- */
+html.dark select option {
+  background-color: #111e36 !important;
+  color: #f1f5f9 !important;
+}
+
+/* ------- Bottom nav ------- */
 html.dark .bottom-nav a {
   color: #94a3b8 !important;
 }
@@ -366,8 +405,12 @@ html.dark .bottom-nav a.active {
   color: #00c46a !important;
 }
 
+/* ------- Typography ------- */
 html.dark .text-text-primary,
 html.dark .text-slate-900,
+html.dark .text-slate-800,
+html.dark .text-gray-900,
+html.dark .text-\[\#1F2937\],
 html.dark h1, html.dark h2, html.dark h3, html.dark h4, html.dark h5, html.dark h6,
 html.dark .form-label,
 html.dark .plan-data {
@@ -376,27 +419,42 @@ html.dark .plan-data {
 
 html.dark .text-text-secondary,
 html.dark .text-slate-600,
+html.dark .text-slate-500,
+html.dark .text-gray-600,
+html.dark .text-gray-500,
 html.dark .text-text-muted,
 html.dark .plan-validity,
-html.dark p,
-html.dark .text-slate-500 {
+html.dark p {
   color: #94a3b8 !important;
 }
 
+/* ------- Borders ------- */
 html.dark .border-surface-border,
+html.dark .border-surface-border\/50,
 html.dark .border-t,
 html.dark .border-b,
 html.dark .border,
-html.dark .border-slate-100 {
+html.dark .border-slate-100,
+html.dark .border-slate-200,
+html.dark .border-gray-200,
+html.dark .border-\[\#E5E7EB\] {
   border-color: #1f2e4d !important;
 }
 
+/* ------- Hover states ------- */
+html.dark .hover\:bg-slate-50:hover,
+html.dark .hover\:bg-slate-100:hover {
+  background-color: #162038 !important;
+}
+
+/* ------- Category select dropdown ------- */
 html.dark .category-select {
   background-color: #1e2d4a !important;
   border-color: #2b3d63 !important;
   color: #f1f5f9 !important;
 }
 
+/* ------- Network tabs (VTU pages) ------- */
 html.dark .network-tab.active-mtn,
 html.dark .network-tab.active-airtel,
 html.dark .network-tab.active-glo,
@@ -406,8 +464,71 @@ html.dark .network-tab.active-9mobile {
   color: #00c46a !important;
 }
 
+/* ------- Alerts ------- */
 html.dark .alert {
   background-color: #1e2d4a !important;
   border: 1px solid #2b3d63 !important;
+}
+
+html.dark .alert-success {
+  background-color: rgba(0, 196, 106, 0.12) !important;
+  border-color: rgba(0, 196, 106, 0.25) !important;
+  color: #4ade80 !important;
+}
+
+html.dark .alert-error {
+  background-color: rgba(239, 68, 68, 0.12) !important;
+  border-color: rgba(239, 68, 68, 0.25) !important;
+  color: #f87171 !important;
+}
+
+/* ------- Brand / accent badge backgrounds ------- */
+html.dark .bg-brand-primary\/10,
+html.dark .bg-brand-accent\/10,
+html.dark .bg-brand-accent\/15 {
+  background-color: rgba(0, 107, 62, 0.2) !important;
+}
+
+/* ------- Plan price badges ------- */
+html.dark .plan-price {
+  background-color: rgba(0, 196, 106, 0.15) !important;
+  color: #00c46a !important;
+}
+
+/* ------- Bottom sheet backdrop ------- */
+html.dark #custom-backdrop.active {
+  background-color: rgba(0, 0, 0, 0.7) !important;
+}
+
+/* ------- Bottom sheet content ------- */
+html.dark .bottom-sheet .bottom-sheet-handle {
+  background-color: #2b3d63 !important;
+}
+
+/* ------- Buttons ------- */
+html.dark .btn-secondary {
+  background-color: #1e2d4a !important;
+  border-color: #2b3d63 !important;
+  color: #94a3b8 !important;
+}
+
+html.dark .btn-secondary:hover {
+  background-color: #253a5c !important;
+}
+
+/* ------- Receipt / detail page rows ------- */
+html.dark .bg-slate-50\/80,
+html.dark .bg-gray-50 {
+  background-color: #0b1528 !important;
+}
+
+/* ------- Auth pages ------- */
+html.dark .auth-form {
+  background-color: #0b1528 !important;
+}
+
+/* ------- Transaction list items ------- */
+html.dark .divide-y > * + * {
+  border-color: #1f2e4d !important;
 }
 
