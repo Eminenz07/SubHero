@@ -4,12 +4,14 @@
 <style>
   .category-select-wrapper {
     position: relative;
+    display: block;
+    width: 100%;
     margin-bottom: 14px;
   }
   .category-select-wrapper::after {
     content: '';
     position: absolute;
-    right: 14px;
+    right: 16px;
     top: 50%;
     transform: translateY(-50%);
     width: 0;
@@ -18,18 +20,21 @@
     border-right: 5px solid transparent;
     border-top: 6px solid #64748B;
     pointer-events: none;
+    z-index: 10;
   }
   .category-select {
     width: 100%;
+    box-sizing: border-box;
     padding: 12px 40px 12px 14px;
     background: #F8FAFC;
     border: 1.5px solid #E2E8F0;
     border-radius: 14px;
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 700;
     color: #1E293B;
     appearance: none;
     -webkit-appearance: none;
+    -moz-appearance: none;
     cursor: pointer;
     outline: none;
     transition: border-color 0.2s;
@@ -52,7 +57,7 @@
 <div class="category-select-wrapper">
   <select class="category-select" id="plan-category-select" onchange="filterByCategory(this.value)">
     {% for cat_name, cat_plans in grouped_plans %}
-    <option value="{{ cat_name }}">{{ cat_name }}{% if cat_name == "SME" %} (Corporate){% elif cat_name == "SME2" %} (Gifting){% elif cat_name == "CG" %} (Corporate Gifting){% elif cat_name == "AWOOF" %} (Daily Deals){% elif cat_name == "SMART" %} (Smart){% endif %} — {{ cat_plans|length }} plans</option>
+    <option value="{{ cat_name }}">{{ cat_name }}{% if cat_name == "SME" %} (Corporate){% elif cat_name == "SME2" %} (Gifting){% elif cat_name == "CG" %} (Corporate Gifting){% elif cat_name == "AWOOF" %} (Daily Deals){% elif cat_name == "SMART" %} (Smart){% endif %}</option>
     {% endfor %}
   </select>
 </div>
