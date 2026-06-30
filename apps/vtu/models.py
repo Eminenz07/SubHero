@@ -14,6 +14,7 @@ class VTUPlan(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     plan_id = models.CharField(max_length=50, unique=True, help_text="CheapDataHub plan ID")
     network = models.CharField(max_length=20, help_text="e.g. mtn, airtel, glo, 9mobile")
+    plan_type = models.CharField(max_length=30, blank=True, default="", help_text="Plan category, e.g. SME, SME2, SMART, DATA, CG, AWOOF")
     name = models.CharField(max_length=100)
     provider_price = models.DecimalField(max_digits=10, decimal_places=2, help_text="CheapDataHub cost price")
     subhero_price = models.DecimalField(max_digits=10, decimal_places=2, help_text="Price charged to SubHero customers")
@@ -24,10 +25,10 @@ class VTUPlan(models.Model):
 
     class Meta:
         db_table = "vtu_plan"
-        ordering = ["network", "subhero_price"]
+        ordering = ["network", "plan_type", "subhero_price"]
 
     def __str__(self):
-        return f"{self.network.upper()} - {self.name} (₦{self.subhero_price})"
+        return f"{self.network.upper()} {self.plan_type} - {self.name} (₦{self.subhero_price})"
 
 
 class VTUOrder(models.Model):

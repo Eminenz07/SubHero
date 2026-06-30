@@ -282,6 +282,7 @@ def sync_vtu_plans():
                             validity = "30 Days"
                     
                     network = ""
+                    plan_type = ""
                     name_lower = name.lower()
                     if "mtn" in name_lower:
                         network = "mtn"
@@ -294,10 +295,29 @@ def sync_vtu_plans():
                     else:
                         network = "other"
 
+                    # Detect plan category/type from name
+                    if "sme2" in name_lower or "sme 2" in name_lower:
+                        plan_type = "SME2"
+                    elif "sme" in name_lower:
+                        plan_type = "SME"
+                    elif "smart" in name_lower:
+                        plan_type = "SMART"
+                    elif "awoof" in name_lower:
+                        plan_type = "AWOOF"
+                    elif " cg" in name_lower or name_lower.endswith("cg"):
+                        plan_type = "CG"
+                    elif "gifting" in name_lower or "gift" in name_lower:
+                        plan_type = "GIFTING"
+                    elif "corporate" in name_lower:
+                        plan_type = "CORPORATE"
+                    else:
+                        plan_type = "DATA"
+
                     VTUPlan.objects.update_or_create(
                         plan_id=plan_id,
                         defaults={
                             "network": network,
+                            "plan_type": plan_type,
                             "name": name,
                             "provider_price": provider_price,
                             "subhero_price": subhero_price,

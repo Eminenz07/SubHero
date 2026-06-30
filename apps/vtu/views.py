@@ -631,13 +631,43 @@ class BuyExamPinView(LoginRequiredMixin, PinRequiredMixin, View):
 # ────────────────────────────────────────────────────────────
 
 class VtuPlansAjaxView(LoginRequiredMixin, View):
-    """Returns network-filtered plan cards as HTML partial (HTMX)."""
+    """Returns network-filtered plan cards grouped by category as HTML partial."""
     template_name = "vtu/partials/_plan_cards.html"
+
+    # Define canonical category order per network
+    CATEGORY_ORDER = {
+        "mtn":     ["SME", "SME2", "SMART", "DATA"],
+        "airtel":  ["CG", "SMART", "DATA"],
+        "glo":     ["CG", "AWOOF", "DATA"],
+        "9mobile": ["CG", "DATA"],
+    }
 
     def get(self, request, *args, **kwargs):
         network = request.GET.get("network", "").lower()
-        plans = VTUPlan.objects.filter(network=network, is_active=True).order_by("subhero_price")
-        return render(request, self.template_name, {"plans": plans})
+        plans = VTUPlan.objects.filter(network=network, is_active=True).order_by("plan_type", "subhero_price")
+
+        # Group plans by plan_type preserving canonical order
+        order = self.CATEGORY_ORDER.get(network, [])
+        grouped = {}
+        for plan in plans:
+            pt = plan.plan_type or "DATA"
+            if pt not in grouped:
+                grouped[pt] = []
+            grouped[pt].append(plan)
+
+        # Sort categories: known order first, then any extras alphabetically
+        def cat_sort_key(cat):
+            try:
+                return (0, order.index(cat))
+            except ValueError:
+                return (1, cat)
+
+        sorted_groups = sorted(grouped.items(), key=lambda x: cat_sort_key(x[0]))
+
+        return render(request, self.template_name, {
+            "grouped_plans": sorted_groups,
+            "network": network,
+        })
 
 
 class CablePlansAjaxView(LoginRequiredMixin, View):
