@@ -53,7 +53,7 @@ module.exports = {
         pill: "100px",
       },
       spacing: {
-        "safe-bottom": "env(safe-area-bottom, 0px)",
+        "safe-bottom": "env(safe-area-inset-bottom, 0px)",
         "bottom-nav": "68px",
         "top-bar": "56px",
       },
