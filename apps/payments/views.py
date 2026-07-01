@@ -84,15 +84,45 @@ class InitiateCardPaymentView(View):
             return JsonResponse({"error": result.get("message", "Could not initialize payment with gateway.")}, status=400)
 
 
-@login_required
 def payment_callback(request):
     """
     Redirect endpoint from Squad after a card checkout attempt.
     """
     reference = request.GET.get("transaction_ref", request.GET.get("reference", ""))
+    
+    # Attempt fallback verification directly from Squad API to credit user immediately
+    if reference:
+        from apps.payments.services import verify_transaction
+        try:
+            res = verify_transaction(reference)
+            if res and res.get("status") == 200:
+                data = res.get("data", {})
+                status = data.get("transaction_status") or data.get("status", "")
+                if str(status).lower() == "success":
+                    amount_kobo = data.get("amount") or data.get("transaction_amount", 0)
+                    amount_naira = Decimal(str(amount_kobo)) / Decimal("100.00")
+                    metadata = data.get("metadata", {}) or {}
+                    user_id = metadata.get("user_id", "")
+                    
+                    if not user_id and request.user.is_authenticated:
+                        user_id = str(request.user.id)
+                    
+                    # Credit wallet immediately (task has internal db lock idempotency check)
+                    credit_wallet(
+                        transaction_ref=reference,
+                        amount_naira=str(amount_naira),
+                        user_id=user_id,
+                        raw_payload=res
+                    )
+        except Exception as e:
+            logger.error("Direct payment verification failed on callback for ref=%s: %s", reference, str(e))
+
+    is_authenticated = request.user.is_authenticated
     context = {
         "reference": reference,
-        "back_url": "/dashboard/"
+        "is_authenticated": is_authenticated,
+        "back_url": "/dashboard/" if is_authenticated else "/auth/login/",
+        "redirect_url": "/wallet/" if is_authenticated else "/auth/login/"
     }
     return render(request, "wallet/payment_processing.html", context)
 
@@ -134,8 +164,8 @@ class SquadWebhookView(View):
             source_ip = source_ip.split(",")[0].strip()
         payload_hash = hashlib.sha256(request.body).hexdigest() if request.body else ""
 
-        # 1. Signature retrieval & validation
-        sig = request.headers.get("x-squad-encrypted-body", "")
+        # 1. Signature retrieval & validation (handle both standard headers)
+        sig = request.headers.get("x-squad-signature") or request.headers.get("x-squad-encrypted-body", "")
         if not sig:
             logger.error("Squad Webhook error: Missing digital signature header 'x-squad-encrypted-body'.")
             self._log_webhook("", None, False, WebhookLog.Status.REJECTED,

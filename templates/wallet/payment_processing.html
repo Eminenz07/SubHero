@@ -23,15 +23,19 @@
 
     <!-- Actions -->
     <div class="w-full space-y-3">
-        <a href="{% url 'dashboard' %}" class="btn btn-primary btn-block">Back to Dashboard</a>
+        {% if is_authenticated %}
+        <a href="{{ back_url }}" class="btn btn-primary btn-block">Back to Dashboard</a>
         <a href="{% url 'wallet:overview' %}" class="btn btn-secondary btn-block">Go to Wallet</a>
+        {% else %}
+        <a href="{{ back_url }}" class="btn btn-primary btn-block">Proceed to Login</a>
+        {% endif %}
     </div>
 </div>
 
 <script>
-    // Automatically redirect to the wallet overview after 6 seconds
+    // Automatically redirect after 6 seconds
     setTimeout(function() {
-        window.location.href = "{% url 'wallet:overview' %}";
+        window.location.href = "{{ redirect_url }}";
     }, 6000);
 </script>
 {% endblock %}
