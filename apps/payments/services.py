@@ -43,7 +43,7 @@ def _headers() -> dict:
     }
 
 
-def initialize_card_payment(amount_naira, email, user_id):
+def initialize_card_payment(amount_naira, email, user_id, site_url=None):
     """
     Initialize a card payment transaction using Squad Checkout Inline.
     Returns transaction reference and checkout URL on success.
@@ -51,13 +51,18 @@ def initialize_card_payment(amount_naira, email, user_id):
     transaction_ref = f"SH-FUND-{uuid4().hex[:16].upper()}"
     url = f"{settings.SQUAD_BASE_URL}/transaction/initiate"
     
+    if not site_url:
+        site_url = "https://subhero-p3zo.onrender.com"
+        
+    callback_url = f"{site_url}/payments/callback/"
+    
     payload = {
         "amount": int(float(amount_naira) * 100),  # Convert to KOBO
         "email": email,
         "currency": "NGN",
         "initiate_type": "inline",
         "transaction_ref": transaction_ref,
-        "callback_url": "https://subhero.fly.dev/payments/callback/",
+        "callback_url": callback_url,
         "metadata": {
             "user_id": str(user_id),
             "type": "wallet_funding"
