@@ -129,16 +129,16 @@
 </div>
 
 <!-- Recent Transactions -->
-<div class="mt-6 bg-white border-t border-surface-border py-4 min-h-[300px]">
-    <div class="flex items-center justify-between px-4 mb-2">
+<div class="mx-4 my-6 p-4 bg-surface-card rounded-card border border-surface-border shadow-card min-h-[300px]">
+    <div class="flex items-center justify-between mb-4">
         <h2 class="font-display text-[16px] font-bold text-text-primary">Recent Activity</h2>
         <a href="{% url 'wallet:transactions' %}" class="text-[13px] font-semibold text-brand-primary no-underline">View All</a>
     </div>
     
-    <div class="flex flex-col">
+    <div class="flex flex-col gap-1">
         {% if request.user.wallet %}
         {% for txn in request.user.wallet.transactions.all|slice:":5" %}
-        <a href="{% url 'wallet:transaction_detail' txn_id=txn.id %}" class="flex items-center gap-[14px] py-3.5 px-4 active:bg-surface-page transition-colors no-underline">
+        <a href="{% url 'wallet:transaction_detail' txn_id=txn.id %}" class="flex items-center gap-[14px] py-3 px-2 hover:bg-surface-page rounded-xl transition-colors no-underline">
             <div class="w-[44px] h-[44px] rounded-xl flex items-center justify-center shrink-0
                 {% if txn.txn_type == 'REFUND' %}
                     bg-blue-50 text-blue-600
@@ -196,9 +196,6 @@
                 </div>
             </div>
         </a>
-        {% if not forloop.last %}
-        <div class="h-[1px] bg-surface-border ml-[74px]"></div>
-        {% endif %}
         {% empty %}
         <div class="text-center py-12 px-6">
             <div class="text-text-muted text-[14px]">No transactions yet</div>
