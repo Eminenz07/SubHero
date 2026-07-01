@@ -4,6 +4,11 @@
   "description": "Premium Nigerian VTU and SMM Services. Instant airtime, data, and social media marketing.",
   "icons": [
     {
+      "src": "/static/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
+    },
+    {
       "src": "/static/favicon.png",
       "type": "image/png",
       "sizes": "512x512"
