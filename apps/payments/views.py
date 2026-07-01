@@ -101,8 +101,17 @@ def payment_callback(request):
                 if str(status).lower() == "success":
                     amount_kobo = data.get("amount") or data.get("transaction_amount", 0)
                     amount_naira = Decimal(str(amount_kobo)) / Decimal("100.00")
-                    metadata = data.get("metadata", {}) or {}
+                    metadata = data.get("metadata") or data.get("meta") or {}
                     user_id = metadata.get("user_id", "")
+                    
+                    if not user_id:
+                        email = data.get("email") or data.get("customer_email", "")
+                        if email:
+                            try:
+                                user = get_user_model().objects.get(email__iexact=email)
+                                user_id = str(user.id)
+                            except Exception as email_err:
+                                logger.error("Email lookup failed on callback for email=%s: %s", email, str(email_err))
                     
                     if not user_id and request.user.is_authenticated:
                         user_id = str(request.user.id)
