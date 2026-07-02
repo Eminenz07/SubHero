@@ -498,7 +498,7 @@ def vtu_pricing_save(request):
         detail = f"Updated VTUPlan pricing plan_id={plan.plan_id}: type={markup_type}, value={markup_value}, sell={sell}, active={is_active}"
         log_admin_action(request.user, "PRICING_UPDATE", "VTU_PLAN", plan.id, detail, request)
         
-        return HttpResponse('<span class="text-emerald-500 font-bold flex items-center gap-1"><i data-feather="check" class="w-4 h-4"></i> Saved</span>')
+        return HttpResponse('<button type="submit" class="px-2.5 py-1 rounded bg-slate-800 border border-white/[0.04] text-[10px] font-bold text-white hover:bg-slate-700 transition-colors">Save</button><span class="text-emerald-500 text-[10px] font-bold block mt-1 animate-pulse">✓ Saved</span>')
     return HttpResponse("Invalid request", status=400)
 
 
@@ -618,7 +618,7 @@ def smm_pricing_save(request):
         detail = f"Updated SMM service={service.name}: type={markup_type}, value={markup_value}, sell={sell}, active={is_active}"
         log_admin_action(request.user, "PRICING_UPDATE", "SMM_SERVICE", service.id, detail, request)
         
-        return HttpResponse('<span class="text-emerald-500 font-bold flex items-center gap-1"><i data-feather="check" class="w-4 h-4"></i> Saved</span>')
+        return HttpResponse('<button type="submit" class="px-2.5 py-1 rounded bg-slate-800 border border-white/[0.04] text-[10px] font-bold text-white hover:bg-slate-700 transition-colors">Save</button><span class="text-emerald-500 text-[10px] font-bold block mt-1 animate-pulse">✓ Saved</span>')
     return HttpResponse("Invalid request", status=400)
 
 

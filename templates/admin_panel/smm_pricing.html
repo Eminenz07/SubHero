@@ -82,54 +82,55 @@
                         {% for s in services %}
                         <tr class="hover:bg-white/[0.01] transition-colors">
                             <td class="py-4 px-6 text-slate-400 font-mono text-[10px]">{{ s.provider_service_id }}</td>
-                            <td class="py-4 px-6 text-white font-bold max-w-sm truncate" title="{{ s.name }}">{{ s.name }}</td>
+                            
+                            <!-- Service Name with hidden form for association -->
+                            <td class="py-4 px-6 text-white font-bold max-w-sm truncate" title="{{ s.name }}">
+                                <form hx-post="{% url 'admin_panel:smm_pricing_save' %}" hx-swap="outerHTML" hx-target="#smm-action-{{ s.id }}" id="form-smm-{{ s.id }}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="service_id" value="{{ s.id }}">
+                                </form>
+                                {{ s.name }}
+                            </td>
+                            
                             <td class="py-4 px-6 text-slate-400 font-mono">
                                 ${{ s.provider_rate|floatformat:4 }}
                                 <span class="text-[10px] block opacity-75">(₦{% widthratio s.provider_rate 1 usd_rate %})</span>
                             </td>
 
-                            <td class="py-2 px-6" colspan="5">
-                                <form hx-post="{% url 'admin_panel:smm_pricing_save' %}" hx-swap="outerHTML" hx-target="#smm-action-{{ s.id }}" class="grid grid-cols-5 items-center gap-4 w-full">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="service_id" value="{{ s.id }}">
-                                    
-                                    <!-- Markup Type -->
-                                    <div class="col-span-1">
-                                        <select name="markup_type" onchange="recalculateSmmPrice('{{ s.id }}', {{ s.provider_rate }}, {{ usd_rate }}, this.value)" id="markup-type-{{ s.id }}" class="w-full px-2 py-1 text-xs bg-slate-900 border border-white/[0.06] rounded text-slate-300">
-                                            <option value="fixed" {% if s.markup_type == 'fixed' %}selected{% endif %}>Fixed (₦)</option>
-                                            <option value="percent" {% if s.markup_type == 'percent' %}selected{% endif %}>Percent (%)</option>
-                                        </select>
-                                    </div>
+                            <!-- Markup Config -->
+                            <td class="py-2 px-6">
+                                <div class="flex items-center gap-1.5 min-w-[150px]">
+                                    <select name="markup_type" form="form-smm-{{ s.id }}" onchange="recalculateSmmPrice('{{ s.id }}', {{ s.provider_rate }}, {{ usd_rate }}, this.value)" id="markup-type-{{ s.id }}" class="px-2 py-1 text-xs bg-slate-900 border border-white/[0.06] rounded text-slate-300">
+                                        <option value="fixed" {% if s.markup_type == 'fixed' %}selected{% endif %}>Fixed (₦)</option>
+                                        <option value="percent" {% if s.markup_type == 'percent' %}selected{% endif %}>Percent (%)</option>
+                                    </select>
+                                    <input type="number" step="0.01" name="markup_value" form="form-smm-{{ s.id }}" value="{{ s.markup_value }}" oninput="recalculateSmmPrice('{{ s.id }}', {{ s.provider_rate }}, {{ usd_rate }}, document.getElementById('markup-type-{{ s.id }}').value)" id="markup-val-{{ s.id }}" class="w-16 px-2 py-1 text-xs bg-slate-900 border border-white/[0.06] rounded text-white font-mono">
+                                </div>
+                            </td>
 
-                                    <!-- Markup Value -->
-                                    <div class="col-span-1">
-                                        <input type="number" step="0.01" name="markup_value" value="{{ s.markup_value }}" oninput="recalculateSmmPrice('{{ s.id }}', {{ s.provider_rate }}, {{ usd_rate }}, document.getElementById('markup-type-{{ s.id }}').value)" id="markup-val-{{ s.id }}" class="w-full px-2 py-1 text-xs bg-slate-900 border border-white/[0.06] rounded text-white font-mono">
-                                    </div>
+                            <!-- Client Price per 1k -->
+                            <td class="py-4 px-6 font-mono text-emerald-400 font-bold" id="client-price-{{ s.id }}">
+                                ₦{{ s.subhero_price_per_1k|floatformat:2 }}
+                            </td>
 
-                                    <!-- Client Price per 1k -->
-                                    <div class="col-span-1 font-mono text-emerald-400 font-bold" id="client-price-{{ s.id }}">
-                                        ₦{{ s.subhero_price_per_1k|floatformat:2 }}
-                                    </div>
+                            <!-- Profit -->
+                            <td class="py-4 px-6 font-mono text-slate-400" id="profit-{{ s.id }}">
+                                ₦{{ s.markup_value|floatformat:2 }}
+                            </td>
 
-                                    <!-- Profit -->
-                                    <div class="col-span-1 font-mono text-slate-400" id="profit-{{ s.id }}">
-                                        ₦{{ s.markup_value|floatformat:2 }}
-                                    </div>
+                            <!-- Active Toggle -->
+                            <td class="py-2 px-6">
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" name="is_active" form="form-smm-{{ s.id }}" {% if s.is_active %}checked{% endif %} class="sr-only peer">
+                                    <div class="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-400 after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600 peer-checked:after:bg-white"></div>
+                                </label>
+                            </td>
 
-                                    <!-- Toggle & Action -->
-                                    <div class="col-span-1 flex items-center justify-between gap-4">
-                                        <label class="relative inline-flex items-center cursor-pointer">
-                                            <input type="checkbox" name="is_active" {% if s.is_active %}checked{% endif %} class="sr-only peer">
-                                            <div class="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-400 after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600 peer-checked:after:bg-white"></div>
-                                        </label>
-
-                                        <div id="smm-action-{{ s.id }}">
-                                            <button type="submit" class="px-2.5 py-1 rounded bg-slate-800 border border-white/[0.04] text-[10px] font-bold text-white hover:bg-slate-700 transition-colors">
-                                                Save
-                                            </button>
-                                        </div>
-                                    </div>
-                                </form>
+                            <!-- Actions -->
+                            <td class="py-2 px-6 text-right" id="smm-action-{{ s.id }}">
+                                <button type="submit" form="form-smm-{{ s.id }}" class="px-2.5 py-1 rounded bg-slate-800 border border-white/[0.04] text-[10px] font-bold text-white hover:bg-slate-700 transition-colors">
+                                    Save
+                                </button>
                             </td>
                         </tr>
                         {% endfor %}
