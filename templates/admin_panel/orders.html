@@ -1,0 +1,162 @@
+{% extends "admin_panel/base_admin.html" %}
+{% load static %}
+
+{% block title %}HQ Orders Log — SubHero HQ{% endblock %}
+
+{% block header_title %}Orders Log{% endblock %}
+
+{% block header_subtitle %}
+<span class="text-xs text-slate-400 font-mono ml-2">Unified table of all service purchases</span>
+{% endblock %}
+
+{% block admin_content %}
+<div class="flex flex-col gap-6">
+    <!-- Filters Card -->
+    <div class="admin-card p-4 flex flex-wrap items-center justify-between gap-4">
+        <form method="GET" class="flex flex-wrap items-center gap-4 flex-1">
+            <!-- Search field -->
+            <div class="relative min-w-[280px]">
+                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                    <i data-feather="search" class="w-4 h-4"></i>
+                </span>
+                <input type="text" name="q" value="{{ q }}" placeholder="Search by reference, recipient, target URL..." class="w-full pl-9 pr-4 py-2 text-sm bg-slate-900 border border-white/[0.06] rounded-lg text-white focus:outline-none focus:border-emerald-500/50 transition-all font-semibold">
+            </div>
+
+            <!-- Order type filter dropdown -->
+            <div class="min-w-[150px]">
+                <select name="type" class="w-full px-3 py-2 text-sm bg-slate-900 border border-white/[0.06] rounded-lg text-slate-300 focus:outline-none focus:border-emerald-500/50 transition-all font-semibold cursor-pointer">
+                    <option value="">All Service Types</option>
+                    <option value="vtu_data" {% if type == 'vtu_data' %}selected{% endif %}>VTU Data</option>
+                    <option value="smm" {% if type == 'smm' %}selected{% endif %}>SMM Booster</option>
+                    <option value="airtime" {% if type == 'airtime' %}selected{% endif %}>Airtime Top-up</option>
+                    <option value="cable" {% if type == 'cable' %}selected{% endif %}>Cable TV</option>
+                    <option value="electricity" {% if type == 'electricity' %}selected{% endif %}>Electricity</option>
+                    <option value="exam_pins" {% if type == 'exam_pins' %}selected{% endif %}>Exam PINs</option>
+                </select>
+            </div>
+
+            <!-- Status filter dropdown -->
+            <div class="min-w-[150px]">
+                <select name="status" class="w-full px-3 py-2 text-sm bg-slate-900 border border-white/[0.06] rounded-lg text-slate-300 focus:outline-none focus:border-emerald-500/50 transition-all font-semibold cursor-pointer">
+                    <option value="">All Statuses</option>
+                    <option value="PENDING" {% if status == 'PENDING' %}selected{% endif %}>Pending</option>
+                    <option value="PROCESSING" {% if status == 'PROCESSING' %}selected{% endif %}>Processing</option>
+                    <option value="SUCCESS" {% if status == 'SUCCESS' %}selected{% endif %}>Success</option>
+                    <option value="FAILED" {% if status == 'FAILED' %}selected{% endif %}>Failed</option>
+                    <option value="CANCELLED" {% if status == 'CANCELLED' %}selected{% endif %}>Cancelled</option>
+                </select>
+            </div>
+
+            <!-- Action buttons -->
+            <div class="flex gap-2">
+                <button type="submit" class="px-4 py-2 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors">
+                    Apply Filter
+                </button>
+                {% if q or status or type %}
+                <a href="{% url 'admin_panel:orders' %}" class="px-4 py-2 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 hover:text-white border border-white/[0.04] transition-colors">
+                    Reset
+                </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <!-- Unified Orders Table -->
+    <div class="admin-card overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full border-collapse text-left text-xs font-medium">
+                <thead>
+                    <tr class="border-b border-white/[0.06] bg-white/[0.01] text-slate-400 uppercase font-semibold">
+                        <th class="py-3 px-6">Date</th>
+                        <th class="py-3 px-6">Reference</th>
+                        <th class="py-3 px-6">User</th>
+                        <th class="py-3 px-6">Type</th>
+                        <th class="py-3 px-6">Description</th>
+                        <th class="py-3 px-6">Recipient/Target</th>
+                        <th class="py-3 px-6">Amount</th>
+                        <th class="py-3 px-6">Status</th>
+                        <th class="py-3 px-6 text-right">Fulfillment Controls</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/[0.03] text-slate-300">
+                    {% for o in page_obj %}
+                    <tr class="hover:bg-white/[0.01] transition-colors">
+                        <td class="py-4 px-6 text-slate-400 font-mono text-[10px]">{{ o.created_at|date:"Y-m-d H:i:s" }}</td>
+                        <td class="py-4 px-6 text-white font-mono font-semibold">{{ o.reference }}</td>
+                        <td class="py-4 px-6">
+                            <a href="{% url 'admin_panel:user_detail' o.user.id %}" class="text-emerald-400 hover:underline font-bold">
+                                {{ o.user.full_name }}
+                            </a>
+                            <span class="block text-[10px] text-slate-500 font-mono mt-0.5">{{ o.user.email }}</span>
+                        </td>
+                        <td class="py-4 px-6">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-300 border border-white/[0.04] uppercase">
+                                {{ o.type_display }}
+                            </span>
+                        </td>
+                        <td class="py-4 px-6 text-white font-semibold max-w-[180px] truncate" title="{{ o.description }}">{{ o.description }}</td>
+                        <td class="py-4 px-6 font-mono text-[11px] max-w-[150px] truncate" title="{{ o.recipient }}">{{ o.recipient }}</td>
+                        <td class="py-4 px-6 text-white font-mono font-bold">₦{{ o.amount }}</td>
+                        <td class="py-4 px-6" id="status-cell-{{ o.id }}">
+                            <span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase
+                                {% if o.status == 'SUCCESS' %}bg-emerald-950 text-emerald-400 border border-emerald-900/30
+                                {% elif o.status == 'PROCESSING' or o.status == 'PENDING' %}bg-yellow-950 text-yellow-400 border border-yellow-900/30
+                                {% else %}bg-red-950 text-red-400 border border-red-900/30{% endif %}">
+                                {{ o.status }}
+                            </span>
+                        </td>
+                        <td class="py-2 px-6" id="actions-cell-{{ o.id }}">
+                            <div class="flex flex-col gap-2 items-end">
+                                <!-- Refund and Retry Actions -->
+                                <div class="flex gap-1.5">
+                                    {% if o.status != 'SUCCESS' %}
+                                        <button hx-post="{% url 'admin_panel:manual_retry' o.id %}" hx-target="#status-cell-{{ o.id }}" hx-swap="innerHTML" class="px-2 py-1 rounded bg-yellow-600/10 text-yellow-400 border border-yellow-500/20 text-[10px] font-bold hover:bg-yellow-600 hover:text-slate-950 transition-colors">
+                                            Retry
+                                        </button>
+                                        <button hx-post="{% url 'admin_panel:manual_refund' o.id %}" hx-target="#status-cell-{{ o.id }}" hx-swap="innerHTML" class="px-2 py-1 rounded bg-red-600/10 text-red-400 border border-red-500/20 text-[10px] font-bold hover:bg-red-600 hover:text-white transition-colors">
+                                            Refund
+                                        </button>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Mark Delivered Action Form (requires reason) -->
+                                {% if o.status != 'SUCCESS' %}
+                                    <form hx-post="{% url 'admin_panel:manual_mark_delivered' o.id %}" hx-target="#status-cell-{{ o.id }}" hx-swap="innerHTML" class="flex gap-1.5 items-center">
+                                        {% csrf_token %}
+                                        <input type="text" name="reason" placeholder="Reason..." required class="px-2 py-1 text-[10px] bg-slate-900 border border-white/[0.06] rounded text-white placeholder-slate-600 w-24">
+                                        <button type="submit" class="px-2.5 py-1 rounded bg-emerald-600/15 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold hover:bg-emerald-600 hover:text-white transition-all whitespace-nowrap">
+                                            Mark Delivered
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="py-8 text-center text-slate-500 font-semibold">
+                            No orders matching filter criteria found.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination Footer -->
+        {% if page_obj.has_other_pages %}
+        <div class="px-6 py-4 border-t border-white/[0.06] flex items-center justify-between text-xs text-slate-400 bg-white/[0.01]">
+            <span>Showing page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+            <div class="flex gap-1.5">
+                {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}&q={{ q }}&status={{ status }}&type={{ type }}" class="px-3 py-1.5 rounded border border-white/[0.04] bg-slate-900 hover:text-white transition-colors no-underline">Previous</a>
+                {% endif %}
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}&q={{ q }}&status={{ status }}&type={{ type }}" class="px-3 py-1.5 rounded border border-white/[0.04] bg-slate-900 hover:text-white transition-colors no-underline">Next</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

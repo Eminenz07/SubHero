@@ -1,0 +1,261 @@
+{% extends "admin_panel/base_admin.html" %}
+{% load static %}
+{% load admin_filters %}
+
+{% block title %}VTU Pricing Manager — SubHero HQ{% endblock %}
+
+{% block header_title %}VTU Pricing Manager{% endblock %}
+
+{% block header_subtitle %}
+<span class="text-xs text-slate-400 font-mono ml-2">Configure client pricing markups per network</span>
+{% endblock %}
+
+{% block admin_content %}
+<div class="flex flex-col gap-8" x-data="{ activeNetwork: 'mtn' }">
+    <!-- Network Tab Headers -->
+    <div class="border-b border-white/[0.06] flex gap-2">
+        {% for net in networks %}
+        <button onclick="switchNetwork('{{ net }}')" id="tab-net-{{ net }}" class="px-6 py-3 font-semibold text-sm transition-all border-b-2 hover:text-white uppercase {% if net == 'mtn' %}text-emerald-400 border-emerald-500 bg-white/[0.01]{% else %}text-slate-400 border-transparent{% endif %}">
+            {{ net }}
+        </button>
+        {% endfor %}
+    </div>
+
+    <!-- Network Tab Contents -->
+    {% for net, plans in plans_by_network.items %}
+    <div id="content-net-{{ net }}" class="network-content {% if net != 'mtn' %}hidden{% endif %} space-y-8">
+        
+        <!-- Sub-tabs: Data vs Airtime -->
+        <div class="flex gap-4 bg-slate-900/60 p-1.5 rounded-lg border border-white/[0.04] w-fit">
+            <button onclick="switchSubTab('{{ net }}', 'data')" id="subtab-{{ net }}-data" class="px-4 py-1.5 rounded-md text-xs font-bold transition-all bg-emerald-600 text-white">
+                Data Plans ({{ plans|length }})
+            </button>
+            <button onclick="switchSubTab('{{ net }}', 'airtime')" id="subtab-{{ net }}-airtime" class="px-4 py-1.5 rounded-md text-xs font-bold transition-all text-slate-400 hover:text-white">
+                Airtime Markup
+            </button>
+        </div>
+
+        <!-- SUB-TAB 1: DATA PLANS -->
+        <div id="subtab-content-{{ net }}-data" class="space-y-6">
+            <!-- Bulk Update Panel -->
+            <div class="admin-card p-6">
+                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Bulk Update {{ net|upper }} Markups</h4>
+                <form action="{% url 'admin_panel:vtu_pricing_bulk_update' %}" method="POST" class="flex flex-wrap items-end gap-6">
+                    {% csrf_token %}
+                    <input type="hidden" name="network" value="{{ net }}">
+                    
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-400 uppercase mb-2">Plan Type</label>
+                        <select name="plan_type" class="px-3 py-2 text-xs bg-slate-900 border border-white/[0.06] rounded-lg text-white font-semibold cursor-pointer min-w-[140px]">
+                            <option value="all">All Types</option>
+                            <option value="SME">SME Only</option>
+                            <option value="CG">CG Only</option>
+                            <option value="GIFTING">Gifting Only</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-400 uppercase mb-2">Markup Type</label>
+                        <select name="markup_type" class="px-3 py-2 text-xs bg-slate-900 border border-white/[0.06] rounded-lg text-white font-semibold cursor-pointer min-w-[140px]">
+                            <option value="fixed">Fixed (NGN)</option>
+                            <option value="percent">Percentage (%)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-400 uppercase mb-2">Markup Value</label>
+                        <input type="number" step="0.01" name="markup_value" required placeholder="0.00" class="px-3 py-2 text-xs bg-slate-900 border border-white/[0.06] rounded-lg text-white font-semibold w-28">
+                    </div>
+
+                    <button type="submit" class="px-4 py-2 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors">
+                        Apply Markup to All
+                    </button>
+                </form>
+            </div>
+
+            <!-- Plans Table -->
+            <div class="admin-card overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full border-collapse text-left text-xs font-medium">
+                        <thead>
+                            <tr class="border-b border-white/[0.06] bg-white/[0.01] text-slate-400 uppercase font-semibold">
+                                <th class="py-3 px-6">Plan Name</th>
+                                <th class="py-3 px-6">Category</th>
+                                <th class="py-3 px-6">Cost Price (Sabuss)</th>
+                                <th class="py-3 px-6">Markup Config</th>
+                                <th class="py-3 px-6">Client Price</th>
+                                <th class="py-3 px-6">Estimated Profit</th>
+                                <th class="py-3 px-6">Active</th>
+                                <th class="py-3 px-6 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-white/[0.03]">
+                            {% for plan in plans %}
+                            <tr class="hover:bg-white/[0.01] transition-colors">
+                                <td class="py-4 px-6 text-white font-bold">{{ plan.name }}</td>
+                                <td class="py-4 px-6"><span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-slate-300">{{ plan.plan_type }}</span></td>
+                                <td class="py-4 px-6 text-slate-400 font-mono">₦{{ plan.provider_price }}</td>
+                                
+                                <!-- Edit Form Cell -->
+                                <td class="py-2 px-6" colspan="5">
+                                    <form hx-post="{% url 'admin_panel:vtu_pricing_save' %}" hx-swap="outerHTML" hx-target="#action-res-{{ plan.id }}" class="grid grid-cols-5 items-center gap-4 w-full">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="plan_id" value="{{ plan.id }}">
+                                        
+                                        <!-- Markup Type -->
+                                        <div class="col-span-1">
+                                            <select name="markup_type" onchange="recalculatePrice('{{ plan.id }}', {{ plan.provider_price }}, this.value)" id="markup-type-{{ plan.id }}" class="w-full px-2 py-1 text-xs bg-slate-900 border border-white/[0.06] rounded text-slate-300">
+                                                <option value="fixed" {% if plan.markup_type == 'fixed' %}selected{% endif %}>Fixed (₦)</option>
+                                                <option value="percent" {% if plan.markup_type == 'percent' %}selected{% endif %}>Percent (%)</option>
+                                            </select>
+                                        </div>
+
+                                        <!-- Markup Value -->
+                                        <div class="col-span-1">
+                                            <input type="number" step="0.01" name="markup_value" value="{{ plan.markup_value }}" oninput="recalculatePrice('{{ plan.id }}', {{ plan.provider_price }}, document.getElementById('markup-type-{{ plan.id }}').value)" id="markup-val-{{ plan.id }}" class="w-full px-2 py-1 text-xs bg-slate-900 border border-white/[0.06] rounded text-white font-mono">
+                                        </div>
+
+                                        <!-- SubHero Price (calculated) -->
+                                        <div class="col-span-1 font-mono text-emerald-400 font-bold" id="client-price-{{ plan.id }}">
+                                            ₦{{ plan.subhero_price|floatformat:2 }}
+                                        </div>
+
+                                        <!-- Estimated Profit -->
+                                        <div class="col-span-1 font-mono text-slate-400" id="profit-{{ plan.id }}">
+                                            ₦{{ plan.markup_value|floatformat:2 }}
+                                        </div>
+
+                                        <!-- Toggle Status -->
+                                        <div class="col-span-1 flex items-center justify-between gap-4">
+                                            <label class="relative inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" name="is_active" {% if plan.is_active %}checked{% endif %} class="sr-only peer">
+                                                <div class="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-400 after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600 peer-checked:after:bg-white"></div>
+                                            </label>
+
+                                            <!-- Form Save Button / HTMX result -->
+                                            <div id="action-res-{{ plan.id }}">
+                                                <button type="submit" class="px-2.5 py-1 rounded bg-slate-800 border border-white/[0.04] text-[10px] font-bold text-white hover:bg-slate-700 transition-colors">
+                                                    Save
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- SUB-TAB 2: AIRTIME MARKUP -->
+        <div id="subtab-content-{{ net }}-airtime" class="hidden">
+            <div class="admin-card p-6 max-w-xl">
+                <h4 class="text-sm font-bold text-white mb-6 uppercase tracking-wide">Configure {{ net|upper }} Airtime Markup / Discount</h4>
+                
+                {% with settings=airtime_settings|dict_get:net %}
+                <form hx-post="{% url 'admin_panel:vtu_airtime_pricing_save' %}" hx-target="#airtime-res-{{ net }}" class="space-y-6">
+                    {% csrf_token %}
+                    <input type="hidden" name="network" value="{{ net }}">
+                    
+                    <div class="grid grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 uppercase mb-2">Discount / Markup Type</label>
+                            <select name="markup_type" class="w-full px-3 py-2 text-xs bg-slate-900 border border-white/[0.06] rounded-lg text-white font-semibold cursor-pointer">
+                                <option value="percent" {% if settings.markup_type == 'percent' %}selected{% endif %}>Percentage (%)</option>
+                                <option value="fixed" {% if settings.markup_type == 'fixed' %}selected{% endif %}>Fixed (₦)</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 uppercase mb-2">Value (e.g. 2.50 for 2.5% discount)</label>
+                            <input type="number" step="0.01" name="markup_value" value="{{ settings.markup_value }}" required class="w-full px-3 py-2 text-xs bg-slate-900 border border-white/[0.06] rounded-lg text-white font-semibold font-mono">
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <input type="checkbox" name="is_active" id="airtime-active-{{ net }}" {% if settings.is_active %}checked{% endif %} class="rounded bg-slate-900 border-white/[0.06] text-emerald-600 focus:ring-emerald-500/30">
+                        <label for="airtime-active-{{ net }}" class="text-xs text-slate-300 font-semibold cursor-pointer">Enable Airtime service for {{ net|upper }}</label>
+                    </div>
+
+                    <div class="flex items-center gap-4">
+                        <button type="submit" class="px-5 py-2.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors">
+                            Save Airtime Pricing
+                        </button>
+                        <div id="airtime-res-{{ net }}"></div>
+                    </div>
+                </form>
+                {% endwith %}
+            </div>
+        </div>
+
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function switchNetwork(network) {
+        // Hide all network contents
+        document.querySelectorAll('.network-content').forEach(el => {
+            el.classList.add('hidden');
+        });
+        
+        // Show selected network content
+        document.getElementById('content-net-' + network).classList.remove('hidden');
+
+        // Toggle active tab style
+        document.querySelectorAll("[id^='tab-net-']").forEach(btn => {
+            btn.classList.remove('text-emerald-400', 'border-emerald-500', 'bg-white/[0.01]');
+            btn.classList.add('text-slate-400', 'border-transparent');
+        });
+        const activeBtn = document.getElementById('tab-net-' + network);
+        activeBtn.classList.add('text-emerald-400', 'border-emerald-500', 'bg-white/[0.01]');
+        activeBtn.classList.remove('text-slate-400', 'border-transparent');
+    }
+
+    function switchSubTab(network, tabType) {
+        const dataBtn = document.getElementById('subtab-' + network + '-data');
+        const airtimeBtn = document.getElementById('subtab-' + network + '-airtime');
+        const dataContent = document.getElementById('subtab-content-' + network + '-data');
+        const airtimeContent = document.getElementById('subtab-content-' + network + '-airtime');
+
+        if (tabType === 'data') {
+            dataBtn.classList.add('bg-emerald-600', 'text-white');
+            dataBtn.classList.remove('text-slate-400');
+            airtimeBtn.classList.remove('bg-emerald-600', 'text-white');
+            airtimeBtn.classList.add('text-slate-400');
+            
+            dataContent.classList.remove('hidden');
+            airtimeContent.classList.add('hidden');
+        } else {
+            airtimeBtn.classList.add('bg-emerald-600', 'text-white');
+            airtimeBtn.classList.remove('text-slate-400');
+            dataBtn.classList.remove('bg-emerald-600', 'text-white');
+            dataBtn.classList.add('text-slate-400');
+            
+            airtimeContent.classList.remove('hidden');
+            dataContent.classList.add('hidden');
+        }
+    }
+
+    function recalculatePrice(planId, costPrice, markupType) {
+        const markupVal = parseFloat(document.getElementById('markup-val-' + planId).value || 0);
+        let clientPrice = 0;
+        let profit = 0;
+
+        if (markupType === 'percent') {
+            clientPrice = costPrice * (1 + markupVal / 100);
+            profit = clientPrice - costPrice;
+        } else {
+            clientPrice = costPrice + markupVal;
+            profit = markupVal;
+        }
+
+        document.getElementById('client-price-' + planId).innerText = '₦' + clientPrice.toFixed(2);
+        document.getElementById('profit-' + planId).innerText = '₦' + profit.toFixed(2);
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Under Maintenance — SubHero</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=DM+Sans:opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS -->
+    <link rel="stylesheet" href="{% static 'css/app.css' %}">
+    <style>
+        body {
+            background-color: #060b13;
+            color: #f3f4f6;
+            font-family: 'DM Sans', sans-serif;
+        }
+        h1 {
+            font-family: 'Bricolage Grotesque', sans-serif;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-6 text-center">
+    <div class="max-w-md w-full bg-[#0c1220] border border-white/[0.06] rounded-2xl p-8 shadow-2xl">
+        <div class="w-16 h-16 bg-emerald-500/10 text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-6 border border-emerald-500/20">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.015L12 14.25l.58.765M12 18.75a6.002 6.002 0 005.992-5.462c.026-.282-.164-.538-.444-.538H6.452c-.28 0-.47.256-.444.538A6.002 6.002 0 0012 18.75zm0-16.5c-3.13 0-5.75 2.1-6.52 5.04.148.06.31.097.48.097H18.04c.17 0 .332-.037.48-.097C17.75 4.35 15.13 2.25 12 2.25z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M14.25 9.75H9.75M12 9.75v3.75" />
+            </svg>
+        </div>
+        <h1 class="text-3xl font-extrabold text-white mb-3">System Upgrade</h1>
+        <p class="text-slate-400 text-sm leading-relaxed mb-6">
+            SubHero is currently undergoing scheduled optimization to improve payment processing speed and VTU delivery consistency. We will be back online shortly.
+        </p>
+        <div class="text-xs text-slate-500 font-mono bg-black/25 p-3 rounded-lg border border-white/[0.03]">
+            HTTP 503 Service Unavailable
+        </div>
+    </div>
+</body>
+</html>

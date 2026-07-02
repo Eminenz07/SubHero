@@ -1,0 +1,245 @@
+{% extends "admin_panel/base_admin.html" %}
+{% load static %}
+
+{% block title %}Manage User — {{ user_profile.full_name }} HQ{% endblock %}
+
+{% block header_title %}User Details{% endblock %}
+
+{% block header_subtitle %}
+<span class="text-xs text-slate-400 font-mono ml-2">UID: {{ user_profile.id }}</span>
+{% endblock %}
+
+{% block admin_content %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <!-- Left Column: User Profile Details & Wallet Actions -->
+    <div class="space-y-8 lg:col-span-1">
+        <!-- Profile Card -->
+        <div class="admin-card p-6">
+            <div class="flex items-center gap-4 mb-6">
+                <div class="w-16 h-16 rounded-full bg-emerald-600 flex items-center justify-center font-bold text-white text-2xl uppercase">
+                    {{ user_profile.full_name|slice:":1" }}
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-white leading-tight">{{ user_profile.full_name }}</h3>
+                    <p class="text-xs text-slate-400 font-mono mt-0.5">{{ user_profile.phone_number }}</p>
+                </div>
+            </div>
+
+            <div class="space-y-3.5 border-t border-b border-white/[0.06] py-5 my-5 text-sm">
+                <div class="flex justify-between">
+                    <span class="text-slate-400">Email:</span>
+                    <span class="text-white font-mono font-semibold">{{ user_profile.email }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-400">Account status:</span>
+                    {% if user_profile.is_active %}
+                        <span class="text-emerald-400 font-bold">Active</span>
+                    {% else %}
+                        <span class="text-red-400 font-bold">Suspended</span>
+                    {% endif %}
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-400">Wallet balance:</span>
+                    <span class="text-emerald-400 font-bold font-mono">₦{{ wallet.balance|floatformat:2 }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-400">Wallet status:</span>
+                    {% if wallet.is_frozen %}
+                        <span class="text-amber-400 font-bold">Frozen</span>
+                    {% else %}
+                        <span class="text-emerald-400 font-bold">Active</span>
+                    {% endif %}
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-400">OTP Verified:</span>
+                    <span class="text-slate-200 font-bold">{% if user_profile.is_verified %}Yes{% else %}No{% endif %}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-400">Registered:</span>
+                    <span class="text-slate-300 font-mono text-xs">{{ user_profile.date_joined|date:"Y-m-d H:i" }}</span>
+                </div>
+            </div>
+
+            <!-- Suspended status message -->
+            {% if not user_profile.is_active %}
+                <div class="p-3.5 rounded-lg bg-red-950/20 border border-red-900/30 text-xs text-red-400 font-semibold leading-relaxed mb-6">
+                    <i data-feather="alert-triangle" class="w-3.5 h-3.5 inline mr-1"></i>
+                    This account is currently suspended and blocked from authentication or checkout.
+                </div>
+            {% endif %}
+            {% if wallet.is_frozen %}
+                <div class="p-3.5 rounded-lg bg-amber-950/20 border border-amber-900/30 text-xs text-amber-400 font-semibold leading-relaxed mb-6">
+                    <i data-feather="lock" class="w-3.5 h-3.5 inline mr-1"></i>
+                    This wallet is currently frozen. P2P sends and checkout debits are blocked.
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Account / Wallet Actions Forms -->
+        <div class="admin-card p-6 space-y-6">
+            <h4 class="text-md font-bold text-white uppercase tracking-wider mb-4 border-b border-white/[0.06] pb-2">Administrative Controls</h4>
+
+            <!-- Toggle Account Status Form -->
+            <form action="{% url 'admin_panel:user_toggle_status' user_profile.id %}" method="POST" class="space-y-3">
+                {% csrf_token %}
+                <label class="block text-xs font-semibold text-slate-400 uppercase">
+                    {% if user_profile.is_active %}Suspend Account{% else %}Activate Account{% endif %}
+                </label>
+                <input type="text" name="reason" placeholder="Enter reason (required)..." required class="w-full px-3 py-2 text-xs bg-slate-900 border border-white/[0.06] rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 transition-all font-semibold">
+                
+                <button type="submit" class="w-full py-2 rounded-lg text-xs font-bold transition-colors {% if user_profile.is_active %}bg-red-950 text-red-400 border border-red-900/30 hover:bg-red-900 hover:text-white{% else %}bg-emerald-950 text-emerald-400 border border-emerald-900/30 hover:bg-emerald-900 hover:text-white{% endif %}">
+                    {% if user_profile.is_active %}Suspend Account{% else %}Activate Account{% endif %}
+                </button>
+            </form>
+
+            <hr class="border-white/[0.06]">
+
+            <!-- Toggle Wallet Freeze Form -->
+            <form action="{% url 'admin_panel:wallet_toggle_freeze' user_profile.id %}" method="POST" class="space-y-3">
+                {% csrf_token %}
+                <label class="block text-xs font-semibold text-slate-400 uppercase">
+                    {% if wallet.is_frozen %}Unfreeze Wallet{% else %}Freeze Wallet{% endif %}
+                </label>
+                <input type="text" name="reason" placeholder="Enter reason (required)..." required class="w-full px-3 py-2 text-xs bg-slate-900 border border-white/[0.06] rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 transition-all font-semibold">
+                
+                <button type="submit" class="w-full py-2 rounded-lg text-xs font-bold transition-colors {% if wallet.is_frozen %}bg-emerald-950 text-emerald-400 border border-emerald-900/30 hover:bg-emerald-900 hover:text-white{% else %}bg-amber-950 text-amber-400 border border-amber-900/30 hover:bg-amber-900 hover:text-white{% endif %}">
+                    {% if wallet.is_frozen %}Unfreeze Wallet{% else %}Freeze Wallet{% endif %}
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Right Column: User Transactions, VTU & SMM Orders logs -->
+    <div class="space-y-8 lg:col-span-2">
+        <!-- Transactions Tab/Card -->
+        <div class="admin-card p-6">
+            <h3 class="text-lg font-bold text-white mb-4">Transaction Ledger (Last 50)</h3>
+            <div class="overflow-x-auto max-h-96">
+                <table class="w-full border-collapse text-left text-xs font-medium">
+                    <thead>
+                        <tr class="border-b border-white/[0.06] text-slate-400 uppercase font-semibold">
+                            <th class="py-3 px-4">Ref</th>
+                            <th class="py-3 px-4">Type</th>
+                            <th class="py-3 px-4">Amount</th>
+                            <th class="py-3 px-4">Balance Range</th>
+                            <th class="py-3 px-4">Status</th>
+                            <th class="py-3 px-4">Date</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-white/[0.03]">
+                        {% for t in transactions %}
+                        <tr class="hover:bg-white/[0.01]">
+                            <td class="py-3 px-4 font-mono text-[10px] text-slate-400" title="{{ t.reference }}">{{ t.reference|slice:":8" }}...</td>
+                            <td class="py-3 px-4 text-white font-bold">{{ t.get_txn_type_display }}</td>
+                            <td class="py-3 px-4 font-mono font-bold {% if t.txn_type == 'FUND' or t.txn_type == 'REFUND' or t.txn_type == 'P2P_RECEIVE' %}text-emerald-400{% else %}text-red-400{% endif %}">
+                                {% if t.txn_type == 'FUND' or t.txn_type == 'REFUND' or t.txn_type == 'P2P_RECEIVE' %}+{% else %}-{% endif %}₦{{ t.amount }}
+                            </td>
+                            <td class="py-3 px-4 font-mono text-[11px] text-slate-400">
+                                ₦{{ t.balance_before }} → ₦{{ t.balance_after }}
+                            </td>
+                            <td class="py-3 px-4">
+                                <span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase
+                                    {% if t.status == 'SUCCESS' %}bg-emerald-950 text-emerald-400 border border-emerald-900/30
+                                    {% elif t.status == 'PENDING' %}bg-yellow-950 text-yellow-400 border border-yellow-900/30
+                                    {% else %}bg-red-950 text-red-400 border border-red-900/30{% endif %}">
+                                    {{ t.status }}
+                                </span>
+                            </td>
+                            <td class="py-3 px-4 text-slate-400 font-mono text-[10px]">{{ t.created_at|date:"M d H:i" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="py-6 text-center text-slate-500 font-semibold">No transactions found for this user.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- VTU Orders Tab/Card -->
+        <div class="admin-card p-6">
+            <h3 class="text-lg font-bold text-white mb-4">VTU Data Orders (Last 20)</h3>
+            <div class="overflow-x-auto max-h-80">
+                <table class="w-full border-collapse text-left text-xs font-medium">
+                    <thead>
+                        <tr class="border-b border-white/[0.06] text-slate-400 uppercase font-semibold">
+                            <th class="py-3 px-4">Ref</th>
+                            <th class="py-3 px-4">Network</th>
+                            <th class="py-3 px-4">Recipient</th>
+                            <th class="py-3 px-4">Plan Name</th>
+                            <th class="py-3 px-4">Amount</th>
+                            <th class="py-3 px-4">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-white/[0.03]">
+                        {% for o in vtu_orders %}
+                        <tr class="hover:bg-white/[0.01]">
+                            <td class="py-3 px-4 font-mono text-[10px] text-slate-400">{{ o.reference|slice:":10" }}</td>
+                            <td class="py-3 px-4 text-white uppercase font-bold">{{ o.network }}</td>
+                            <td class="py-3 px-4 text-slate-300 font-mono">{{ o.recipient }}</td>
+                            <td class="py-3 px-4 text-white font-semibold">{{ o.plan_name }}</td>
+                            <td class="py-3 px-4 text-white font-mono">₦{{ o.amount }}</td>
+                            <td class="py-3 px-4">
+                                <span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase
+                                    {% if o.status == 'SUCCESS' %}bg-emerald-950 text-emerald-400 border border-emerald-900/30
+                                    {% elif o.status == 'PROCESSING' or o.status == 'PENDING' %}bg-yellow-950 text-yellow-400 border border-yellow-900/30
+                                    {% else %}bg-red-950 text-red-400 border border-red-900/30{% endif %}">
+                                    {{ o.status }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="py-6 text-center text-slate-500 font-semibold">No VTU data orders found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- SMM Orders Tab/Card -->
+        <div class="admin-card p-6">
+            <h3 class="text-lg font-bold text-white mb-4">SMM Booster Orders (Last 20)</h3>
+            <div class="overflow-x-auto max-h-80">
+                <table class="w-full border-collapse text-left text-xs font-medium">
+                    <thead>
+                        <tr class="border-b border-white/[0.06] text-slate-400 uppercase font-semibold">
+                            <th class="py-3 px-4">Ref</th>
+                            <th class="py-3 px-4">Service</th>
+                            <th class="py-3 px-4">Target URL</th>
+                            <th class="py-3 px-4">Quantity</th>
+                            <th class="py-3 px-4">Amount</th>
+                            <th class="py-3 px-4">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-white/[0.03]">
+                        {% for o in smm_orders %}
+                        <tr class="hover:bg-white/[0.01]">
+                            <td class="py-3 px-4 font-mono text-[10px] text-slate-400">{{ o.reference|slice:":10" }}</td>
+                            <td class="py-3 px-4 text-white font-bold max-w-[180px] truncate" title="{{ o.service.name }}">{{ o.service.name }}</td>
+                            <td class="py-3 px-4 text-slate-300 font-mono max-w-[150px] truncate" title="{{ o.target_url }}">{{ o.target_url }}</td>
+                            <td class="py-3 px-4 text-white font-mono">{{ o.quantity }}</td>
+                            <td class="py-3 px-4 text-white font-mono">₦{{ o.amount }}</td>
+                            <td class="py-3 px-4">
+                                <span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase
+                                    {% if o.status == 'SUCCESS' %}bg-emerald-950 text-emerald-400 border border-emerald-900/30
+                                    {% elif o.status == 'PROCESSING' or o.status == 'PENDING' %}bg-yellow-950 text-yellow-400 border border-yellow-900/30
+                                    {% else %}bg-red-950 text-red-400 border border-red-900/30{% endif %}">
+                                    {{ o.status }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="py-6 text-center text-slate-500 font-semibold">No SMM orders found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

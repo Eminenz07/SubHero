@@ -1,0 +1,190 @@
+{% extends "admin_panel/base_admin.html" %}
+{% load static %}
+
+{% block title %}Live Logs Console — SubHero HQ{% endblock %}
+
+{% block header_title %}Live Logs Console{% endblock %}
+
+{% block header_subtitle %}
+<span class="text-xs text-slate-400 font-mono ml-2">Monitor application log streams in real-time</span>
+{% endblock %}
+
+{% block admin_content %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <!-- Left Column: SSE Real-Time Terminal (CLI style) -->
+    <div class="lg:col-span-1 space-y-6">
+        <div class="admin-card p-6 flex flex-col h-[520px]">
+            <div class="flex items-center justify-between mb-4 border-b border-white/[0.06] pb-2">
+                <h3 class="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    SSE CLI Stream
+                </h3>
+                <button onclick="clearTerminal()" class="px-2 py-1 bg-slate-900 border border-white/[0.04] text-[10px] font-bold text-slate-400 hover:text-white rounded transition-colors">
+                    Clear Terminal
+                </button>
+            </div>
+            
+            <!-- Terminal Output Window -->
+            <div id="log-terminal" class="flex-1 bg-[#030712] border border-white/[0.06] rounded-lg p-4 font-mono text-[11px] leading-relaxed overflow-y-auto space-y-2 select-text">
+                <div class="text-slate-500 font-bold">// Terminal listener activated. Stream starting...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Historical Logs Table with Filters -->
+    <div class="lg:col-span-2 space-y-6">
+        <!-- Filters Card -->
+        <div class="admin-card p-4 flex flex-wrap items-center justify-between gap-4">
+            <form method="GET" class="flex flex-wrap items-center gap-4 flex-1">
+                <!-- Level filter -->
+                <div class="min-w-[120px]">
+                    <select name="level" class="w-full px-3 py-2 text-xs bg-slate-900 border border-white/[0.06] rounded-lg text-slate-300 font-semibold cursor-pointer">
+                        <option value="">All Levels</option>
+                        <option value="INFO" {% if level == 'INFO' %}selected{% endif %}>INFO</option>
+                        <option value="WARNING" {% if level == 'WARNING' %}selected{% endif %}>WARNING</option>
+                        <option value="ERROR" {% if level == 'ERROR' %}selected{% endif %}>ERROR</option>
+                    </select>
+                </div>
+
+                <!-- Category filter -->
+                <div class="min-w-[140px]">
+                    <select name="category" class="w-full px-3 py-2 text-xs bg-slate-900 border border-white/[0.06] rounded-lg text-slate-300 font-semibold cursor-pointer">
+                        <option value="">All Categories</option>
+                        <option value="AUTH" {% if category == 'AUTH' %}selected{% endif %}>Authentication</option>
+                        <option value="PAYMENT" {% if category == 'PAYMENT' %}selected{% endif %}>Payments</option>
+                        <option value="VTU" {% if category == 'VTU' %}selected{% endif %}>VTU Service</option>
+                        <option value="SMM" {% if category == 'SMM' %}selected{% endif %}>SMM Booster</option>
+                        <option value="SYSTEM" {% if category == 'SYSTEM' %}selected{% endif %}>System Core</option>
+                    </select>
+                </div>
+
+                <!-- Search box -->
+                <div class="relative min-w-[200px]">
+                    <input type="text" name="q" value="{{ q }}" placeholder="Search log message..." class="w-full pl-3 pr-4 py-2 text-xs bg-slate-900 border border-white/[0.06] rounded-lg text-white font-semibold">
+                </div>
+
+                <div class="flex gap-2">
+                    <button type="submit" class="px-4 py-2 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors">
+                        Filter
+                    </button>
+                    {% if level or category or q %}
+                    <a href="{% url 'admin_panel:logs' %}" class="px-4 py-2 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 hover:text-white border border-white/[0.04] transition-colors">
+                        Reset
+                    </a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+
+        <!-- Historical logs list -->
+        <div class="admin-card overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full border-collapse text-left text-xs font-medium">
+                    <thead>
+                        <tr class="border-b border-white/[0.06] bg-white/[0.01] text-slate-400 uppercase font-semibold">
+                            <th class="py-3 px-6">Timestamp</th>
+                            <th class="py-3 px-6">Level</th>
+                            <th class="py-3 px-6">Category</th>
+                            <th class="py-3 px-6">Message</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-white/[0.03] font-mono">
+                        {% for log in page_obj %}
+                        <tr class="hover:bg-white/[0.005] transition-colors">
+                            <td class="py-3 px-6 text-slate-400 text-[10px]">{{ log.created_at|date:"Y-m-d H:i:s" }}</td>
+                            <td class="py-3 px-6">
+                                <span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase
+                                    {% if log.level == 'ERROR' %}bg-red-950/40 text-red-400 border border-red-900/30
+                                    {% elif log.level == 'WARNING' %}bg-yellow-950/40 text-yellow-400 border border-yellow-900/30
+                                    {% else %}bg-slate-900 text-slate-400 border border-white/[0.04]{% endif %}">
+                                    {{ log.level }}
+                                </span>
+                            </td>
+                            <td class="py-3 px-6 text-slate-200 font-bold text-[10px]">{{ log.category }}</td>
+                            <td class="py-3 px-6 text-white font-semibold select-text">{{ log.message }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="py-8 text-center text-slate-500 font-semibold font-sans">
+                                No logs found.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination Footer -->
+            {% if page_obj.has_other_pages %}
+            <div class="px-6 py-4 border-t border-white/[0.06] flex items-center justify-between text-xs text-slate-400 bg-white/[0.01] font-sans">
+                <span>Showing page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                <div class="flex gap-1.5">
+                    {% if page_obj.has_previous %}
+                        <a href="?page={{ page_obj.previous_page_number }}&level={{ level }}&category={{ category }}&q={{ q }}" class="px-3 py-1.5 rounded border border-white/[0.04] bg-slate-900 hover:text-white transition-colors no-underline">Previous</a>
+                    {% endif %}
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}&level={{ level }}&category={{ category }}&q={{ q }}" class="px-3 py-1.5 rounded border border-white/[0.04] bg-slate-900 hover:text-white transition-colors no-underline">Next</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let eventSource = null;
+
+    document.addEventListener("DOMContentLoaded", function() {
+        startSseStream();
+    });
+
+    function startSseStream() {
+        const terminal = document.getElementById('log-terminal');
+        
+        eventSource = new EventSource('{% url "admin_panel:log_stream" %}');
+        
+        eventSource.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            
+            // Format log item
+            let lvlClass = 'text-slate-400';
+            if (data.level === 'ERROR') {
+                lvlClass = 'text-red-400 font-bold';
+            } else if (data.level === 'WARNING') {
+                lvlClass = 'text-yellow-400 font-bold';
+            }
+            
+            const logRow = document.createElement('div');
+            logRow.className = 'border-b border-white/[0.02] pb-1';
+            logRow.innerHTML = `
+                <span class="text-slate-500">[${data.time}]</span>
+                <span class="${lvlClass}">[${data.level}]</span>
+                <span class="text-emerald-400 font-bold">[${data.category}]</span>
+                <span class="text-slate-300 font-medium">${data.message}</span>
+            `;
+            
+            terminal.appendChild(logRow);
+            terminal.scrollTop = terminal.scrollHeight;
+        };
+
+        eventSource.onerror = function() {
+            console.log("SSE Connection closed or errored. Retrying...");
+        };
+    }
+
+    function clearTerminal() {
+        const terminal = document.getElementById('log-terminal');
+        terminal.innerHTML = '<div class="text-slate-500 font-bold">// Terminal cleared. Listening...</div>';
+    }
+
+    // Ensure we close the event stream when navigating away
+    window.addEventListener('beforeunload', function() {
+        if (eventSource) {
+            eventSource.close();
+        }
+    });
+</script>
+{% endblock %}

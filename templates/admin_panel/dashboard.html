@@ -1,0 +1,378 @@
+{% extends "admin_panel/base_admin.html" %}
+{% load static %}
+
+{% block title %}HQ Dashboard — SubHero{% endblock %}
+
+{% block extra_head %}
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+{% endblock %}
+
+{% block header_title %}Dashboard{% endblock %}
+
+{% block header_subtitle %}
+<span class="text-xs text-slate-400 font-mono ml-2">Overview & Real-time Metrics</span>
+{% endblock %}
+
+{% block admin_content %}
+<!-- Live API Wallets Banners -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+    <!-- CheapDataHub Balance Banner -->
+    <div class="p-5 rounded-xl border flex items-center justify-between transition-all {% if cdh_status == 'critical' %}bg-red-950/20 border-red-500/30 text-red-200{% elif cdh_status == 'warning' %}bg-yellow-950/20 border-yellow-500/30 text-yellow-200{% else %}bg-emerald-950/20 border-emerald-500/30 text-emerald-200{% endif %}">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-lg flex items-center justify-center border {% if cdh_status == 'critical' %}bg-red-500/10 border-red-500/20 text-red-400{% elif cdh_status == 'warning' %}bg-yellow-500/10 border-yellow-500/20 text-yellow-400{% else %}bg-emerald-500/10 border-emerald-500/20 text-emerald-400{% endif %}">
+                <i data-feather="database" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <div class="text-[11px] uppercase tracking-wider font-semibold opacity-75">CheapDataHub API Wallet</div>
+                <div class="text-2xl font-bold font-mono mt-0.5">₦{{ cdh_balance|floatformat:2 }}</div>
+                <div class="text-[11px] mt-1 flex items-center gap-1">
+                    <span class="w-2 h-2 rounded-full {% if cdh_status == 'critical' %}bg-red-500 animate-pulse{% elif cdh_status == 'warning' %}bg-yellow-500 animate-pulse{% else %}bg-emerald-500{% endif %}"></span>
+                    {% if cdh_status == 'critical' %}Critical Threshold Reached!{% elif cdh_status == 'warning' %}Warning Threshold Reached{% else %}API Wallet Healthy{% endif %}
+                </div>
+            </div>
+        </div>
+        <a href="https://cheapdatahub.com.ng" target="_blank" class="px-4 py-2 rounded-lg text-xs font-bold border transition-all hover:scale-[1.02] {% if cdh_status == 'critical' %}bg-red-500 text-white border-transparent hover:bg-red-600{% elif cdh_status == 'warning' %}bg-yellow-500 text-slate-950 border-transparent hover:bg-yellow-600{% else %}bg-emerald-600 text-white border-transparent hover:bg-emerald-700{% endif %}">
+            Fund Now
+        </a>
+    </div>
+
+    <!-- JAP SMM Balance Banner -->
+    <div class="p-5 rounded-xl border flex items-center justify-between transition-all {% if jap_status == 'critical' %}bg-red-950/20 border-red-500/30 text-red-200{% elif jap_status == 'warning' %}bg-yellow-950/20 border-yellow-500/30 text-yellow-200{% else %}bg-emerald-950/20 border-emerald-500/30 text-emerald-200{% endif %}">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-lg flex items-center justify-center border {% if jap_status == 'critical' %}bg-red-500/10 border-red-500/20 text-red-400{% elif jap_status == 'warning' %}bg-yellow-500/10 border-yellow-500/20 text-yellow-400{% else %}bg-emerald-500/10 border-emerald-500/20 text-emerald-400{% endif %}">
+                <i data-feather="globe" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <div class="text-[11px] uppercase tracking-wider font-semibold opacity-75">JAP SMM Wallet</div>
+                <div class="text-2xl font-bold font-mono mt-0.5">${{ jap_balance_usd|floatformat:2 }} <span class="text-sm font-normal opacity-80">(₦{{ jap_balance_ngn|floatformat:2 }})</span></div>
+                <div class="text-[11px] mt-1 flex items-center gap-1">
+                    <span class="w-2 h-2 rounded-full {% if jap_status == 'critical' %}bg-red-500 animate-pulse{% elif jap_status == 'warning' %}bg-yellow-500 animate-pulse{% else %}bg-emerald-500{% endif %}"></span>
+                    {% if jap_status == 'critical' %}Critical Threshold Reached!{% elif jap_status == 'warning' %}Warning Threshold Reached{% else %}API Wallet Healthy{% endif %}
+                </div>
+            </div>
+        </div>
+        <a href="https://justanotherpanel.com" target="_blank" class="px-4 py-2 rounded-lg text-xs font-bold border transition-all hover:scale-[1.02] {% if jap_status == 'critical' %}bg-red-500 text-white border-transparent hover:bg-red-600{% elif jap_status == 'warning' %}bg-yellow-500 text-slate-950 border-transparent hover:bg-yellow-600{% else %}bg-emerald-600 text-white border-transparent hover:bg-emerald-700{% endif %}">
+            Fund Now
+        </a>
+    </div>
+</div>
+
+<!-- Metrics Cards Row -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+    <!-- Card 1: Total Users -->
+    <div class="admin-card p-5">
+        <div class="flex items-center justify-between text-slate-400 mb-2">
+            <span class="text-xs font-semibold uppercase tracking-wider">Total Users</span>
+            <i data-feather="users" class="w-4 h-4"></i>
+        </div>
+        <div class="text-2xl font-bold text-white font-mono">{{ total_users }}</div>
+        <div class="text-[11px] text-emerald-400 mt-2 font-semibold flex items-center gap-1">
+            <i data-feather="trending-up" class="w-3 h-3"></i>
+            Active Customer Base
+        </div>
+    </div>
+
+    <!-- Card 2: New Users Today -->
+    <div class="admin-card p-5">
+        <div class="flex items-center justify-between text-slate-400 mb-2">
+            <span class="text-xs font-semibold uppercase tracking-wider">New Users Today</span>
+            <i data-feather="user-plus" class="w-4 h-4"></i>
+        </div>
+        <div class="text-2xl font-bold text-white font-mono">{{ new_users_today }}</div>
+        <div class="text-[11px] text-slate-400 mt-2 font-semibold">
+            Registered last 24h
+        </div>
+    </div>
+
+    <!-- Card 3: Gross Revenue -->
+    <div class="admin-card p-5">
+        <div class="flex items-center justify-between text-slate-400 mb-2">
+            <span class="text-xs font-semibold uppercase tracking-wider">Gross Sales</span>
+            <i data-feather="dollar-sign" class="w-4 h-4"></i>
+        </div>
+        <div class="text-2xl font-bold text-white font-mono">₦{{ total_revenue|floatformat:0 }}</div>
+        <div class="text-[11px] text-emerald-400 mt-2 font-semibold flex items-center gap-1">
+            <i data-feather="check-circle" class="w-3 h-3"></i>
+            Completed Purchases
+        </div>
+    </div>
+
+    <!-- Card 4: Net Profit -->
+    <div class="admin-card p-5">
+        <div class="flex items-center justify-between text-slate-400 mb-2">
+            <span class="text-xs font-semibold uppercase tracking-wider">Estimated Profit</span>
+            <i data-feather="bar-chart-2" class="w-4 h-4"></i>
+        </div>
+        <div class="text-2xl font-bold text-emerald-400 font-mono">₦{{ total_profit|floatformat:0 }}</div>
+        <div class="text-[11px] text-emerald-400 mt-2 font-semibold">
+            Markup Profit
+        </div>
+    </div>
+
+    <!-- Card 5: Active Orders (HTMX Refreshing) -->
+    <div class="admin-card p-5 border-emerald-500/20 relative" hx-get="{% url 'admin_panel:dashboard' %}" hx-trigger="every 15s" hx-target="#active-orders-count" hx-select="#active-orders-count">
+        <div class="flex items-center justify-between text-slate-400 mb-2">
+            <span class="text-xs font-semibold uppercase tracking-wider">Active Orders</span>
+            <i data-feather="shopping-cart" class="w-4 h-4 text-emerald-400"></i>
+        </div>
+        <div id="active-orders-count" class="text-2xl font-bold text-white font-mono flex items-center gap-1.5">
+            {{ active_orders }}
+            {% if active_orders > 0 %}
+                <span class="flex h-2 w-2 relative">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+            {% endif %}
+        </div>
+        <div class="text-[11px] text-slate-400 mt-2 flex items-center justify-between">
+            <span>Pending/Processing</span>
+            <span class="text-[9px] bg-slate-900 border border-white/[0.04] px-1.5 py-0.5 rounded font-mono text-slate-500">Live 15s</span>
+        </div>
+    </div>
+</div>
+
+<!-- Charts section -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+    <!-- Financial Performance Line Chart (2/3 width) -->
+    <div class="admin-card p-6 lg:col-span-2">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h3 class="text-lg font-bold text-white tracking-wide">Financial Performance</h3>
+                <p class="text-xs text-slate-400 mt-0.5">30-day view of Gross Revenue vs Net Profits</p>
+            </div>
+            
+            <div class="flex gap-2">
+                <button onclick="updateChartDays(7)" id="btn-7d" class="px-3 py-1.5 text-xs font-bold rounded-lg bg-slate-900 text-slate-400 border border-white/[0.04] hover:text-white transition-all">7 Days</button>
+                <button onclick="updateChartDays(30)" id="btn-30d" class="px-3 py-1.5 text-xs font-bold rounded-lg bg-emerald-600/15 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-600/25 transition-all">30 Days</button>
+            </div>
+        </div>
+        
+        <!-- Chart Canvas -->
+        <div class="h-96 relative">
+            <canvas id="financialChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Order Distribution Donut Chart (1/3 width) -->
+    <div class="admin-card p-6 flex flex-col justify-between">
+        <div>
+            <h3 class="text-lg font-bold text-white tracking-wide">Order Distribution</h3>
+            <p class="text-xs text-slate-400 mt-0.5">Breakdown of orders by service type</p>
+        </div>
+        
+        <!-- Chart Canvas -->
+        <div class="flex-1 min-h-[300px] relative flex items-center justify-center mt-4">
+            <canvas id="orderTypeChart"></canvas>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let chartInstance = null;
+
+    document.addEventListener("DOMContentLoaded", function() {
+        // Initial load of 30 days
+        loadChartData(30);
+        
+        // Donut Chart initialization
+        const orderTypeCtx = document.getElementById('orderTypeChart').getContext('2d');
+        
+        const vtuCount = {{ order_dist.vtu|default:0 }};
+        const smmCount = {{ order_dist.smm|default:0 }};
+        const airtimeCount = {{ order_dist.airtime|default:0 }};
+        const cableCount = {{ order_dist.cable|default:0 }};
+        const electricityCount = {{ order_dist.electricity|default:0 }};
+        const exampinCount = {{ order_dist.exampin|default:0 }};
+        
+        const hasOrders = (vtuCount + smmCount + airtimeCount + cableCount + electricityCount + exampinCount) > 0;
+        
+        const chartData = hasOrders 
+            ? [vtuCount, smmCount, airtimeCount, cableCount, electricityCount, exampinCount]
+            : [1, 1, 1, 1, 1, 1]; // Dummy equal segments if empty
+            
+        const chartLabels = ['VTU Data', 'SMM Booster', 'Airtime', 'Cable TV', 'Electricity', 'Exam PINs'];
+        const chartColors = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#6366f1'];
+        
+        new Chart(orderTypeCtx, {
+            type: 'doughnut',
+            data: {
+                labels: chartLabels,
+                datasets: [{
+                    data: chartData,
+                    backgroundColor: chartColors,
+                    borderWidth: 2,
+                    borderColor: '#0f172a',
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: '#94a3b8',
+                            boxWidth: 12,
+                            font: {
+                                family: 'DM Sans',
+                                size: 11
+                            }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: '#0f172a',
+                        titleColor: '#fff',
+                        bodyColor: '#cbd5e1',
+                        borderColor: 'rgba(255, 255, 255, 0.08)',
+                        borderWidth: 1,
+                        callbacks: {
+                            label: function(context) {
+                                if (!hasOrders) {
+                                    return `No orders yet`;
+                                }
+                                const value = context.raw;
+                                return ` ${context.label}: ${value} order(s)`;
+                            }
+                        }
+                    }
+                },
+                cutout: '70%'
+            }
+        });
+    });
+
+    function updateChartDays(days) {
+        // Toggle buttons active state
+        const btn7 = document.getElementById('btn-7d');
+        const btn30 = document.getElementById('btn-30d');
+        if (days === 7) {
+            btn7.classList.add('bg-emerald-600/15', 'text-emerald-400', 'border-emerald-500/20');
+            btn7.classList.remove('bg-slate-900', 'text-slate-400', 'border-white/[0.04]');
+            btn30.classList.add('bg-slate-900', 'text-slate-400', 'border-white/[0.04]');
+            btn30.classList.remove('bg-emerald-600/15', 'text-emerald-400', 'border-emerald-500/20');
+        } else {
+            btn30.classList.add('bg-emerald-600/15', 'text-emerald-400', 'border-emerald-500/20');
+            btn30.classList.remove('bg-slate-900', 'text-slate-400', 'border-white/[0.04]');
+            btn7.classList.add('bg-slate-900', 'text-slate-400', 'border-white/[0.04]');
+            btn7.classList.remove('bg-emerald-600/15', 'text-emerald-400', 'border-emerald-500/20');
+        }
+        loadChartData(days);
+    }
+
+    function loadChartData(days) {
+        fetch('{% url "admin_panel:revenue_chart_api" %}?days=' + days)
+            .then(res => res.json())
+            .then(data => {
+                const labels = data.map(item => item.date);
+                const revenue = data.map(item => item.revenue);
+                const profit = data.map(item => item.profit);
+
+                renderChart(labels, revenue, profit);
+            });
+    }
+
+    function renderChart(labels, revenue, profit) {
+        const ctx = document.getElementById('financialChart').getContext('2d');
+        
+        if (chartInstance) {
+            chartInstance.destroy();
+        }
+
+        chartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Gross Revenue (₦)',
+                        data: revenue,
+                        borderColor: '#10b981', // emerald-500
+                        backgroundColor: 'rgba(16, 185, 129, 0.05)',
+                        fill: true,
+                        tension: 0.3,
+                        borderWidth: 2,
+                        pointBackgroundColor: '#10b981',
+                        pointHoverRadius: 6
+                    },
+                    {
+                        label: 'Net Profit (₦)',
+                        data: profit,
+                        borderColor: '#3b82f6', // blue-500
+                        backgroundColor: 'rgba(59, 130, 246, 0.05)',
+                        fill: true,
+                        tension: 0.3,
+                        borderWidth: 2,
+                        pointBackgroundColor: '#3b82f6',
+                        pointHoverRadius: 6
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            color: '#94a3b8',
+                            font: {
+                                family: 'DM Sans',
+                                weight: 'bold',
+                                size: 12
+                            }
+                        }
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        backgroundColor: '#0f172a',
+                        titleColor: '#fff',
+                        bodyColor: '#cbd5e1',
+                        borderColor: 'rgba(255, 255, 255, 0.08)',
+                        borderWidth: 1,
+                        titleFont: {
+                            family: 'Bricolage Grotesque'
+                        },
+                        bodyFont: {
+                            family: 'DM Sans'
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.03)'
+                        },
+                        ticks: {
+                            color: '#64748b',
+                            font: {
+                                family: 'DM Sans',
+                                size: 10
+                            }
+                        }
+                    },
+                    y: {
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.03)'
+                        },
+                        ticks: {
+                            color: '#64748b',
+                            font: {
+                                family: 'DM Sans',
+                                size: 10
+                            },
+                            callback: function(value) {
+                                return '₦' + value.toLocaleString();
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}

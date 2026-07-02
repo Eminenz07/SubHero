@@ -1,0 +1,165 @@
+{% extends "admin_panel/base_admin.html" %}
+{% load static %}
+
+{% block title %}SMM Pricing Manager — SubHero HQ{% endblock %}
+
+{% block header_title %}SMM Pricing Manager{% endblock %}
+
+{% block header_subtitle %}
+<span class="text-xs text-slate-400 font-mono ml-2">Convert JAP provider rates (USD) & apply Naira markups</span>
+{% endblock %}
+
+{% block admin_content %}
+<div class="flex flex-col gap-8">
+    
+    <!-- Exchange Rate and JAP Config Bar -->
+    <div class="admin-card p-6">
+        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">USD/NGN Cost Conversion Rate</h4>
+        <form action="{% url 'admin_panel:update_exchange_rate' %}" method="POST" class="flex items-end gap-6">
+            {% csrf_token %}
+            <div>
+                <label class="block text-[11px] font-semibold text-slate-400 uppercase mb-2">1 USD to NGN Rate</label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-mono text-xs font-semibold">₦</span>
+                    <input type="number" step="0.01" name="usd_ngn_rate" value="{{ usd_rate }}" required class="pl-7 pr-4 py-2 text-xs bg-slate-900 border border-white/[0.06] rounded-lg text-white font-semibold font-mono w-44">
+                </div>
+            </div>
+            <button type="submit" class="px-5 py-2 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors">
+                Update Rate & Recalculate Prices
+            </button>
+            <span class="text-[11px] text-slate-500 font-medium">All provider rates in USD are converted using this rate before markup calculations.</span>
+        </form>
+    </div>
+
+    <!-- SMM Categories Accordion / Tab System -->
+    <div class="space-y-6">
+        <h3 class="text-md font-bold text-white uppercase tracking-wider">Service Catalog Categories</h3>
+        
+        {% for cat, services in services_by_cat.items %}
+        <div class="admin-card overflow-hidden">
+            <!-- Category Header -->
+            <div class="px-6 py-4 bg-white/[0.01] border-b border-white/[0.05] flex items-center justify-between">
+                <div>
+                    <span class="text-sm font-bold text-white tracking-wide">{{ cat }}</span>
+                    <span class="text-[10px] bg-slate-900 text-slate-400 font-mono px-2 py-0.5 rounded ml-2">{{ services|length }} Services</span>
+                </div>
+                
+                <!-- Quick Bulk Update Modal Trigger/Inline Form -->
+                <form action="{% url 'admin_panel:smm_pricing_bulk_update' %}" method="POST" class="flex items-center gap-3">
+                    {% csrf_token %}
+                    <input type="hidden" name="category" value="{{ cat }}">
+                    <span class="text-[10px] text-slate-400 font-semibold uppercase">Bulk Markup:</span>
+                    
+                    <select name="markup_type" class="px-2 py-1 text-[10px] bg-slate-900 border border-white/[0.06] rounded text-slate-300">
+                        <option value="fixed">Fixed (₦)</option>
+                        <option value="percent">Percentage (%)</option>
+                    </select>
+                    
+                    <input type="number" step="0.01" name="markup_value" required placeholder="Val" class="w-14 px-2 py-1 text-[10px] bg-slate-900 border border-white/[0.06] rounded text-white font-mono">
+                    
+                    <button type="submit" class="px-2.5 py-1 rounded bg-slate-800 border border-white/[0.04] text-[10px] font-bold text-white hover:bg-slate-700 transition-colors">
+                        Apply
+                    </button>
+                </form>
+            </div>
+
+            <!-- Services Table -->
+            <div class="overflow-x-auto">
+                <table class="w-full border-collapse text-left text-xs font-medium">
+                    <thead>
+                        <tr class="border-b border-white/[0.05] bg-white/[0.005] text-slate-400 uppercase font-semibold">
+                            <th class="py-3 px-6">ID</th>
+                            <th class="py-3 px-6">Service Name</th>
+                            <th class="py-3 px-6">JAP Cost / 1k</th>
+                            <th class="py-3 px-6">Markup Config</th>
+                            <th class="py-3 px-6">Client Price / 1k</th>
+                            <th class="py-3 px-6">Estimated Profit</th>
+                            <th class="py-3 px-6">Active</th>
+                            <th class="py-3 px-6 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-white/[0.03]">
+                        {% for s in services %}
+                        <tr class="hover:bg-white/[0.01] transition-colors">
+                            <td class="py-4 px-6 text-slate-400 font-mono text-[10px]">{{ s.provider_service_id }}</td>
+                            <td class="py-4 px-6 text-white font-bold max-w-sm truncate" title="{{ s.name }}">{{ s.name }}</td>
+                            <td class="py-4 px-6 text-slate-400 font-mono">
+                                ${{ s.provider_rate|floatformat:4 }}
+                                <span class="text-[10px] block opacity-75">(₦{% widthratio s.provider_rate 1 usd_rate %})</span>
+                            </td>
+
+                            <td class="py-2 px-6" colspan="5">
+                                <form hx-post="{% url 'admin_panel:smm_pricing_save' %}" hx-swap="outerHTML" hx-target="#smm-action-{{ s.id }}" class="grid grid-cols-5 items-center gap-4 w-full">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="service_id" value="{{ s.id }}">
+                                    
+                                    <!-- Markup Type -->
+                                    <div class="col-span-1">
+                                        <select name="markup_type" onchange="recalculateSmmPrice('{{ s.id }}', {{ s.provider_rate }}, {{ usd_rate }}, this.value)" id="markup-type-{{ s.id }}" class="w-full px-2 py-1 text-xs bg-slate-900 border border-white/[0.06] rounded text-slate-300">
+                                            <option value="fixed" {% if s.markup_type == 'fixed' %}selected{% endif %}>Fixed (₦)</option>
+                                            <option value="percent" {% if s.markup_type == 'percent' %}selected{% endif %}>Percent (%)</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Markup Value -->
+                                    <div class="col-span-1">
+                                        <input type="number" step="0.01" name="markup_value" value="{{ s.markup_value }}" oninput="recalculateSmmPrice('{{ s.id }}', {{ s.provider_rate }}, {{ usd_rate }}, document.getElementById('markup-type-{{ s.id }}').value)" id="markup-val-{{ s.id }}" class="w-full px-2 py-1 text-xs bg-slate-900 border border-white/[0.06] rounded text-white font-mono">
+                                    </div>
+
+                                    <!-- Client Price per 1k -->
+                                    <div class="col-span-1 font-mono text-emerald-400 font-bold" id="client-price-{{ s.id }}">
+                                        ₦{{ s.subhero_price_per_1k|floatformat:2 }}
+                                    </div>
+
+                                    <!-- Profit -->
+                                    <div class="col-span-1 font-mono text-slate-400" id="profit-{{ s.id }}">
+                                        ₦{{ s.markup_value|floatformat:2 }}
+                                    </div>
+
+                                    <!-- Toggle & Action -->
+                                    <div class="col-span-1 flex items-center justify-between gap-4">
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" name="is_active" {% if s.is_active %}checked{% endif %} class="sr-only peer">
+                                            <div class="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-400 after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600 peer-checked:after:bg-white"></div>
+                                        </label>
+
+                                        <div id="smm-action-{{ s.id }}">
+                                            <button type="submit" class="px-2.5 py-1 rounded bg-slate-800 border border-white/[0.04] text-[10px] font-bold text-white hover:bg-slate-700 transition-colors">
+                                                Save
+                                            </button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function recalculateSmmPrice(serviceId, providerRateUsd, usdRate, markupType) {
+        const markupVal = parseFloat(document.getElementById('markup-val-' + serviceId).value || 0);
+        const costPriceNgn = providerRateUsd * usdRate;
+        let clientPrice = 0;
+        let profit = 0;
+
+        if (markupType === 'percent') {
+            clientPrice = costPriceNgn * (1 + markupVal / 100);
+            profit = clientPrice - costPriceNgn;
+        } else {
+            clientPrice = costPriceNgn + markupVal;
+            profit = markupVal;
+        }
+
+        document.getElementById('client-price-' + serviceId).innerText = '₦' + clientPrice.toFixed(2);
+        document.getElementById('profit-' + serviceId).innerText = '₦' + profit.toFixed(2);
+    }
+</script>
+{% endblock %}

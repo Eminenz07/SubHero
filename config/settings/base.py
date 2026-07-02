@@ -25,6 +25,7 @@ ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1", cast=Csv(
 
 # Admin URL — configurable via .env, randomised in production
 ADMIN_URL = config("ADMIN_URL", default="admin/")
+ADMIN_HQ_URL = config("ADMIN_HQ_URL", default="subhero-hq-sh9k4x2/")
 
 # HTTPS / SSL
 SECURE_SSL_REDIRECT = True
@@ -93,6 +94,7 @@ LOCAL_APPS = [
     "apps.smm",
     "apps.transactions",
     "apps.notifications",
+    "apps.admin_panel",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -109,6 +111,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "apps.core.middleware.PinSetupMiddleware",
+    "apps.admin_panel.middleware.MaintenanceModeMiddleware",
 ]
 
 # =============================================================

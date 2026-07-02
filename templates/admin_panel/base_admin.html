@@ -1,0 +1,175 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SubHero HQ{% endblock %}</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="{% static 'favicon.svg' %}">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <link rel="stylesheet" href="{% static 'css/app.css' %}?v={% now 'U' %}">
+
+    <!-- HTMX -->
+    <script src="{% static 'js/htmx.min.js' %}" defer></script>
+    
+    <!-- Feather Icons -->
+    <script src="https://unpkg.com/feather-icons" defer></script>
+
+    <!-- Custom CSS Overrides for Admin Panel -->
+    <style>
+        body {
+            background-color: #060b13 !important;
+            color: #f3f4f6 !important;
+            font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+        }
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+        }
+        .admin-sidebar {
+            background-color: #0c1220;
+            border-right: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .admin-card {
+            background-color: #0f172a;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #060b13;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #334155;
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="antialiased min-h-screen flex" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+
+    <!-- Sidebar Navigation -->
+    <aside class="w-64 admin-sidebar flex flex-col shrink-0 min-h-screen sticky top-0">
+        <!-- Logo and Header -->
+        <div class="h-16 flex items-center gap-2.5 px-6 border-b border-white/[0.06]">
+            <img src="/static/favicon.svg" alt="SubHero HQ Logo" class="w-7 h-7">
+            <span class="text-lg font-bold tracking-wide text-white font-display">SubHero <span class="text-emerald-500">HQ</span></span>
+        </div>
+
+        <!-- Navigation Links -->
+        <nav class="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">
+            <a href="{% url 'admin_panel:dashboard' %}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all {% if active_nav == 'dashboard' %}bg-emerald-600/15 text-emerald-400 border border-emerald-500/20{% else %}text-slate-400 hover:text-white hover:bg-white/[0.03] border border-transparent{% endif %}">
+                <i data-feather="grid" class="w-4 h-4"></i>
+                Dashboard
+            </a>
+            <a href="{% url 'admin_panel:users' %}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all {% if active_nav == 'users' %}bg-emerald-600/15 text-emerald-400 border border-emerald-500/20{% else %}text-slate-400 hover:text-white hover:bg-white/[0.03] border border-transparent{% endif %}">
+                <i data-feather="users" class="w-4 h-4"></i>
+                User Management
+            </a>
+            <a href="{% url 'admin_panel:vtu_pricing' %}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all {% if active_nav == 'vtu_pricing' %}bg-emerald-600/15 text-emerald-400 border border-emerald-500/20{% else %}text-slate-400 hover:text-white hover:bg-white/[0.03] border border-transparent{% endif %}">
+                <i data-feather="zap" class="w-4 h-4"></i>
+                VTU Pricing
+            </a>
+            <a href="{% url 'admin_panel:smm_pricing' %}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all {% if active_nav == 'smm_pricing' %}bg-emerald-600/15 text-emerald-400 border border-emerald-500/20{% else %}text-slate-400 hover:text-white hover:bg-white/[0.03] border border-transparent{% endif %}">
+                <i data-feather="trending-up" class="w-4 h-4"></i>
+                SMM Pricing
+            </a>
+            <a href="{% url 'admin_panel:orders' %}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all {% if active_nav == 'orders' %}bg-emerald-600/15 text-emerald-400 border border-emerald-500/20{% else %}text-slate-400 hover:text-white hover:bg-white/[0.03] border border-transparent{% endif %}">
+                <i data-feather="shopping-bag" class="w-4 h-4"></i>
+                Orders
+            </a>
+            <a href="{% url 'admin_panel:transactions' %}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all {% if active_nav == 'transactions' %}bg-emerald-600/15 text-emerald-400 border border-emerald-500/20{% else %}text-slate-400 hover:text-white hover:bg-white/[0.03] border border-transparent{% endif %}">
+                <i data-feather="database" class="w-4 h-4"></i>
+                Transaction Ledger
+            </a>
+            <a href="{% url 'admin_panel:api_wallets' %}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all {% if active_nav == 'api_wallets' %}bg-emerald-600/15 text-emerald-400 border border-emerald-500/20{% else %}text-slate-400 hover:text-white hover:bg-white/[0.03] border border-transparent{% endif %}">
+                <i data-feather="credit-card" class="w-4 h-4"></i>
+                API Wallet Monitor
+            </a>
+            <a href="{% url 'admin_panel:logs' %}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all {% if active_nav == 'logs' %}bg-emerald-600/15 text-emerald-400 border border-emerald-500/20{% else %}text-slate-400 hover:text-white hover:bg-white/[0.03] border border-transparent{% endif %}">
+                <i data-feather="terminal" class="w-4 h-4"></i>
+                Live Logs
+            </a>
+            <a href="{% url 'admin_panel:settings' %}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all {% if active_nav == 'settings' %}bg-emerald-600/15 text-emerald-400 border border-emerald-500/20{% else %}text-slate-400 hover:text-white hover:bg-white/[0.03] border border-transparent{% endif %}">
+                <i data-feather="settings" class="w-4 h-4"></i>
+                System Settings
+            </a>
+        </nav>
+
+        <!-- User Profile Footer -->
+        <div class="p-4 border-t border-white/[0.06] flex items-center justify-between">
+            <div class="flex items-center gap-3 min-w-0">
+                <div class="w-9 h-9 rounded-full bg-emerald-600 flex items-center justify-center font-bold text-white shrink-0 uppercase">
+                    {{ request.user.full_name|slice:":1"|default:request.user.email|slice:":1" }}
+                </div>
+                <div class="min-w-0">
+                    <div class="text-sm font-bold text-white truncate">{{ request.user.full_name|default:"Admin Staff" }}</div>
+                    <div class="text-[11px] text-slate-400 truncate">{{ request.user.email }}</div>
+                </div>
+            </div>
+            <a href="{% url 'accounts:logout' %}" class="text-slate-400 hover:text-red-400 p-1.5 rounded transition-colors" title="Log Out">
+                <i data-feather="log-out" class="w-4.5 h-4.5"></i>
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content Shell -->
+    <div class="flex-1 flex flex-col min-w-0">
+        <!-- Top Bar Header -->
+        <header class="h-16 flex items-center justify-between px-8 border-b border-white/[0.06] bg-[#0c1220] shrink-0 sticky top-0 z-40">
+            <div class="flex items-center gap-2">
+                <h2 class="text-xl font-bold text-white tracking-wide">{% block header_title %}SubHero HQ{% endblock %}</h2>
+                {% block header_subtitle %}{% endblock %}
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <!-- Live status indicator -->
+                <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 border border-white/[0.04]">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span class="text-[11px] font-semibold text-slate-300">HQ Live</span>
+                </div>
+
+                <!-- Link back to customer landing -->
+                <a href="{% url 'landing' %}" class="text-xs text-slate-400 hover:text-white flex items-center gap-1.5 no-underline transition-colors">
+                    <i data-feather="external-link" class="w-3.5 h-3.5"></i>
+                    View Site
+                </a>
+            </div>
+        </header>
+
+        <!-- Main Body -->
+        <main class="flex-1 p-8 overflow-y-auto">
+            {% block admin_content %}{% endblock %}
+        </main>
+    </div>
+
+    <!-- Ensure feather icons render -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            if (typeof feather !== 'undefined') {
+                feather.replace();
+            }
+        });
+        document.body.addEventListener('htmx:afterSwap', function(evt) {
+            if (typeof feather !== 'undefined') {
+                feather.replace();
+            }
+        });
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

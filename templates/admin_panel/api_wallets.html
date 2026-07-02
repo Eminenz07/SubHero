@@ -1,0 +1,214 @@
+{% extends "admin_panel/base_admin.html" %}
+{% load static %}
+
+{% block title %}API Wallet Monitor — SubHero HQ{% endblock %}
+
+{% block extra_head %}
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+{% endblock %}
+
+{% block header_title %}API Wallet Monitor{% endblock %}
+
+{% block header_subtitle %}
+<span class="text-xs text-slate-400 font-mono ml-2">Monitor pre-funded provider API wallets & thresholds</span>
+{% endblock %}
+
+{% block admin_content %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <!-- Left Column: Config Panel & Test Alert -->
+    <div class="lg:col-span-1 space-y-8">
+        
+        <!-- Alerts Configuration Form -->
+        <div class="admin-card p-6">
+            <h3 class="text-md font-bold text-white mb-6 uppercase tracking-wider border-b border-white/[0.06] pb-2">Threshold & Alert Config</h3>
+            <form action="{% url 'admin_panel:api_wallets' %}" method="POST" class="space-y-5 text-xs font-semibold">
+                {% csrf_token %}
+                
+                <!-- Email to notify -->
+                <div>
+                    <label class="block text-slate-400 uppercase mb-2">Notification Email</label>
+                    <input type="email" name="alert_email" value="{{ alert_config.alert_email }}" required class="w-full px-3 py-2 text-xs bg-slate-900 border border-white/[0.06] rounded-lg text-white">
+                </div>
+
+                <!-- CheapDataHub Warning Threshold -->
+                <div>
+                    <label class="block text-slate-400 uppercase mb-2">CheapDataHub Warning (₦)</label>
+                    <input type="number" name="cdh_warning_threshold" value="{{ alert_config.cdh_warning_threshold }}" required class="w-full px-3 py-2 text-xs bg-slate-900 border border-white/[0.06] rounded-lg text-white font-mono">
+                </div>
+
+                <!-- CheapDataHub Critical Threshold -->
+                <div>
+                    <label class="block text-slate-400 uppercase mb-2">CheapDataHub Critical (₦)</label>
+                    <input type="number" name="cdh_critical_threshold" value="{{ alert_config.cdh_critical_threshold }}" required class="w-full px-3 py-2 text-xs bg-slate-900 border border-white/[0.06] rounded-lg text-white font-mono">
+                </div>
+
+                <!-- JAP Warning Threshold -->
+                <div>
+                    <label class="block text-slate-400 uppercase mb-2">JAP Warning ($)</label>
+                    <input type="number" step="0.01" name="jap_warning_threshold" value="{{ alert_config.jap_warning_threshold }}" required class="w-full px-3 py-2 text-xs bg-slate-900 border border-white/[0.06] rounded-lg text-white font-mono">
+                </div>
+
+                <!-- JAP Critical Threshold -->
+                <div>
+                    <label class="block text-slate-400 uppercase mb-2">JAP Critical ($)</label>
+                    <input type="number" step="0.01" name="jap_critical_threshold" value="{{ alert_config.jap_critical_threshold }}" required class="w-full px-3 py-2 text-xs bg-slate-900 border border-white/[0.06] rounded-lg text-white font-mono">
+                </div>
+
+                <!-- USD Rate -->
+                <div>
+                    <label class="block text-slate-400 uppercase mb-2">USD/NGN Exchange Rate (₦)</label>
+                    <input type="number" step="0.01" name="usd_ngn_rate" value="{{ alert_config.usd_ngn_rate }}" required class="w-full px-3 py-2 text-xs bg-slate-900 border border-white/[0.06] rounded-lg text-white font-mono">
+                </div>
+
+                <button type="submit" class="w-full py-2.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors">
+                    Save Config
+                </button>
+            </form>
+        </div>
+
+        <!-- Dispatch Test Alert -->
+        <div class="admin-card p-6">
+            <h3 class="text-md font-bold text-white mb-4 uppercase tracking-wider border-b border-white/[0.06] pb-2">Operational Diagnostics</h3>
+            <p class="text-xs text-slate-400 mb-4">Validate system outbound notification pipeline by sending a test alert to the email configured above.</p>
+            
+            <form hx-post="{% url 'admin_panel:test_alert_email' %}" hx-target="#test-alert-result" class="space-y-4">
+                {% csrf_token %}
+                <button type="submit" class="w-full py-2.5 rounded-lg text-xs font-bold bg-slate-800 text-white border border-white/[0.06] hover:bg-slate-700 transition-colors">
+                    Dispatch Test Alert Email
+                </button>
+            </form>
+            <div id="test-alert-result" class="mt-4"></div>
+        </div>
+
+    </div>
+
+    <!-- Right Column: Balance Monitor charts -->
+    <div class="lg:col-span-2 space-y-8">
+        
+        <!-- Live status -->
+        <div class="grid grid-cols-2 gap-6">
+            <!-- CDH balance -->
+            <div class="admin-card p-5 border border-white/[0.05]">
+                <div class="text-[11px] uppercase tracking-wider font-semibold text-slate-400 mb-2">CheapDataHub Live Balance</div>
+                <div class="text-3xl font-extrabold text-white font-mono">₦{{ cdh_balance|floatformat:2 }}</div>
+                <div class="mt-4 flex justify-between items-center text-xs">
+                    <span class="text-slate-500 font-medium">Critical: ₦{{ alert_config.cdh_critical_threshold }}</span>
+                    <a href="https://cheapdatahub.com.ng" target="_blank" class="text-emerald-400 hover:underline font-bold flex items-center gap-1">
+                        Fund Now
+                        <i data-feather="external-link" class="w-3.5 h-3.5"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- JAP balance -->
+            <div class="admin-card p-5 border border-white/[0.05]">
+                <div class="text-[11px] uppercase tracking-wider font-semibold text-slate-400 mb-2">JAP SMM Live Balance</div>
+                <div class="text-3xl font-extrabold text-white font-mono">${{ jap_balance_usd|floatformat:2 }}</div>
+                <div class="text-[10px] text-slate-400 mt-1 font-mono">Naira equivalent: ₦{{ jap_balance_ngn|floatformat:2 }}</div>
+                <div class="mt-2 flex justify-between items-center text-xs">
+                    <span class="text-slate-500 font-medium">Critical: ${{ alert_config.jap_critical_threshold }}</span>
+                    <a href="https://justanotherpanel.com" target="_blank" class="text-emerald-400 hover:underline font-bold flex items-center gap-1">
+                        Fund Now
+                        <i data-feather="external-link" class="w-3.5 h-3.5"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 14-day history chart -->
+        <div class="admin-card p-6">
+            <h3 class="text-md font-bold text-white mb-6 uppercase tracking-wider">14-Day Balance History Log</h3>
+            <div class="h-80 relative">
+                <canvas id="balanceHistoryChart"></canvas>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const rawData = JSON.parse('{{ history_data|safe }}');
+        const labels = rawData.map(d => d.date);
+        const cdhBalances = rawData.map(d => d.cdh);
+        const japBalances = rawData.map(d => d.jap);
+
+        renderHistoryChart(labels, cdhBalances, japBalances);
+    });
+
+    function renderHistoryChart(labels, cdh, jap) {
+        const ctx = document.getElementById('balanceHistoryChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'CheapDataHub (₦)',
+                        data: cdh,
+                        borderColor: '#10b981', // emerald-500
+                        backgroundColor: 'transparent',
+                        yAxisID: 'y-cdh',
+                        tension: 0.2,
+                        borderWidth: 2,
+                        pointHoverRadius: 5
+                    },
+                    {
+                        label: 'JAP USD ($)',
+                        data: jap,
+                        borderColor: '#3b82f6', // blue-500
+                        backgroundColor: 'transparent',
+                        yAxisID: 'y-jap',
+                        tension: 0.2,
+                        borderWidth: 2,
+                        pointHoverRadius: 5
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#94a3b8',
+                            font: { family: 'DM Sans', weight: 'bold' }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { color: 'rgba(255, 255, 255, 0.03)' },
+                        ticks: { color: '#64748b', font: { family: 'DM Sans' } }
+                    },
+                    'y-cdh': {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        grid: { color: 'rgba(255, 255, 255, 0.03)' },
+                        ticks: {
+                            color: '#10b981',
+                            font: { family: 'DM Sans' },
+                            callback: function(v) { return '₦' + v.toLocaleString(); }
+                        }
+                    },
+                    'y-jap': {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        grid: { drawOnChartArea: false },
+                        ticks: {
+                            color: '#3b82f6',
+                            font: { family: 'DM Sans' },
+                            callback: function(v) { return '$' + v; }
+                        }
+                    }
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}

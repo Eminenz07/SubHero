@@ -1,0 +1,154 @@
+{% extends "admin_panel/base_admin.html" %}
+{% load static %}
+
+{% block title %}User Management — SubHero HQ{% endblock %}
+
+{% block header_title %}User Management{% endblock %}
+
+{% block header_subtitle %}
+<span class="text-xs text-slate-400 font-mono ml-2">Total registered customer base</span>
+{% endblock %}
+
+{% block admin_content %}
+<div class="flex flex-col gap-6">
+    <!-- Controls (Search, Filters, Export) -->
+    <div class="admin-card p-4 flex flex-wrap items-center justify-between gap-4">
+        <!-- Search and Filters Form -->
+        <form method="GET" class="flex flex-wrap items-center gap-4 flex-1">
+            <!-- Search field -->
+            <div class="relative min-w-[280px]">
+                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                    <i data-feather="search" class="w-4 h-4"></i>
+                </span>
+                <input type="text" name="q" value="{{ q }}" placeholder="Search by name, email, phone..." class="w-full pl-9 pr-4 py-2 text-sm bg-slate-900 border border-white/[0.06] rounded-lg text-white focus:outline-none focus:border-emerald-500/50 transition-all font-semibold">
+            </div>
+
+            <!-- Status filter dropdown -->
+            <div class="min-w-[160px]">
+                <select name="status" class="w-full px-3 py-2 text-sm bg-slate-900 border border-white/[0.06] rounded-lg text-slate-300 focus:outline-none focus:border-emerald-500/50 transition-all font-semibold cursor-pointer">
+                    <option value="">All Statuses</option>
+                    <option value="active" {% if status == 'active' %}selected{% endif %}>Active Users</option>
+                    <option value="suspended" {% if status == 'suspended' %}selected{% endif %}>Suspended Users</option>
+                    <option value="frozen" {% if status == 'frozen' %}selected{% endif %}>Frozen Wallets</option>
+                </select>
+            </div>
+
+            <!-- Filter buttons -->
+            <div class="flex gap-2">
+                <button type="submit" class="px-4 py-2 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors">
+                    Apply Filter
+                </button>
+                {% if q or status %}
+                <a href="{% url 'admin_panel:users' %}" class="px-4 py-2 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 hover:text-white border border-white/[0.04] transition-colors">
+                    Reset
+                </a>
+                {% endif %}
+            </div>
+        </form>
+
+        <!-- CSV Export Button -->
+        <div>
+            <a href="{% url 'admin_panel:export_users_csv' %}?q={{ q }}&status={{ status }}" class="px-4 py-2 rounded-lg text-xs font-bold bg-slate-800 text-white border border-white/[0.06] hover:bg-slate-700 hover:border-white/[0.1] transition-all flex items-center gap-2">
+                <i data-feather="download" class="w-3.5 h-3.5"></i>
+                Export CSV
+            </a>
+        </div>
+    </div>
+
+    <!-- Users Table Container -->
+    <div class="admin-card overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full border-collapse text-left">
+                <thead>
+                    <tr class="border-b border-white/[0.06] bg-white/[0.01] text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                        <th class="py-4 px-6">
+                            <a href="?q={{ q }}&status={{ status }}&sort=name&dir={% if sort == 'name' and dir == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center gap-1 hover:text-white transition-colors">
+                                Name
+                                <i data-feather="chevron-{% if sort == 'name' and dir == 'asc' %}up{% else %}down{% endif %}" class="w-3 h-3"></i>
+                            </a>
+                        </th>
+                        <th class="py-4 px-6">
+                            <a href="?q={{ q }}&status={{ status }}&sort=email&dir={% if sort == 'email' and dir == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center gap-1 hover:text-white transition-colors">
+                                Email
+                                <i data-feather="chevron-{% if sort == 'email' and dir == 'asc' %}up{% else %}down{% endif %}" class="w-3 h-3"></i>
+                            </a>
+                        </th>
+                        <th class="py-4 px-6">
+                            <a href="?q={{ q }}&status={{ status }}&sort=phone&dir={% if sort == 'phone' and dir == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center gap-1 hover:text-white transition-colors">
+                                Phone
+                                <i data-feather="chevron-{% if sort == 'phone' and dir == 'asc' %}up{% else %}down{% endif %}" class="w-3 h-3"></i>
+                            </a>
+                        </th>
+                        <th class="py-4 px-6">
+                            <a href="?q={{ q }}&status={{ status }}&sort=balance&dir={% if sort == 'balance' and dir == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center gap-1 hover:text-white transition-colors">
+                                Wallet Balance
+                                <i data-feather="chevron-{% if sort == 'balance' and dir == 'asc' %}up{% else %}down{% endif %}" class="w-3 h-3"></i>
+                            </a>
+                        </th>
+                        <th class="py-4 px-6">Status</th>
+                        <th class="py-4 px-6">
+                            <a href="?q={{ q }}&status={{ status }}&sort=date_joined&dir={% if sort == 'date_joined' and dir == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center gap-1 hover:text-white transition-colors">
+                                Registered
+                                <i data-feather="chevron-{% if sort == 'date_joined' and dir == 'asc' %}up{% else %}down{% endif %}" class="w-3 h-3"></i>
+                            </a>
+                        </th>
+                        <th class="py-4 px-6 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/[0.04] text-sm font-medium">
+                    {% for user in page_obj %}
+                    <tr class="hover:bg-white/[0.02] transition-colors">
+                        <td class="py-4 px-6 text-white font-bold">{{ user.full_name }}</td>
+                        <td class="py-4 px-6 text-slate-300 font-mono text-xs">{{ user.email }}</td>
+                        <td class="py-4 px-6 text-slate-300 font-mono text-xs">{{ user.phone_number }}</td>
+                        <td class="py-4 px-6 text-white font-mono font-bold">₦{{ user.wallet.balance|floatformat:2 }}</td>
+                        <td class="py-4 px-6">
+                            <div class="flex flex-col gap-1">
+                                <!-- Account suspension status -->
+                                {% if user.is_active %}
+                                    <span class="inline-flex items-center w-fit px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-900/30 uppercase">Active</span>
+                                {% else %}
+                                    <span class="inline-flex items-center w-fit px-2 py-0.5 rounded text-[10px] font-bold bg-red-950 text-red-400 border border-red-900/30 uppercase">Suspended</span>
+                                {% endif %}
+                                <!-- Wallet Freeze Status -->
+                                {% if user.wallet.is_frozen %}
+                                    <span class="inline-flex items-center w-fit px-2 py-0.5 rounded text-[10px] font-bold bg-amber-950 text-amber-400 border border-amber-900/30 uppercase">Wallet Frozen</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="py-4 px-6 text-slate-400 text-xs">{{ user.date_joined|date:"Y-m-d H:i" }}</td>
+                        <td class="py-4 px-6 text-right">
+                            <a href="{% url 'admin_panel:user_detail' user.id %}" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-emerald-400 border border-white/[0.04] hover:bg-slate-700 transition-colors inline-flex items-center gap-1">
+                                <i data-feather="edit-2" class="w-3 h-3"></i>
+                                Manage
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="py-8 text-center text-slate-500 font-semibold">
+                            No users matching filter criteria found.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination Footer -->
+        {% if page_obj.has_other_pages %}
+        <div class="px-6 py-4 border-t border-white/[0.06] flex items-center justify-between text-xs text-slate-400 bg-white/[0.01]">
+            <span>Showing page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+            <div class="flex gap-1.5">
+                {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}&q={{ q }}&status={{ status }}&sort={{ sort }}&dir={{ dir }}" class="px-3 py-1.5 rounded border border-white/[0.04] bg-slate-900 hover:text-white transition-colors no-underline">Previous</a>
+                {% endif %}
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}&q={{ q }}&status={{ status }}&sort={{ sort }}&dir={{ dir }}" class="px-3 py-1.5 rounded border border-white/[0.04] bg-slate-900 hover:text-white transition-colors no-underline">Next</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -343,34 +343,91 @@ def sync_vtu_plans():
 @shared_task
 def check_api_wallet_balance():
     """
-    Every 2 hours, check the pre-funded Naira wallet balance on Sabuss.
-    Alert admin if balance drops below ₦10,000.
+    Every 2 hours, checks CheapDataHub (Naira) and JAP (USD) balances against AlertConfig thresholds.
+    Dispatches admin alert email if limits are breached.
     """
-    logger.info("Checking VTU Sabuss API wallet balance...")
-    api_key = getattr(settings, "SABUSS_API_KEY", "")
-    pin = getattr(settings, "SABUSS_PIN", "")
-    base_url = getattr(settings, "SABUSS_BASE_URL", "https://sabuss.com")
+    logger.info("Running scheduled API wallet balance verification task...")
     
-    if not api_key:
-        logger.warning("Sabuss API Key is not set. Skipping balance warning check.")
+    from apps.admin_panel.models import AlertConfig
+    from apps.admin_panel.utils import syslog
+    from django.core.mail import send_mail
+    
+    alert_config = AlertConfig.objects.first()
+    if not alert_config:
+        logger.warning("AlertConfig not found. Skipping balance verification checks.")
         return
 
-    url = f"{base_url}/vtu/api/balance/{api_key}"
+    # 1. Fetch CheapDataHub Naira balance
+    cdh_balance = Decimal("0.00")
     try:
-        response = requests.post(url, data={'pin': pin}, timeout=15)
-        if response.status_code == 200:
-            response_data = response.json()
-            if str(response_data.get("code")) == "200":
-                balance = Decimal(str(response_data.get("balance", "0")))
-                logger.info("Sabuss balance check: ₦%s", balance)
-                if balance < 10000:
-                    logger.error("URGENT: Sabuss API wallet balance low: ₦%s. Please top up immediately.", balance)
-            else:
-                logger.error("Failed to check Sabuss API balance: %s", response_data.get("response"))
-        else:
-            logger.error("Failed to check Sabuss API balance: HTTP %s", response.status_code)
+        # Try Sabuss balance first as per tasks.py
+        api_key = getattr(settings, "SABUSS_API_KEY", "")
+        pin = getattr(settings, "SABUSS_PIN", "")
+        base_url = getattr(settings, "SABUSS_BASE_URL", "https://sabuss.com")
+        if api_key:
+            response = requests.post(f"{base_url}/vtu/api/balance/{api_key}", data={'pin': pin}, timeout=15)
+            if response.status_code == 200:
+                data = response.json()
+                if str(data.get("code")) == "200":
+                    cdh_balance = Decimal(str(data.get("balance", "0")))
+        
+        # If not Sabuss, try CheapDataHub reseller endpoint
+        if cdh_balance == 0 and getattr(settings, "CHEAPDATAHUB_API_KEY", ""):
+            r = requests.get(
+                f"{settings.CHEAPDATAHUB_BASE_URL}/balance/",
+                headers={"Authorization": f"Token {settings.CHEAPDATAHUB_API_KEY}"},
+                timeout=15
+            )
+            if r.status_code == 200:
+                cdh_balance = Decimal(str(r.json()['balance']))
     except Exception as e:
-        logger.error("Failed to check Sabuss API wallet balance: %s", str(e))
+        logger.error("Error fetching CheapDataHub balance: %s", str(e))
+
+    # 2. Fetch JAP USD balance
+    jap_balance_usd = Decimal("0.00")
+    try:
+        if getattr(settings, "JAP_API_KEY", ""):
+            r = requests.post(settings.JAP_API_URL, data={
+                "key": settings.JAP_API_KEY, "action": "balance"
+            }, timeout=15)
+            if r.status_code == 200:
+                jap_balance_usd = Decimal(str(r.json()['balance']))
+    except Exception as e:
+        logger.error("Error fetching JAP balance: %s", str(e))
+
+    logger.info("Balances retrieved — CheapDataHub: ₦%s, JAP: $%s", cdh_balance, jap_balance_usd)
+
+    # 3. Check thresholds and alert
+    alert_messages = []
+    
+    # CheapDataHub
+    if cdh_balance <= alert_config.cdh_critical_threshold:
+        alert_messages.append(f"CRITICAL: CheapDataHub balance has dropped to ₦{cdh_balance:,.2f} (Threshold: ₦{alert_config.cdh_critical_threshold:,.2f})!")
+        syslog("ERROR", "VTU", f"CheapDataHub balance CRITICAL: ₦{cdh_balance:,.2f}")
+    elif cdh_balance <= alert_config.cdh_warning_threshold:
+        alert_messages.append(f"WARNING: CheapDataHub balance is low at ₦{cdh_balance:,.2f} (Threshold: ₦{alert_config.cdh_warning_threshold:,.2f})")
+        syslog("WARNING", "VTU", f"CheapDataHub balance low: ₦{cdh_balance:,.2f}")
+        
+    # JAP
+    if jap_balance_usd <= alert_config.jap_critical_threshold:
+        alert_messages.append(f"CRITICAL: JAP SMM balance has dropped to ${jap_balance_usd:.2f} (Threshold: ${alert_config.jap_critical_threshold:.2f})!")
+        syslog("ERROR", "SMM", f"JAP balance CRITICAL: ${jap_balance_usd:.2f}")
+    elif jap_balance_usd <= alert_config.jap_warning_threshold:
+        alert_messages.append(f"WARNING: JAP SMM balance is low at ${jap_balance_usd:.2f} (Threshold: ${alert_config.jap_warning_threshold:.2f})")
+        syslog("WARNING", "SMM", f"JAP balance low: ${jap_balance_usd:.2f}")
+
+    if alert_messages:
+        try:
+            send_mail(
+                subject="SubHero HQ — API Wallet Low Balance Alert",
+                message="\n".join(alert_messages) + "\n\nPlease fund the provider wallets immediately to prevent system downtime.",
+                from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@subhero.ng"),
+                recipient_list=[alert_config.alert_email],
+                fail_silently=False
+            )
+            logger.info("Sent balance alert notification email to %s", alert_config.alert_email)
+        except Exception as e:
+            logger.error("Failed to send balance alert email: %s", str(e))
 
 
 

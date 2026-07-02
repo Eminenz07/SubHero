@@ -43,6 +43,9 @@ urlpatterns = [
 
     # Notifications (Phase 3)
     path("notifications/", include("apps.notifications.urls", namespace="notifications")),
+
+    # Admin Panel (HQ) — configurable via .env (PRD Section 3.1)
+    path(settings.ADMIN_HQ_URL, include("apps.admin_panel.urls", namespace="admin_panel")),
 ]
 
 # Debug toolbar — dev only

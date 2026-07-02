@@ -1,0 +1,105 @@
+{% extends "admin_panel/base_admin.html" %}
+{% load static %}
+
+{% block title %}System Settings — SubHero HQ{% endblock %}
+
+{% block header_title %}System Settings{% endblock %}
+
+{% block header_subtitle %}
+<span class="text-xs text-slate-400 font-mono ml-2">Global system toggle switches & security whitelist</span>
+{% endblock %}
+
+{% block admin_content %}
+<div class="max-w-3xl">
+    <div class="admin-card p-8">
+        <h3 class="text-lg font-bold text-white mb-6 uppercase tracking-wider border-b border-white/[0.06] pb-2">Global Settings Form</h3>
+        
+        <form action="{% url 'admin_panel:settings' %}" method="POST" class="space-y-6 text-sm font-semibold">
+            {% csrf_token %}
+            
+            <!-- Whitelist IPs -->
+            <div class="space-y-2">
+                <label class="block text-xs font-semibold text-slate-400 uppercase">Admin IP Whitelist (comma-separated)</label>
+                <textarea name="admin_ip_whitelist" rows="3" placeholder="e.g. 127.0.0.1, 192.168.1.1, ::1" class="w-full px-4 py-3 text-xs bg-slate-900 border border-white/[0.06] rounded-lg text-white font-mono placeholder-slate-600 focus:outline-none focus:border-emerald-500/50 transition-all leading-relaxed">{{ settings.admin_ip_whitelist }}</textarea>
+                <p class="text-[10px] text-slate-500 leading-normal">Only these IP addresses will be allowed access to SubHero HQ views. Leave completely empty to allow access from any IP address (Not recommended in production).</p>
+            </div>
+
+            <hr class="border-white/[0.06]">
+
+            <!-- Toggles (Maintenance & Registrations) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Maintenance Mode -->
+                <div class="p-4 rounded-xl bg-slate-900/40 border border-white/[0.04] flex items-center justify-between">
+                    <div>
+                        <label class="block text-xs font-bold text-white uppercase">Maintenance Mode</label>
+                        <p class="text-[10px] text-slate-400 mt-1 leading-normal max-w-[200px]">Redirects all standard user traffic to the upgrade page.</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" name="maintenance_mode" {% if settings.maintenance_mode %}checked{% endif %} class="sr-only peer">
+                        <div class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-400 after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600 peer-checked:after:bg-white"></div>
+                    </label>
+                </div>
+
+                <!-- Disable registrations -->
+                <div class="p-4 rounded-xl bg-slate-900/40 border border-white/[0.04] flex items-center justify-between">
+                    <div>
+                        <label class="block text-xs font-bold text-white uppercase">Disable New Signups</label>
+                        <p class="text-[10px] text-slate-400 mt-1 leading-normal max-w-[200px]">Blocks new visitor accounts creation on the registration page.</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" name="disable_registrations" {% if settings.disable_registrations %}checked{% endif %} class="sr-only peer">
+                        <div class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-400 after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600 peer-checked:after:bg-white"></div>
+                    </label>
+                </div>
+            </div>
+
+            <hr class="border-white/[0.06]">
+
+            <!-- Max Limits Configuration -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Max VTU -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 uppercase mb-2">Max Single VTU Order Amount (₦)</label>
+                    <input type="number" step="0.01" name="max_vtu_amount" value="{{ settings.max_vtu_amount }}" required class="w-full px-3 py-2 text-xs bg-slate-900 border border-white/[0.06] rounded-lg text-white font-mono">
+                </div>
+
+                <!-- Max P2P -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 uppercase mb-2">Max Single P2P Transfer Amount (₦)</label>
+                    <input type="number" step="0.01" name="max_p2p_amount" value="{{ settings.max_p2p_amount }}" required class="w-full px-3 py-2 text-xs bg-slate-900 border border-white/[0.06] rounded-lg text-white font-mono">
+                </div>
+            </div>
+
+            <hr class="border-white/[0.06]">
+
+            <!-- Alert Configuration (Unified inside settings as well) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Alert email -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 uppercase mb-2">Alert Config Email</label>
+                    <input type="email" name="alert_email" value="{{ alert_config.alert_email }}" required class="w-full px-3 py-2 text-xs bg-slate-900 border border-white/[0.06] rounded-lg text-white">
+                </div>
+
+                <!-- USD exchange rate -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 uppercase mb-2">JAP exchange conversion rate (₦)</label>
+                    <input type="number" step="0.01" name="usd_ngn_rate" value="{{ alert_config.usd_ngn_rate }}" required class="w-full px-3 py-2 text-xs bg-slate-900 border border-white/[0.06] rounded-lg text-white font-mono">
+                </div>
+            </div>
+
+            <hr class="border-white/[0.06]">
+
+            <!-- Form Actions -->
+            <div class="flex justify-end gap-3 pt-4">
+                <a href="{% url 'admin_panel:dashboard' %}" class="px-5 py-2.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 hover:text-white border border-white/[0.04] transition-colors no-underline">
+                    Cancel
+                </a>
+                <button type="submit" class="px-5 py-2.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors">
+                    Save Configuration Settings
+                </button>
+            </div>
+
+        </form>
+    </div>
+</div>
+{% endblock %}

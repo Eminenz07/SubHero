@@ -16,6 +16,16 @@ class SMMService(models.Model):
     provider_max = models.IntegerField(default=0)
     provider_rate = models.DecimalField(max_digits=10, decimal_places=4, help_text="JAP rate per 1k")
     subhero_price_per_1k = models.DecimalField(max_digits=10, decimal_places=2, help_text="SubHero rate per 1k charged to users")
+    markup_type = models.CharField(
+        max_length=10,
+        choices=[("percent", "Percentage"), ("fixed", "Fixed")],
+        default="fixed"
+    )
+    markup_value = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0.00
+    )
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
