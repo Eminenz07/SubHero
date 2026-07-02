@@ -532,19 +532,18 @@ def vtu_pricing_bulk_update(request):
         if plan_type != "all":
             plans = plans.filter(plan_type=plan_type)
             
-        updated = 0
-        with transaction.atomic():
-            for plan in plans:
-                cost = plan.provider_price
-                if markup_type == "percent":
-                    sell = cost * (1 + markup_value / 100)
-                else:
-                    sell = cost + markup_value
-                plan.markup_type = markup_type
-                plan.markup_value = markup_value
-                plan.subhero_price = sell
-                plan.save()
-                updated += 1
+        if markup_type == "percent":
+            updated = plans.update(
+                markup_type=markup_type,
+                markup_value=markup_value,
+                subhero_price=F('provider_price') * (Decimal('1') + markup_value / Decimal('100'))
+            )
+        else:
+            updated = plans.update(
+                markup_type=markup_type,
+                markup_value=markup_value,
+                subhero_price=F('provider_price') + markup_value
+            )
                 
         detail = f"Bulk pricing update for network={network} (type={plan_type}): {updated} plans updated to markup={markup_value} ({markup_type})"
         log_admin_action(request.user, "PRICING_BULK_UPDATE", "VTU_PLAN", f"NETWORK:{network}", detail, request)
@@ -665,19 +664,20 @@ def smm_pricing_bulk_update(request):
         usd_rate = alert_config.usd_ngn_rate if alert_config else Decimal("1600.00")
         
         services = SMMService.objects.filter(category=category)
-        updated = 0
-        with transaction.atomic():
-            for service in services:
-                cost_ngn = service.provider_rate * usd_rate
-                if markup_type == "percent":
-                    sell = cost_ngn * (1 + markup_value / 100)
-                else:
-                    sell = cost_ngn + markup_value
-                service.markup_type = markup_type
-                service.markup_value = markup_value
-                service.subhero_price_per_1k = sell
-                service.save()
-                updated += 1
+        
+        if markup_type == "percent":
+            multiplier = usd_rate * (Decimal("1") + markup_value / Decimal("100"))
+            updated = services.update(
+                markup_type=markup_type,
+                markup_value=markup_value,
+                subhero_price_per_1k=F('provider_rate') * multiplier
+            )
+        else:
+            updated = services.update(
+                markup_type=markup_type,
+                markup_value=markup_value,
+                subhero_price_per_1k=F('provider_rate') * usd_rate + markup_value
+            )
                 
         detail = f"Bulk SMM pricing update for category={category}: {updated} services updated to markup={markup_value} ({markup_type})"
         log_admin_action(request.user, "PRICING_BULK_UPDATE", "SMM_SERVICE", f"CATEGORY:{category}", detail, request)
@@ -1169,11 +1169,9 @@ def system_settings(request):
                 changes.append(f"vtu_profit_margin: '{old_margin_pct}%' -> '{vtu_margin_pct}%'")
                 
                 margin = vtu_margin_pct / Decimal("100")
-                plans_updated = 0
-                for p in VTUPlan.objects.filter(markup_value=0):
-                    p.subhero_price = (p.provider_price * (Decimal("1") + margin)).quantize(Decimal("0.01"))
-                    p.save()
-                    plans_updated += 1
+                plans_updated = VTUPlan.objects.filter(markup_value=0).update(
+                    subhero_price=F('provider_price') * (Decimal('1') + margin)
+                )
                 changes.append(f"Recalculated {plans_updated} VTU plan prices based on new margin")
 
             # Update SMM profit margin and recalculate default services (markup_value == 0)
@@ -1190,13 +1188,11 @@ def system_settings(request):
             
             if smm_setting_changed or old_rate != new_rate:
                 smm_margin = smm_margin_pct / Decimal("100")
-                rate_to_use = new_rate
-                services_updated = 0
-                for s in SMMService.objects.filter(markup_value=0):
-                    provider_rate_naira = s.provider_rate * rate_to_use
-                    s.subhero_price_per_1k = (provider_rate_naira * (Decimal("1") + smm_margin)).quantize(Decimal("0.01"))
-                    s.save()
-                    services_updated += 1
+                rate_to_use = Decimal(str(new_rate))
+                multiplier = rate_to_use * (Decimal("1") + smm_margin)
+                services_updated = SMMService.objects.filter(markup_value=0).update(
+                    subhero_price_per_1k=F('provider_rate') * multiplier
+                )
                 changes.append(f"Recalculated {services_updated} SMM service prices based on new margin/rate")
                 
         if changes:
