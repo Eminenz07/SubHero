@@ -1111,7 +1111,7 @@ def system_settings(request):
                 if old_val != new_val:
                     SystemSetting.set(key, new_val)
                     changes.append(f"{key}: '{old_val}' -> '{new_val}'")
-                    
+            
             # Update alert email and rate inline
             old_email = alert_config.alert_email
             new_email = request.POST.get("alert_email", "").strip()
@@ -1129,6 +1129,48 @@ def system_settings(request):
                 alert_config.save()
                 changes.append(f"alert_email: '{old_email}' -> '{new_email}'")
                 changes.append(f"usd_ngn_rate: '{old_rate}' -> '{new_rate}'")
+
+            # Update VTU profit margin and recalculate default plans (markup_value == 0)
+            vtu_margin_pct_str = request.POST.get("vtu_profit_margin", "10.00").strip()
+            try:
+                vtu_margin_pct = Decimal(vtu_margin_pct_str)
+            except InvalidOperation:
+                vtu_margin_pct = Decimal("10.00")
+            old_margin_pct = Decimal(SystemSetting.get("vtu_profit_margin", "10.00"))
+            if old_margin_pct != vtu_margin_pct:
+                SystemSetting.set("vtu_profit_margin", str(vtu_margin_pct))
+                changes.append(f"vtu_profit_margin: '{old_margin_pct}%' -> '{vtu_margin_pct}%'")
+                
+                margin = vtu_margin_pct / Decimal("100")
+                plans_updated = 0
+                for p in VTUPlan.objects.filter(markup_value=0):
+                    p.subhero_price = (p.provider_price * (Decimal("1") + margin)).quantize(Decimal("0.01"))
+                    p.save()
+                    plans_updated += 1
+                changes.append(f"Recalculated {plans_updated} VTU plan prices based on new margin")
+
+            # Update SMM profit margin and recalculate default services (markup_value == 0)
+            smm_margin_pct_str = request.POST.get("smm_profit_margin", "50.00").strip()
+            try:
+                smm_margin_pct = Decimal(smm_margin_pct_str)
+            except InvalidOperation:
+                smm_margin_pct = Decimal("50.00")
+            old_smm_margin_pct = Decimal(SystemSetting.get("smm_profit_margin", "50.00"))
+            smm_setting_changed = old_smm_margin_pct != smm_margin_pct
+            if smm_setting_changed:
+                SystemSetting.set("smm_profit_margin", str(smm_margin_pct))
+                changes.append(f"smm_profit_margin: '{old_smm_margin_pct}%' -> '{smm_margin_pct}%'")
+            
+            if smm_setting_changed or old_rate != new_rate:
+                smm_margin = smm_margin_pct / Decimal("100")
+                rate_to_use = new_rate
+                services_updated = 0
+                for s in SMMService.objects.filter(markup_value=0):
+                    provider_rate_naira = s.provider_rate * rate_to_use
+                    s.subhero_price_per_1k = (provider_rate_naira * (Decimal("1") + smm_margin)).quantize(Decimal("0.01"))
+                    s.save()
+                    services_updated += 1
+                changes.append(f"Recalculated {services_updated} SMM service prices based on new margin/rate")
                 
         if changes:
             detail = f"Updated system settings: {', '.join(changes)}"
@@ -1142,6 +1184,8 @@ def system_settings(request):
         "disable_registrations": SystemSetting.get("disable_registrations", "False") == "True",
         "max_vtu_amount": SystemSetting.get("max_vtu_amount", "10000.00"),
         "max_p2p_amount": SystemSetting.get("max_p2p_amount", "50000.00"),
+        "vtu_profit_margin": SystemSetting.get("vtu_profit_margin", "10.00"),
+        "smm_profit_margin": SystemSetting.get("smm_profit_margin", "50.00"),
     }
     
     context = {

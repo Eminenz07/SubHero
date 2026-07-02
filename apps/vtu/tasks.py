@@ -240,7 +240,13 @@ def sync_vtu_plans():
     api_key = getattr(settings, "SABUSS_API_KEY", "")
     pin = getattr(settings, "SABUSS_PIN", "")
     base_url = getattr(settings, "SABUSS_BASE_URL", "https://sabuss.com")
-    margin = Decimal(str(getattr(settings, "SABUSS_PROFIT_MARGIN", "0.10")))
+    
+    from apps.admin_panel.models import SystemSetting
+    try:
+        vtu_margin_pct = Decimal(SystemSetting.get("vtu_profit_margin", "10.00"))
+    except Exception:
+        vtu_margin_pct = Decimal("10.00")
+    margin = vtu_margin_pct / Decimal("100")
     
     if not api_key:
         logger.warning("Sabuss API Key is not set. Skipping plan synchronization.")

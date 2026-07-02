@@ -342,9 +342,16 @@ def sync_smm_catalogue():
             {"service": "6001", "name": "Spotify Playlist Followers", "category": "spotify", "min": "100", "max": "20000", "rate": Decimal("0.40")},
             {"service": "6002", "name": "Spotify Song Plays (Premium)", "category": "spotify", "min": "100", "max": "50000", "rate": Decimal("0.30")},
         ]
+        from apps.admin_panel.models import SystemSetting
+        try:
+            smm_margin_pct = Decimal(SystemSetting.get("smm_profit_margin", "50.00"))
+        except Exception:
+            smm_margin_pct = Decimal("50.00")
+        smm_margin = smm_margin_pct / Decimal("100")
+
         for s in pre_populated:
             # For mock data, rate is already normalized in Naira.
-            markup_price = s["rate"] * Decimal("1.50")
+            markup_price = s["rate"] * (Decimal("1") + smm_margin)
             SMMService.objects.update_or_create(
                 provider_service_id=s["service"],
                 defaults={
@@ -390,10 +397,21 @@ def sync_smm_catalogue():
                 continue
 
             rate_usd = Decimal(str(s["rate"]))
-            # USD to Naira exchange rate (e.g. ₦1600 per USD)
-            provider_rate_naira = rate_usd * Decimal("1600.00")
-            # Apply 50% profit markup
-            subhero_price = provider_rate_naira * Decimal("1.50")
+            
+            # Dynamic USD to Naira exchange rate
+            from apps.admin_panel.models import AlertConfig, SystemSetting
+            alert_config = AlertConfig.objects.first()
+            usd_rate = alert_config.usd_ngn_rate if alert_config else Decimal("1600.00")
+            provider_rate_naira = rate_usd * usd_rate
+            
+            # Dynamic SMM profit markup
+            try:
+                smm_margin_pct = Decimal(SystemSetting.get("smm_profit_margin", "50.00"))
+            except Exception:
+                smm_margin_pct = Decimal("50.00")
+            smm_margin = smm_margin_pct / Decimal("100")
+            
+            subhero_price = provider_rate_naira * (Decimal("1") + smm_margin)
 
             SMMService.objects.update_or_create(
                 provider_service_id=str(s["service"]),
