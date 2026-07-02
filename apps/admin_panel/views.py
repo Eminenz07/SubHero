@@ -449,7 +449,10 @@ def vtu_pricing_manager(request):
     plans_by_network = {}
     
     for net in networks:
-        plans_by_network[net] = VTUPlan.objects.filter(network=net).order_by("plan_type", "provider_price")
+        plans = list(VTUPlan.objects.filter(network=net).order_by("plan_type", "provider_price"))
+        for p in plans:
+            p.estimated_profit = p.subhero_price - p.provider_price
+        plans_by_network[net] = plans
         
     airtime_settings = {}
     for net in networks:
@@ -459,11 +462,14 @@ def vtu_pricing_manager(request):
             "is_active": SystemSetting.get(f"{net}_airtime_is_active", "True") == "True"
         }
         
+    vtu_profit_margin = SystemSetting.get("vtu_profit_margin", "10.00")
+        
     context = {
         "active_nav": "vtu_pricing",
         "plans_by_network": plans_by_network,
         "airtime_settings": airtime_settings,
         "networks": networks,
+        "vtu_profit_margin": vtu_profit_margin,
     }
     return render(request, "admin_panel/vtu_pricing.html", context)
 
@@ -484,13 +490,20 @@ def vtu_pricing_save(request):
         plan = get_object_or_404(VTUPlan, id=plan_id)
         cost = plan.provider_price
         
-        if markup_type == "percent":
-            sell = cost * (1 + markup_value / 100)
+        # If markup_value is 0, revert to global profit margin
+        if markup_value == 0:
+            vtu_margin_pct = Decimal(SystemSetting.get("vtu_profit_margin", "10.00"))
+            sell = cost * (1 + vtu_margin_pct / 100)
+            plan.markup_type = "percent"
+            plan.markup_value = Decimal("0.00")
         else:
-            sell = cost + markup_value
+            if markup_type == "percent":
+                sell = cost * (1 + markup_value / 100)
+            else:
+                sell = cost + markup_value
+            plan.markup_type = markup_type
+            plan.markup_value = markup_value
             
-        plan.markup_type = markup_type
-        plan.markup_value = markup_value
         plan.subhero_price = sell
         plan.is_active = is_active
         plan.save()
@@ -574,13 +587,20 @@ def smm_pricing_manager(request):
     
     services_by_cat = {}
     for cat in categories:
-        services_by_cat[cat] = SMMService.objects.filter(category=cat).order_by("provider_rate")
+        services = list(SMMService.objects.filter(category=cat).order_by("provider_rate"))
+        for s in services:
+            cost_ngn = s.provider_rate * usd_rate
+            s.estimated_profit = s.subhero_price_per_1k - cost_ngn
+        services_by_cat[cat] = services
+        
+    smm_profit_margin = SystemSetting.get("smm_profit_margin", "50.00")
         
     context = {
         "active_nav": "smm_pricing",
         "alert_config": alert_config,
         "services_by_cat": services_by_cat,
         "usd_rate": usd_rate,
+        "smm_profit_margin": smm_profit_margin,
     }
     return render(request, "admin_panel/smm_pricing.html", context)
 
@@ -604,13 +624,20 @@ def smm_pricing_save(request):
         service = get_object_or_404(SMMService, id=service_id)
         cost_ngn = service.provider_rate * usd_rate
         
-        if markup_type == "percent":
-            sell = cost_ngn * (1 + markup_value / 100)
+        # If markup_value is 0, revert to global profit margin
+        if markup_value == 0:
+            smm_margin_pct = Decimal(SystemSetting.get("smm_profit_margin", "50.00"))
+            sell = cost_ngn * (1 + smm_margin_pct / 100)
+            service.markup_type = "percent"
+            service.markup_value = Decimal("0.00")
         else:
-            sell = cost_ngn + markup_value
+            if markup_type == "percent":
+                sell = cost_ngn * (1 + markup_value / 100)
+            else:
+                sell = cost_ngn + markup_value
+            service.markup_type = markup_type
+            service.markup_value = markup_value
             
-        service.markup_type = markup_type
-        service.markup_value = markup_value
         service.subhero_price_per_1k = sell
         service.is_active = is_active
         service.save()
