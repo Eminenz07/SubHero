@@ -135,44 +135,56 @@
 
 {% block extra_js %}
 <script>
-    let eventSource = null;
+    let logPollInterval = null;
+    let lastLogId = 0;
 
     document.addEventListener("DOMContentLoaded", function() {
-        startSseStream();
+        startLogPolling();
     });
 
-    function startSseStream() {
-        const terminal = document.getElementById('log-terminal');
-        
-        eventSource = new EventSource('{% url "admin_panel:log_stream" %}');
-        
-        eventSource.onmessage = function(event) {
-            const data = JSON.parse(event.data);
+    function startLogPolling() {
+        fetchLogs();
+        logPollInterval = setInterval(fetchLogs, 1500);
+    }
+
+    async function fetchLogs() {
+        try {
+            const response = await fetch(`{% url "admin_panel:log_stream" %}?last_id=${lastLogId}`);
+            if (!response.ok) return;
+            const data = await response.json();
             
-            // Format log item
-            let lvlClass = 'text-slate-400';
-            if (data.level === 'ERROR') {
-                lvlClass = 'text-red-400 font-bold';
-            } else if (data.level === 'WARNING') {
-                lvlClass = 'text-yellow-400 font-bold';
+            if (lastLogId === 0) {
+                lastLogId = data.last_id;
+                return;
             }
             
-            const logRow = document.createElement('div');
-            logRow.className = 'border-b border-white/[0.02] pb-1';
-            logRow.innerHTML = `
-                <span class="text-slate-500">[${data.time}]</span>
-                <span class="${lvlClass}">[${data.level}]</span>
-                <span class="text-emerald-400 font-bold">[${data.category}]</span>
-                <span class="text-slate-300 font-medium">${data.message}</span>
-            `;
-            
-            terminal.appendChild(logRow);
-            terminal.scrollTop = terminal.scrollHeight;
-        };
-
-        eventSource.onerror = function() {
-            console.log("SSE Connection closed or errored. Retrying...");
-        };
+            if (data.logs && data.logs.length > 0) {
+                const terminal = document.getElementById('log-terminal');
+                data.logs.forEach(log => {
+                    let lvlClass = 'text-slate-400';
+                    if (log.level === 'ERROR') {
+                        lvlClass = 'text-red-400 font-bold';
+                    } else if (log.level === 'WARNING') {
+                        lvlClass = 'text-yellow-400 font-bold';
+                    }
+                    
+                    const logRow = document.createElement('div');
+                    logRow.className = 'border-b border-white/[0.02] pb-1';
+                    logRow.innerHTML = `
+                        <span class="text-slate-500">[${log.time}]</span>
+                        <span class="${lvlClass}">[${log.level}]</span>
+                        <span class="text-emerald-400 font-bold">[${log.category}]</span>
+                        <span class="text-slate-300 font-medium">${log.message}</span>
+                    `;
+                    
+                    terminal.appendChild(logRow);
+                });
+                terminal.scrollTop = terminal.scrollHeight;
+                lastLogId = data.last_id;
+            }
+        } catch (e) {
+            console.error("Log polling error:", e);
+        }
     }
 
     function clearTerminal() {
@@ -180,10 +192,9 @@
         terminal.innerHTML = '<div class="text-slate-500 font-bold">// Terminal cleared. Listening...</div>';
     }
 
-    // Ensure we close the event stream when navigating away
     window.addEventListener('beforeunload', function() {
-        if (eventSource) {
-            eventSource.close();
+        if (logPollInterval) {
+            clearInterval(logPollInterval);
         }
     });
 </script>

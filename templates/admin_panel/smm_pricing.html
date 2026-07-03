@@ -30,24 +30,54 @@
             <span class="text-[11px] text-slate-500 font-medium">All provider rates in USD are converted using this rate before markup calculations.</span>
         </form>
     </div>
-
-    <!-- SMM Categories Accordion / Tab System -->
+    
+    <!-- SMM Categories Accordion / Filter System -->
     <div class="space-y-6">
-        <h3 class="text-md font-bold text-white uppercase tracking-wider">Service Catalog Categories</h3>
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <h3 class="text-md font-bold text-white uppercase tracking-wider">Service Catalog</h3>
+            
+            <!-- Category and Search Filter Form -->
+            <form method="GET" class="flex flex-wrap items-center gap-3">
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-slate-400 font-semibold uppercase">Category:</span>
+                    <select name="category" onchange="this.form.submit()" class="px-3 py-1.5 text-xs bg-slate-900 border border-white/[0.06] rounded-lg text-slate-300 min-w-[200px] focus:outline-none focus:border-emerald-500">
+                        <option value="">-- All Categories --</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat }}" {% if cat == selected_category %}selected{% endif %}>{{ cat }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="flex items-center gap-2">
+                    <input type="text" name="q" value="{{ q }}" placeholder="Search service name or ID..." class="px-3 py-1.5 text-xs bg-slate-900 border border-white/[0.06] rounded-lg text-white w-56 focus:outline-none focus:border-emerald-500">
+                    <button type="submit" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-white transition-colors">
+                        Search
+                    </button>
+                    {% if q or selected_category %}
+                    <a href="{% url 'admin_panel:smm_pricing' %}" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800/50 hover:bg-slate-800 text-slate-400 transition-colors">
+                        Clear
+                    </a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
         
-        {% for cat, services in services_by_cat.items %}
+        {% if services %}
         <div class="admin-card overflow-hidden">
             <!-- Category Header -->
             <div class="px-6 py-4 bg-white/[0.01] border-b border-white/[0.05] flex items-center justify-between">
                 <div>
-                    <span class="text-sm font-bold text-white tracking-wide">{{ cat }}</span>
+                    <span class="text-sm font-bold text-white tracking-wide">
+                        {% if selected_category %}{{ selected_category }}{% else %}Filtered Results{% endif %}
+                    </span>
                     <span class="text-[10px] bg-slate-900 text-slate-400 font-mono px-2 py-0.5 rounded ml-2">{{ services|length }} Services</span>
                 </div>
                 
+                {% if selected_category %}
                 <!-- Quick Bulk Update Modal Trigger/Inline Form -->
                 <form action="{% url 'admin_panel:smm_pricing_bulk_update' %}" method="POST" class="flex items-center gap-3">
                     {% csrf_token %}
-                    <input type="hidden" name="category" value="{{ cat }}">
+                    <input type="hidden" name="category" value="{{ selected_category }}">
                     <span class="text-[10px] text-slate-400 font-semibold uppercase">Bulk Markup:</span>
                     
                     <select name="markup_type" class="px-2 py-1 text-[10px] bg-slate-900 border border-white/[0.06] rounded text-slate-300">
@@ -61,6 +91,7 @@
                         Apply
                     </button>
                 </form>
+                {% endif %}
             </div>
 
             <!-- Services Table -->
@@ -138,7 +169,11 @@
                 </table>
             </div>
         </div>
-        {% endfor %}
+        {% else %}
+        <div class="admin-card p-12 text-center text-slate-400 font-medium">
+            No SMM services found matching your selection. Select a category or search.
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

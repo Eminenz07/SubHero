@@ -582,22 +582,34 @@ def smm_pricing_manager(request):
         alert_config = AlertConfig.objects.create(alert_email="admin@subhero.ng")
         
     usd_rate = alert_config.usd_ngn_rate
-    categories = SMMService.objects.order_by("category").values_list("category", flat=True).distinct()
+    categories = list(SMMService.objects.order_by("category").values_list("category", flat=True).distinct())
     
-    services_by_cat = {}
-    for cat in categories:
-        services = list(SMMService.objects.filter(category=cat).order_by("provider_rate"))
-        for s in services:
-            cost_ngn = s.provider_rate * usd_rate
-            s.estimated_profit = s.subhero_price_per_1k - cost_ngn
-        services_by_cat[cat] = services
+    selected_category = request.GET.get("category", "").strip()
+    q = request.GET.get("q", "").strip()
+    
+    if not selected_category and not q and categories:
+        selected_category = categories[0]
+        
+    services_qs = SMMService.objects.all()
+    if selected_category:
+        services_qs = services_qs.filter(category=selected_category)
+    if q:
+        services_qs = services_qs.filter(Q(name__icontains=q) | Q(provider_service_id__icontains=q))
+        
+    services = list(services_qs.order_by("provider_rate"))
+    for s in services:
+        cost_ngn = s.provider_rate * usd_rate
+        s.estimated_profit = s.subhero_price_per_1k - cost_ngn
         
     smm_profit_margin = SystemSetting.get("smm_profit_margin", "50.00")
         
     context = {
         "active_nav": "smm_pricing",
         "alert_config": alert_config,
-        "services_by_cat": services_by_cat,
+        "categories": categories,
+        "selected_category": selected_category,
+        "services": services,
+        "q": q,
         "usd_rate": usd_rate,
         "smm_profit_margin": smm_profit_margin,
     }
@@ -1078,33 +1090,36 @@ def logs_console(request):
 @admin_required
 def log_stream(request):
     """
-    SSE Stream endpoint returning SystemLog events dynamically in real time.
+    JSON polling endpoint returning SystemLog events dynamically.
     """
-    def event_stream():
+    last_id = request.GET.get('last_id', 0)
+    try:
+        last_id = int(last_id)
+    except ValueError:
+        last_id = 0
+        
+    if last_id == 0:
         last_log = SystemLog.objects.order_by("-id").first()
         last_id = last_log.id if last_log else 0
+        return JsonResponse({"logs": [], "last_id": last_id})
         
-        while True:
-            new_logs = SystemLog.objects.filter(id__gt=last_id).order_by("id")[:20]
-            for log in new_logs:
-                last_id = log.id
-                data = json.dumps({
-                    "id": log.id,
-                    "level": log.level,
-                    "category": log.category,
-                    "message": log.message,
-                    "time": log.created_at.strftime("%H:%M:%S"),
-                })
-                yield f"data: {data}\n\n"
-            time.sleep(1.5)
-            
-    response = StreamingHttpResponse(
-        event_stream(),
-        content_type="text/event-stream"
-    )
-    response["Cache-Control"] = "no-cache"
-    response["X-Accel-Buffering"] = "no"
-    return response
+    new_logs = SystemLog.objects.filter(id__gt=last_id).order_by("id")[:20]
+    
+    logs_data = []
+    for log in new_logs:
+        last_id = log.id
+        logs_data.append({
+            "id": log.id,
+            "level": log.level,
+            "category": log.category,
+            "message": log.message,
+            "time": log.created_at.strftime("%H:%M:%S"),
+        })
+        
+    return JsonResponse({
+        "logs": logs_data,
+        "last_id": last_id
+    })
 
 
 # ─────────────────────────────────────────────────────────────
