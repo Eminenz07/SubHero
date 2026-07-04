@@ -36,7 +36,11 @@ def create_giveaway(request):
 
         if reward_type == 'DATA':
             plan_id = request.POST.get('plan_id')
-            plan = get_object_or_404(VTUPlan, plan_id=plan_id, network=network)
+            if not plan_id:
+                messages.error(request, "Please select a valid data plan.")
+                return redirect('giveaway:create')
+            plan = get_object_or_404(VTUPlan, plan_id=plan_id)
+            network = plan.network # Use the actual plan's network, not the user's potentially out-of-sync selection
             amount_per_slot = plan.subhero_price
         else:
             amount_per_slot = Decimal(request.POST.get('amount_per_slot', 0))
