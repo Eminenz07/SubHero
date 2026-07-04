@@ -60,7 +60,10 @@
 
         /* Desktop specific layout overrides (Tailwind JIT fallback) */
         @media (min-width: 768px) {
-            /* Removed sticky hack since we're returning to a locked viewport layout */
+            #admin-sidebar {
+                position: relative !important;
+                height: 100vh !important;
+            }
         }
     </style>
     {% block extra_head %}{% endblock %}
@@ -71,7 +74,7 @@
     <div id="sidebar-overlay" class="fixed inset-0 bg-black/60 z-40 hidden md:hidden backdrop-blur-sm transition-opacity" onclick="toggleSidebar()"></div>
 
     <!-- Sidebar Navigation -->
-    <aside id="admin-sidebar" class="fixed md:static inset-y-0 left-0 z-50 w-64 admin-sidebar flex flex-col shrink-0 h-full transition-transform duration-300 -translate-x-full md:translate-x-0">
+    <aside id="admin-sidebar" class="fixed inset-y-0 left-0 z-50 w-64 admin-sidebar flex flex-col shrink-0 h-full transition-transform duration-300 -translate-x-full md:translate-x-0">
         <!-- Logo and Header -->
         <div class="h-16 flex items-center px-6 border-b border-white/[0.06]">
             <a href="{% url 'admin_panel:dashboard' %}" class="text-lg font-extrabold tracking-tight text-white font-display no-underline hover:opacity-95 transition-all">
