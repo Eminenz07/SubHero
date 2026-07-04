@@ -221,29 +221,6 @@
             50% { transform: scaleX(0.8); }
             100% { transform: scaleX(1); opacity: 0; }
         }
-
-        .pwa-refresh-btn {
-            position: fixed;
-            bottom: 85px; /* Above bottom nav */
-            right: 20px;
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            background-color: rgba(13, 19, 33, 0.85);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: #94a3b8;
-            display: none; /* Only shown in standalone mode */
-            align-items: center;
-            justify-content: center;
-            z-index: 900;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            cursor: pointer;
-        }
-        .pwa-refresh-btn:active {
-            transform: scale(0.95);
-        }
     </style>
 </head>
 <body class="bg-slate-200 text-text-primary antialiased font-body flex justify-center items-start md:items-center min-h-[100dvh]" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
@@ -306,11 +283,6 @@
 
     <!-- PWA Top Loader -->
     <div id="pwa-global-loader" class="pwa-top-loader"></div>
-
-    <!-- PWA Floating Refresh Button -->
-    <button id="pwa-refresh-btn" class="pwa-refresh-btn" onclick="window.location.reload()">
-        <i data-feather="refresh-cw" class="w-5 h-5"></i>
-    </button>
 
     <!-- Ensure feather icons render -->
     <script>
@@ -392,14 +364,13 @@
                 deferredPrompt = null;
             });
 
-            // PWA Standalone features (Refresh button + click loader)
-            const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-            if (isStandalone) {
-                const refreshBtn = document.getElementById('pwa-refresh-btn');
-                if (refreshBtn) refreshBtn.style.display = 'flex';
-            }
-
             const pwaLoader = document.getElementById('pwa-global-loader');
+            
+            // Expose a global reload function that shows the loader
+            window.triggerAppReload = function() {
+                if(pwaLoader) pwaLoader.classList.add('loading');
+                window.location.reload();
+            };
             
             // Show loader on regular link clicks (if not opening in new tab or hash link)
             document.addEventListener('click', function(e) {
@@ -407,20 +378,20 @@
                 if (link && link.href && !link.href.startsWith('javascript:') && !link.href.startsWith('#') && link.target !== '_blank') {
                     // Only if it's pointing to our domain
                     if (link.hostname === window.location.hostname) {
-                        pwaLoader.classList.add('loading');
+                        if(pwaLoader) pwaLoader.classList.add('loading');
                     }
                 }
             });
 
             // Show loader on HTMX requests
             document.body.addEventListener('htmx:send', function() {
-                pwaLoader.classList.add('loading');
+                if(pwaLoader) pwaLoader.classList.add('loading');
             });
             document.body.addEventListener('htmx:afterOnLoad', function() {
-                setTimeout(() => pwaLoader.classList.remove('loading'), 300);
+                if(pwaLoader) setTimeout(() => pwaLoader.classList.remove('loading'), 300);
             });
             document.body.addEventListener('htmx:sendError', function() {
-                pwaLoader.classList.remove('loading');
+                if(pwaLoader) pwaLoader.classList.remove('loading');
             });
         });
     </script>

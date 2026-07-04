@@ -12,6 +12,9 @@
 
     <div class="flex items-center gap-2">
         {% block top_bar_actions %}
+        <button onclick="window.triggerAppReload && window.triggerAppReload()" class="top-bar-icon flex items-center justify-center text-text-secondary hover:text-brand-primary transition-colors mr-1" aria-label="Refresh Page">
+            <i data-feather="refresh-cw" class="w-4.5 h-4.5"></i>
+        </button>
         <a href="{% url 'notifications:list' %}" class="top-bar-icon relative flex items-center justify-center no-underline text-text-secondary" aria-label="Notifications">
             <i data-feather="bell" class="w-5 h-5"></i>
             {% if unread_notifications_count and unread_notifications_count > 0 %}
