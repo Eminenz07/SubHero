@@ -1,21 +1,33 @@
 import logging
+import requests
+import time
 from decimal import Decimal
 from celery import shared_task
 from django.db import transaction
 from django.db.models import F
+from django.conf import settings
 from django.utils.timezone import now
 from apps.giveaway.models import Giveaway, GiveawayClaim, GiveawayEscrow
 from apps.wallet.models import WalletTransaction
-from apps.vtu.services import CheapDataHubService
-from apps.notifications.services import send_notification
+from apps.notifications.models import Notification
 
 logger = logging.getLogger(__name__)
+
+def _format_phone(raw_phone: str) -> str:
+    if not raw_phone:
+        return ""
+    phone = str(raw_phone).replace("+", "").replace(" ", "").strip()
+    if phone.startswith("234"):
+        phone = "0" + phone[3:]
+    if len(phone) == 10 and not phone.startswith("0"):
+        phone = "0" + phone
+    return phone
 
 @shared_task
 def process_giveaway_claim(claim_id):
     """
     Processes a claimed slot: purchases data/airtime, marks claim success/failure.
-    Uses VTU/CheapDataHub APIs.
+    Uses Sabuss API.
     """
     try:
         claim = GiveawayClaim.objects.select_related('giveaway', 'giveaway__escrow').get(id=claim_id)
@@ -25,24 +37,53 @@ def process_giveaway_claim(claim_id):
 
     giveaway = claim.giveaway
     escrow = giveaway.escrow
-    service = CheapDataHubService()
-
-    try:
-        if giveaway.giveaway_type == 'DATA':
-            # Purchase data via VTUService or CheapDataHubService
-            success, provider_ref, _ = service.buy_data(
-                network=giveaway.network,
-                phone=claim.phone_number,
-                plan_id=giveaway.plan_id
-            )
-        else:
-            # Purchase airtime
-            success, provider_ref, _ = service.buy_airtime(
-                network=giveaway.network,
-                phone=claim.phone_number,
-                amount=giveaway.amount_per_slot
-            )
+    
+    api_key = getattr(settings, "SABUSS_API_KEY", "")
+    pin = getattr(settings, "SABUSS_PIN", "")
+    base_url = getattr(settings, "SABUSS_BASE_URL", "https://sabuss.com")
+    
+    success = False
+    provider_ref = ""
+    
+    if getattr(settings, "VTU_MOCK", False) or not api_key:
+        logger.info("Sabuss API Key is not set or mocked. Simulating VTU success.")
+        success = True
+        provider_ref = "MOCK-SABUSS-GWY"
+    else:
+        try:
+            if giveaway.giveaway_type == 'DATA':
+                url = f"{base_url}/vtu/api/buy/{api_key}"
+                payload = {
+                    "pin": pin,
+                    "plan_id": str(giveaway.plan_id),
+                    "phone": _format_phone(claim.phone_number),
+                    "reference": f"GWY_CLM_{claim.id}"
+                }
+            else:
+                url = f"{base_url}/vtu/api/airtime/{api_key}"
+                payload = {
+                    "pin": pin,
+                    "network": str(giveaway.network).lower(),
+                    "phone": _format_phone(claim.phone_number),
+                    "amount": str(giveaway.amount_per_slot),
+                    "reference": f"GWY_CLM_{claim.id}"
+                }
+                
+            response = requests.post(url, data=payload, timeout=25)
+            if response.status_code in [200, 201]:
+                response_data = response.json()
+                code = str(response_data.get("code"))
+                if code in ["200", "400"]:
+                    success = True
+                    provider_ref = response_data.get("reference", response_data.get("id", f"GWY_CLM_{claim.id}"))
+                else:
+                    logger.error(f"Sabuss API rejected claim {claim_id}: {response_data}")
+            else:
+                logger.error(f"Sabuss API connection error for claim {claim_id}: HTTP {response.status_code}")
+        except Exception as e:
+            logger.error(f"Sabuss API exception for claim {claim_id}: {str(e)}")
             
+    try:
         if success:
             with transaction.atomic():
                 # Mark claim success
@@ -149,9 +190,13 @@ def refund_giveaway_unused_slots(giveaway_id):
                 description=f"Refund for unused giveaway slots: {giveaway.title}"
             )
             
-            # Notify Host (via SMTP Email preferably, per instructions)
-            send_notification(
-                user=giveaway.host,
-                title="Giveaway Expired",
-                message=f"Your giveaway '{giveaway.title}' has expired. ₦{unused_amount} has been refunded to your wallet."
-            )
+            # Notify Host
+            try:
+                Notification.add(
+                    user=giveaway.host,
+                    title="Giveaway Expired",
+                    description=f"Your giveaway '{giveaway.title}' has expired. ₦{unused_amount} has been refunded to your wallet.",
+                    level="financial"
+                )
+            except Exception as e:
+                logger.error(f"Notification creation failed: {e}")
