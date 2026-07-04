@@ -221,6 +221,12 @@
             50% { transform: scaleX(0.8); }
             100% { transform: scaleX(1); opacity: 0; }
         }
+        .pwa-only-flex {
+            display: none !important;
+        }
+        body.is-pwa .pwa-only-flex {
+            display: flex !important;
+        }
     </style>
 </head>
 <body class="bg-slate-200 text-text-primary antialiased font-body flex justify-center items-start md:items-center min-h-[100dvh]" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
@@ -363,6 +369,11 @@
                 if (pwaBanner) pwaBanner.classList.remove('show');
                 deferredPrompt = null;
             });
+
+            // Set PWA class on body if standalone
+            if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+                document.body.classList.add('is-pwa');
+            }
 
             const pwaLoader = document.getElementById('pwa-global-loader');
             
