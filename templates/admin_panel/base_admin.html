@@ -57,6 +57,14 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #334155;
         }
+
+        /* Desktop specific layout overrides (Tailwind JIT fallback) */
+        @media (min-width: 768px) {
+            .admin-sidebar {
+                position: sticky !important;
+                top: 0 !important;
+            }
+        }
     </style>
     {% block extra_head %}{% endblock %}
 </head>
