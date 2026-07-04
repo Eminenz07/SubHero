@@ -49,10 +49,10 @@
             
             <!-- Email -->
             <div class="form-group">
-                <label for="{{ form.email.id_for_label }}" class="form-label">Email Address (Optional)</label>
+                <label for="{{ form.email.id_for_label }}" class="form-label">Email Address</label>
                 <input type="email" name="{{ form.email.name }}" id="{{ form.email.id_for_label }}" 
                        class="form-input {% if form.email.errors %}form-input--error{% endif %}" 
-                       placeholder="you@example.com"
+                       placeholder="you@example.com" required
                        value="{{ form.email.value|default:'' }}">
                 {% if form.email.errors %}
                     <p class="form-error">{{ form.email.errors.0 }}</p>
