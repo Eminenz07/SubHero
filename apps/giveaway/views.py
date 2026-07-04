@@ -26,6 +26,10 @@ def create_giveaway(request):
         if not request.user.check_transaction_pin(pin):
             messages.error(request, "Invalid transaction PIN.")
             return redirect('giveaway:create')
+            
+        if slots < 1:
+            messages.error(request, "Number of recipients must be at least 1.")
+            return redirect('giveaway:create')
 
         amount_per_slot = Decimal('0.00')
         plan_id = ""
@@ -36,6 +40,9 @@ def create_giveaway(request):
             amount_per_slot = plan.subhero_price
         else:
             amount_per_slot = Decimal(request.POST.get('amount_per_slot', 0))
+            if amount_per_slot < Decimal('10'):
+                messages.error(request, "Airtime amount per recipient must be at least ₦10.")
+                return redirect('giveaway:create')
 
         total_cost = amount_per_slot * slots
         
