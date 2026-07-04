@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block title %}Claim Status — SubHero{% endblock %}
+
+{% block content %}
+<div class="px-4 pt-20 pb-10 max-w-sm mx-auto text-center h-screen flex flex-col items-center">
+    
+    <div id="status-container" hx-get="{% url 'giveaway:claim_status' claim.giveaway.slug claim.id %}" hx-trigger="every 2s" hx-swap="outerHTML">
+        {% include 'giveaway/partials/_claim_status.html' %}
+    </div>
+
+</div>
+{% endblock %}

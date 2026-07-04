@@ -60,15 +60,20 @@ def credit_wallet(self, transaction_ref, amount_naira,
                 logger.warning("Duplicate transaction detected in DB: ref=%s (ignored)", transaction_ref)
                 return
 
+            # Calculate deposit fee
+            deposit_fee = Decimal('20.00') if amount < Decimal('1000.00') else Decimal('50.00')
+            net_amount = amount - deposit_fee
+
             balance_before = wallet.balance
-            wallet.balance += amount
+            wallet.balance += net_amount
             wallet.save(update_fields=["balance"])
 
             # Create ledger entry
             WalletTransaction.objects.create(
                 wallet=wallet,
                 txn_type=WalletTransaction.TxnType.FUND,
-                amount=amount,
+                amount=net_amount,
+                deposit_fee=deposit_fee,
                 balance_before=balance_before,
                 balance_after=wallet.balance,
                 reference=transaction_ref,
@@ -80,14 +85,14 @@ def credit_wallet(self, transaction_ref, amount_naira,
 
         # STEP 3 — Outside atomic block (SMS & Logging)
         logger.info(
-            "SUCCESS: Funded User %s with ₦%s. Ref=%s",
-            wallet.user.phone_number, amount, transaction_ref
+            "SUCCESS: Funded User %s with ₦%s (Fee: ₦%s). Ref=%s",
+            wallet.user.phone_number, net_amount, deposit_fee, transaction_ref
         )
 
         try:
             send_transaction_sms.delay(
                 wallet.user.phone_number,
-                f"SubHero: ₦{amount:,.2f} added to your wallet. "
+                f"SubHero: ₦{net_amount:,.2f} added to your wallet. "
                 f"Balance: ₦{wallet.balance:,.2f}. "
                 f"Ref: {transaction_ref[:12]}"
             )

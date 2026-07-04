@@ -107,6 +107,7 @@ class WalletTransaction(models.Model):
         P2P_SEND = "P2P_SEND", "P2P Transfer (Sent)"
         P2P_RECEIVE = "P2P_RECEIVE", "P2P Transfer (Received)"
         REFUND = "REFUND", "Refund"
+        GIVEAWAY_LOCK = "GIVEAWAY_LOCK", "Giveaway Locked Funds"
 
     class Status(models.TextChoices):
         PENDING = "PENDING", "Pending"
@@ -142,6 +143,12 @@ class WalletTransaction(models.Model):
         max_digits=12,
         decimal_places=2,
         help_text="Snapshot after transaction",
+    )
+    deposit_fee = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        help_text="Gateway fee subtracted from this transaction",
     )
     reference = models.CharField(
         max_length=50,

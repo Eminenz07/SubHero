@@ -270,12 +270,13 @@
                 const labels = data.map(item => item.date);
                 const revenue = data.map(item => item.revenue);
                 const profit = data.map(item => item.profit);
+                const deposits = data.map(item => item.deposits);
 
-                renderChart(labels, revenue, profit);
+                renderChart(labels, revenue, profit, deposits);
             });
     }
 
-    function renderChart(labels, revenue, profit) {
+    function renderChart(labels, revenue, profit, deposits) {
         const ctx = document.getElementById('financialChart').getContext('2d');
         
         if (chartInstance) {
@@ -296,6 +297,17 @@
                         tension: 0.3,
                         borderWidth: 2,
                         pointBackgroundColor: '#10b981',
+                        pointHoverRadius: 6
+                    },
+                    {
+                        label: 'Total Deposits (₦)',
+                        data: deposits,
+                        borderColor: '#f59e0b', // amber-500
+                        backgroundColor: 'rgba(245, 158, 11, 0.05)',
+                        fill: true,
+                        tension: 0.3,
+                        borderWidth: 2,
+                        pointBackgroundColor: '#f59e0b',
                         pointHoverRadius: 6
                     },
                     {

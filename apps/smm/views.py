@@ -160,6 +160,14 @@ class SmmIndexView(LoginRequiredMixin, PinRequiredMixin, View):
         unit_rate = service.subhero_price_per_1k / Decimal("1000.00")
         amount = Decimal(str(quantity)) * unit_rate
 
+        from apps.admin_panel.models import SystemSetting
+        try:
+            smm_margin_pct = Decimal(SystemSetting.get("smm_profit_margin", "50.00"))
+        except Exception:
+            smm_margin_pct = Decimal("50.00")
+        smm_margin = smm_margin_pct / Decimal("100")
+        api_cost = (amount / (Decimal("1") + smm_margin)).quantize(Decimal("0.01"))
+
         # 7. Execute atomic wallet debit and dispatch process task
         reference = generate_reference("SMM")
         try:
@@ -197,6 +205,7 @@ class SmmIndexView(LoginRequiredMixin, PinRequiredMixin, View):
                     target_url=url,
                     quantity=quantity,
                     amount=amount,
+                    api_cost=api_cost,
                     reference=reference,
                     status=SMMOrder.Status.PROCESSING
                 )

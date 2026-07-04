@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+{% block title %}Create Giveaway — SubHero{% endblock %}
+
+{% block top_bar %}
+{% include 'partials/_top_bar.html' with title="Create Giveaway" show_back=True %}
+{% endblock %}
+
+{% block content %}
+<div class="px-4 pt-5 pb-10 max-w-md mx-auto">
+    {% if messages %}
+    <div class="mb-4 space-y-2">
+        {% for message in messages %}
+        <div class="bg-{% if message.tags == 'error' %}red{% else %}green{% endif %}-50 border border-{% if message.tags == 'error' %}red{% else %}green{% endif %}-100 rounded-xl p-3 text-xs text-status-{% if message.tags == 'error' %}danger{% else %}success{% endif %}-text font-medium text-left">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="card card-padding mb-6 border border-surface-border bg-white rounded-2xl shadow-sm">
+        <form method="POST" action="{% url 'giveaway:create' %}">
+            {% csrf_token %}
+            
+            <div class="space-y-4">
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-xs font-semibold text-text-secondary">Giveaway Title</label>
+                    <input type="text" name="title" placeholder="e.g. SubHero Weekend Awoof" class="w-full px-4 py-3 rounded-xl border border-surface-border text-sm font-semibold text-text-primary focus:outline-none focus:border-brand-primary" required />
+                </div>
+                
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-xs font-semibold text-text-secondary">Reward Type</label>
+                    <select name="reward_type" id="reward_type" onchange="toggleRewardFields()" class="w-full px-4 py-3 rounded-xl border border-surface-border text-sm font-semibold text-text-primary focus:outline-none focus:border-brand-primary">
+                        <option value="DATA">Data</option>
+                        <option value="AIRTIME">Airtime</option>
+                    </select>
+                </div>
+                
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-xs font-semibold text-text-secondary">Network</label>
+                    <select name="network" id="network" onchange="filterDataPlans()" class="w-full px-4 py-3 rounded-xl border border-surface-border text-sm font-semibold text-text-primary focus:outline-none focus:border-brand-primary">
+                        <option value="mtn">MTN</option>
+                        <option value="airtel">Airtel</option>
+                        <option value="glo">Glo</option>
+                        <option value="9mobile">9mobile</option>
+                    </select>
+                </div>
+
+                <div id="data_plan_container" class="flex flex-col gap-1.5">
+                    <label class="text-xs font-semibold text-text-secondary">Data Plan</label>
+                    <select name="plan_id" id="plan_id" class="w-full px-4 py-3 rounded-xl border border-surface-border text-sm font-semibold text-text-primary focus:outline-none focus:border-brand-primary">
+                        {% for plan in plans %}
+                        <option value="{{ plan.plan_id }}" data-network="{{ plan.network }}" data-price="{{ plan.subhero_price }}">{{ plan.network|upper }} {{ plan.name }} - ₦{{ plan.subhero_price }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div id="airtime_amount_container" class="hidden flex-col gap-1.5">
+                    <label class="text-xs font-semibold text-text-secondary">Amount Per Person (₦)</label>
+                    <input type="number" name="amount_per_slot" id="amount_per_slot" placeholder="Min ₦50" class="w-full px-4 py-3 rounded-xl border border-surface-border text-sm font-semibold text-text-primary focus:outline-none focus:border-brand-primary" />
+                </div>
+                
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-xs font-semibold text-text-secondary">Number of Slots (Recipients)</label>
+                    <input type="number" name="slots" id="slots" placeholder="10" required class="w-full px-4 py-3 rounded-xl border border-surface-border text-sm font-semibold text-text-primary focus:outline-none focus:border-brand-primary" />
+                </div>
+
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-xs font-semibold text-text-secondary">Transaction PIN</label>
+                    <input type="password" name="transaction_pin" placeholder="Enter PIN to confirm lock" maxlength="4" required class="w-full px-4 py-3 rounded-xl border border-surface-border text-sm font-semibold text-text-primary focus:outline-none focus:border-brand-primary tracking-[0.5em]" />
+                </div>
+                
+                <div class="bg-brand-accent/10 border border-brand-accent/25 rounded-xl p-3 text-xs text-text-secondary leading-relaxed">
+                    <span class="font-bold text-brand-primary">Total Cost:</span> ₦<span id="total_cost_display">0.00</span> will be locked from your wallet. Unused funds are refunded upon expiry.
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block py-3 rounded-xl font-bold flex items-center justify-center gap-2 mt-4">
+                    <span>Create & Lock Funds</span>
+                    <i data-feather="lock" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function filterDataPlans() {
+        const network = document.getElementById('network').value;
+        const select = document.getElementById('plan_id');
+        let firstMatch = null;
+        for (let i = 0; i < select.options.length; i++) {
+            const opt = select.options[i];
+            if (opt.getAttribute('data-network') === network) {
+                opt.style.display = 'block';
+                if (!firstMatch) firstMatch = opt;
+            } else {
+                opt.style.display = 'none';
+            }
+        }
+        if (firstMatch) {
+            select.value = firstMatch.value;
+        }
+        calculateTotal();
+    }
+
+    function toggleRewardFields() {
+        const type = document.getElementById('reward_type').value;
+        if (type === 'DATA') {
+            document.getElementById('data_plan_container').style.display = 'flex';
+            document.getElementById('airtime_amount_container').style.display = 'none';
+        } else {
+            document.getElementById('data_plan_container').style.display = 'none';
+            document.getElementById('airtime_amount_container').style.display = 'flex';
+        }
+        calculateTotal();
+    }
+
+    function calculateTotal() {
+        const type = document.getElementById('reward_type').value;
+        const slots = parseInt(document.getElementById('slots').value) || 0;
+        let amount = 0;
+        
+        if (type === 'DATA') {
+            const select = document.getElementById('plan_id');
+            const opt = select.options[select.selectedIndex];
+            amount = parseFloat(opt.getAttribute('data-price')) || 0;
+        } else {
+            amount = parseFloat(document.getElementById('amount_per_slot').value) || 0;
+        }
+        
+        const total = (amount * slots).toFixed(2);
+        document.getElementById('total_cost_display').innerText = total;
+    }
+
+    document.getElementById('slots').addEventListener('input', calculateTotal);
+    document.getElementById('amount_per_slot').addEventListener('input', calculateTotal);
+    document.getElementById('plan_id').addEventListener('change', calculateTotal);
+
+    // Initial filter
+    filterDataPlans();
+</script>
+{% endblock %}

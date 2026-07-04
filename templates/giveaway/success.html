@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block title %}Claim Success — SubHero{% endblock %}
+
+{% block content %}
+<div class="px-4 pt-20 pb-10 max-w-sm mx-auto text-center flex flex-col justify-center min-h-[80vh]">
+    <div class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+        <i data-feather="check" class="w-10 h-10"></i>
+    </div>
+    
+    <h1 class="text-2xl font-bold text-text-primary mb-2">Claim Successful! 🎉</h1>
+    <p class="text-sm text-text-muted mb-8">Your {{ giveaway.get_giveaway_type_display|lower }} has been sent to your number. Enjoy your free gift courtesy of <strong>{{ giveaway.host.first_name|default:"SubHero User" }}</strong>.</p>
+    
+    <a href="{% url 'landing' %}" class="btn btn-primary btn-block py-3.5 rounded-xl font-bold text-sm no-underline inline-block">
+        Create Your Own Giveaway
+    </a>
+</div>
+{% endblock %}

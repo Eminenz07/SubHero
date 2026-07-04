@@ -124,16 +124,13 @@ def fetch_jap_balance():
 def dashboard(request):
     User = get_user_model()
     
-    total_users = User.objects.count()
+    # Use cached analytics structure (could cache the output in Redis here if traffic is high)
+    from apps.admin_panel.queries import AnalyticsQueries
+    stats = AnalyticsQueries.get_dashboard_stats(days=30)
+    
     new_users_today = User.objects.filter(date_joined__date=timezone.now().date()).count()
     
-    vtu_rev, vtu_prof = get_vtu_order_stats()
-    smm_rev, smm_prof = get_smm_order_stats()
-    other_rev, other_prof = get_other_order_stats()
-    
-    total_revenue = vtu_rev + smm_rev + other_rev
-    total_profit = vtu_prof + smm_prof + other_prof
-    
+    # Active orders count
     valid_refs = WalletTransaction.objects.values('reference')
     active_orders = (
         VTUOrder.objects.filter(status__in=["PENDING", "PROCESSING"], reference__in=valid_refs).count() +
@@ -176,20 +173,15 @@ def dashboard(request):
         if target == "active-orders-count":
             return HttpResponse(str(active_orders))
         elif target == "failed-orders-today":
-            valid_refs = WalletTransaction.objects.values('reference')
             failed_today = (
                 VTUOrder.objects.filter(status="FAILED", created_at__date=timezone.now().date(), reference__in=valid_refs).count() +
                 SMMOrder.objects.filter(status="FAILED", created_at__date=timezone.now().date(), reference__in=valid_refs).count()
             )
             return HttpResponse(str(failed_today))
         elif target == "revenue-today":
-            today = timezone.now().date()
-            t_vtu, _ = get_vtu_order_stats(today)
-            t_smm, _ = get_smm_order_stats(today)
-            t_other, _ = get_other_order_stats(today)
-            return HttpResponse(f"₦{t_vtu + t_smm + t_other:,.2f}")
+            day_stats = AnalyticsQueries.get_dashboard_stats(days=1)
+            return HttpResponse(f"₦{day_stats.total_revenue:,.2f}")
             
-    valid_refs = WalletTransaction.objects.values('reference')
     vtu_count = VTUOrder.objects.filter(reference__in=valid_refs).count()
     smm_count = SMMOrder.objects.filter(reference__in=valid_refs).count()
     airtime_count = AirtimeOrder.objects.filter(reference__in=valid_refs).count()
@@ -199,10 +191,11 @@ def dashboard(request):
 
     context = {
         "active_nav": "dashboard",
-        "total_users": total_users,
+        "total_users": stats.total_users,
         "new_users_today": new_users_today,
-        "total_revenue": total_revenue,
-        "total_profit": total_profit,
+        "total_revenue": stats.total_revenue,
+        "total_profit": stats.total_profit,
+        "total_deposits": stats.total_deposits,
         "active_orders": active_orders,
         "cdh_balance": cdh_balance,
         "cdh_status": cdh_status,
@@ -210,6 +203,9 @@ def dashboard(request):
         "jap_balance_ngn": jap_balance_ngn,
         "jap_status": jap_status,
         "alert_config": alert_config,
+        "revenue_chart_json": json.dumps(stats.revenue_chart),
+        "profit_chart_json": json.dumps(stats.profit_chart),
+        "deposits_chart_json": json.dumps(stats.deposits_chart),
         "order_dist": {
             "vtu": vtu_count,
             "smm": smm_count,
@@ -227,43 +223,16 @@ def revenue_chart_api(request):
     days = int(request.GET.get("days", 30))
     chart_data = []
     
-    today = timezone.now().date()
-    for i in range(days - 1, -1, -1):
-        day = today - datetime.timedelta(days=i)
-        start_dt = timezone.make_aware(datetime.datetime.combine(day, datetime.time.min))
-        end_dt = timezone.make_aware(datetime.datetime.combine(day, datetime.time.max))
-        
-        # VTU Data
-        vtu_q = VTUOrder.objects.filter(status="SUCCESS", created_at__range=(start_dt, end_dt))
-        vtu_rev = vtu_q.aggregate(sum=Sum('amount'))['sum'] or Decimal("0")
-        vtu_prof = vtu_rev * Decimal("0.05")
-        
-        # SMM
-        smm_q = SMMOrder.objects.filter(status="SUCCESS", created_at__range=(start_dt, end_dt))
-        smm_rev = smm_q.aggregate(sum=Sum('amount'))['sum'] or Decimal("0")
-        smm_prof = smm_rev * Decimal("0.10")
-        
-        # Others (Airtime, Cable, etc.)
-        other_rev = Decimal("0")
-        other_prof = Decimal("0")
-        for model, pct in [
-            (AirtimeOrder, 0.02),
-            (CableOrder, 0.03),
-            (ElectricityOrder, 0.02),
-            (ExamPinOrder, 0.05)
-        ]:
-            q = model.objects.filter(status="SUCCESS", created_at__range=(start_dt, end_dt))
-            m_rev = q.aggregate(sum=Sum('amount'))['sum'] or Decimal("0")
-            other_rev += m_rev
-            other_prof += m_rev * Decimal(str(pct))
-            
-        day_rev = vtu_rev + smm_rev + other_rev
-        day_prof = vtu_prof + smm_prof + other_prof
-        
+    from apps.admin_panel.queries import AnalyticsQueries
+    stats = AnalyticsQueries.get_dashboard_stats(days=days)
+    
+    chart_data = []
+    for r, p, d in zip(stats.revenue_chart, stats.profit_chart, stats.deposits_chart):
         chart_data.append({
-            "date": day.strftime("%b %d"),
-            "revenue": float(day_rev),
-            "profit": float(day_prof)
+            "date": r["x"],
+            "revenue": r["y"],
+            "profit": p["y"],
+            "deposits": d["y"]
         })
         
     return JsonResponse(chart_data, safe=False)

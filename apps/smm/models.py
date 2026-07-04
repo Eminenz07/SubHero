@@ -64,6 +64,7 @@ class SMMOrder(models.Model):
     target_url = models.URLField(max_length=500)
     quantity = models.IntegerField()
     amount = models.DecimalField(max_digits=10, decimal_places=2, help_text="Naira charge paid by customer")
+    api_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Cost price from provider API")
     reference = models.CharField(max_length=50, unique=True)
     provider_order_id = models.CharField(max_length=100, blank=True, default="")
     status = models.CharField(max_length=15, choices=Status.choices, default=Status.PENDING)

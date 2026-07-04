@@ -156,6 +156,7 @@ class BuyDataView(LoginRequiredMixin, PinRequiredMixin, View):
                 order = VTUOrder.objects.create(
                     user=request.user, network=network, recipient=phone_number,
                     plan_id=plan_id, plan_name=plan.name, amount=plan.subhero_price,
+                    api_cost=plan.provider_price,
                     reference=reference, status=VTUOrder.Status.PROCESSING,
                 )
 
@@ -260,7 +261,7 @@ class BuyAirtimeView(LoginRequiredMixin, PinRequiredMixin, View):
                 )
                 order = AirtimeOrder.objects.create(
                     user=request.user, network=network, recipient=normalized_phone,
-                    amount=amount, reference=reference, status=AirtimeOrder.Status.PROCESSING,
+                    amount=amount, api_cost=amount, reference=reference, status=AirtimeOrder.Status.PROCESSING,
                 )
 
             cache.set(idempotency_key, order.id, 300)
@@ -364,7 +365,7 @@ class BuyCableView(LoginRequiredMixin, PinRequiredMixin, View):
                 order = CableOrder.objects.create(
                     user=request.user, provider=provider, plan_id=plan_id,
                     plan_name=plan.name, card_number=card_number, phone=normalized_phone,
-                    amount=plan.subhero_price, reference=reference, status=CableOrder.Status.PROCESSING,
+                    amount=plan.subhero_price, api_cost=plan.amount, reference=reference, status=CableOrder.Status.PROCESSING,
                 )
 
             cache.set(idempotency_key, order.id, 300)
@@ -487,7 +488,7 @@ class BuyElectricityView(LoginRequiredMixin, PinRequiredMixin, View):
                 order = ElectricityOrder.objects.create(
                     user=request.user, disco_id=disco_id, disco_name=disco_name,
                     meter_number=meter_number, meter_type=meter_type,
-                    phone=normalized_phone, amount=amount, reference=reference,
+                    phone=normalized_phone, amount=amount, api_cost=amount, reference=reference,
                     status=ElectricityOrder.Status.PROCESSING,
                 )
 
@@ -590,7 +591,7 @@ class BuyExamPinView(LoginRequiredMixin, PinRequiredMixin, View):
                 )
                 order = ExamPinOrder.objects.create(
                     user=request.user, product_id=product_id, exam_name=product.exam_name,
-                    quantity=quantity, amount=total, reference=reference,
+                    quantity=quantity, amount=total, api_cost=product.price_per_pin * quantity, reference=reference,
                     status=ExamPinOrder.Status.PROCESSING,
                 )
 

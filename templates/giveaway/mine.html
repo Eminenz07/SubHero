@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %}My Giveaways — SubHero{% endblock %}
+
+{% block top_bar %}
+{% include 'partials/_top_bar.html' with title="My Giveaways" show_back=True %}
+{% endblock %}
+
+{% block content %}
+<div class="px-4 pt-5 pb-10 max-w-md mx-auto space-y-4">
+    {% for giveaway in giveaways %}
+    <a href="{% url 'giveaway:detail' giveaway.slug %}" class="card card-padding block border border-surface-border bg-white rounded-2xl shadow-sm hover:border-brand-primary transition-colors no-underline">
+        <div class="flex justify-between items-start mb-2">
+            <div>
+                <div class="font-bold text-sm text-text-primary">{{ giveaway.title }}</div>
+                <div class="text-xs text-text-muted mt-0.5">{{ giveaway.get_network_display }} • {{ giveaway.get_giveaway_type_display }}</div>
+            </div>
+            <div class="text-[10px] font-bold px-2 py-1 rounded-full uppercase {% if giveaway.status == 'ACTIVE' %}bg-green-100 text-green-700{% elif giveaway.status == 'COMPLETED' %}bg-blue-100 text-blue-700{% else %}bg-gray-100 text-gray-700{% endif %}">
+                {{ giveaway.status }}
+            </div>
+        </div>
+        <div class="flex items-center justify-between mt-3 text-xs">
+            <span class="text-text-secondary font-semibold">{{ giveaway.claimed_slots }} / {{ giveaway.total_slots }} Claimed</span>
+            <span class="text-brand-primary font-bold">₦{{ giveaway.total_locked|floatformat:2 }}</span>
+        </div>
+        <!-- Progress bar -->
+        <div class="w-full bg-surface-border rounded-full h-1.5 mt-2 overflow-hidden">
+            {% widthratio giveaway.claimed_slots giveaway.total_slots 100 as progress %}
+            <div class="bg-brand-primary h-1.5 rounded-full" style="width: {{ progress }}%"></div>
+        </div>
+    </a>
+    {% empty %}
+    <div class="text-center py-10">
+        <i data-feather="gift" class="w-12 h-12 text-surface-border mx-auto mb-3"></i>
+        <div class="font-semibold text-text-secondary text-sm">No giveaways yet.</div>
+        <a href="{% url 'giveaway:create' %}" class="btn btn-primary mt-4 py-2 px-6 rounded-xl font-bold inline-block">Create One</a>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

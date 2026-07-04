@@ -8,6 +8,7 @@ from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path
 from django.views.generic import TemplateView
+from apps.giveaway import views as giveaway_views
 
 urlpatterns = [
     # PWA files served at root
@@ -46,6 +47,10 @@ urlpatterns = [
 
     # Admin Panel (HQ) — configurable via .env (PRD Section 3.1)
     path(settings.ADMIN_HQ_URL, include("apps.admin_panel.urls", namespace="admin_panel")),
+    
+    # Giveaway (Phase 3)
+    path("giveaway/", include("apps.giveaway.urls", namespace="giveaway")),
+    path("g/<str:slug>/", giveaway_views.claim_page, name="giveaway_short_link"),
 ]
 
 # Debug toolbar — dev only

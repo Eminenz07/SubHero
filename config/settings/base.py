@@ -95,6 +95,7 @@ LOCAL_APPS = [
     "apps.transactions",
     "apps.notifications",
     "apps.admin_panel",
+    "apps.giveaway",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -404,5 +405,9 @@ CELERY_BEAT_SCHEDULE = {
     'check-api-wallet-balance': {
         'task': 'apps.vtu.tasks.check_api_wallet_balance',
         'schedule': crontab(minute=0, hour='*/2'),
+    },
+    'expire-giveaways': {
+        'task': 'apps.giveaway.tasks.expire_giveaways',
+        'schedule': crontab(minute=0),  # every hour
     },
 }
