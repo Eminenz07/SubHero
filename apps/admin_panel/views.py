@@ -37,7 +37,8 @@ logger = logging.getLogger(__name__)
 # ─────────────────────────────────────────────────────────────
 
 def get_vtu_order_stats(start_date=None):
-    q = VTUOrder.objects.filter(status="SUCCESS")
+    valid_refs = WalletTransaction.objects.values('reference')
+    q = VTUOrder.objects.filter(status="SUCCESS", reference__in=valid_refs)
     if start_date:
         q = q.filter(created_at__gte=start_date)
     vtu_rev = q.aggregate(sum=Sum('amount'))['sum'] or Decimal("0")
@@ -46,7 +47,8 @@ def get_vtu_order_stats(start_date=None):
 
 
 def get_smm_order_stats(start_date=None):
-    q = SMMOrder.objects.filter(status="SUCCESS")
+    valid_refs = WalletTransaction.objects.values('reference')
+    q = SMMOrder.objects.filter(status="SUCCESS", reference__in=valid_refs)
     if start_date:
         q = q.filter(created_at__gte=start_date)
     smm_rev = q.aggregate(sum=Sum('amount'))['sum'] or Decimal("0")
@@ -55,6 +57,7 @@ def get_smm_order_stats(start_date=None):
 
 
 def get_other_order_stats(start_date=None):
+    valid_refs = WalletTransaction.objects.values('reference')
     rev = Decimal("0")
     profit = Decimal("0")
     for model, pct in [
@@ -63,7 +66,7 @@ def get_other_order_stats(start_date=None):
         (ElectricityOrder, 0.02),
         (ExamPinOrder, 0.05)
     ]:
-        q = model.objects.filter(status="SUCCESS")
+        q = model.objects.filter(status="SUCCESS", reference__in=valid_refs)
         if start_date:
             q = q.filter(created_at__gte=start_date)
         model_rev = q.aggregate(sum=Sum('amount'))['sum'] or Decimal("0")
@@ -131,13 +134,14 @@ def dashboard(request):
     total_revenue = vtu_rev + smm_rev + other_rev
     total_profit = vtu_prof + smm_prof + other_prof
     
+    valid_refs = WalletTransaction.objects.values('reference')
     active_orders = (
-        VTUOrder.objects.filter(status__in=["PENDING", "PROCESSING"]).count() +
-        SMMOrder.objects.filter(status__in=["PENDING", "PROCESSING"]).count() +
-        AirtimeOrder.objects.filter(status__in=["PENDING", "PROCESSING"]).count() +
-        CableOrder.objects.filter(status__in=["PENDING", "PROCESSING"]).count() +
-        ElectricityOrder.objects.filter(status__in=["PENDING", "PROCESSING"]).count() +
-        ExamPinOrder.objects.filter(status__in=["PENDING", "PROCESSING"]).count()
+        VTUOrder.objects.filter(status__in=["PENDING", "PROCESSING"], reference__in=valid_refs).count() +
+        SMMOrder.objects.filter(status__in=["PENDING", "PROCESSING"], reference__in=valid_refs).count() +
+        AirtimeOrder.objects.filter(status__in=["PENDING", "PROCESSING"], reference__in=valid_refs).count() +
+        CableOrder.objects.filter(status__in=["PENDING", "PROCESSING"], reference__in=valid_refs).count() +
+        ElectricityOrder.objects.filter(status__in=["PENDING", "PROCESSING"], reference__in=valid_refs).count() +
+        ExamPinOrder.objects.filter(status__in=["PENDING", "PROCESSING"], reference__in=valid_refs).count()
     )
     
     # Live balance fetch
@@ -172,9 +176,10 @@ def dashboard(request):
         if target == "active-orders-count":
             return HttpResponse(str(active_orders))
         elif target == "failed-orders-today":
+            valid_refs = WalletTransaction.objects.values('reference')
             failed_today = (
-                VTUOrder.objects.filter(status="FAILED", created_at__date=timezone.now().date()).count() +
-                SMMOrder.objects.filter(status="FAILED", created_at__date=timezone.now().date()).count()
+                VTUOrder.objects.filter(status="FAILED", created_at__date=timezone.now().date(), reference__in=valid_refs).count() +
+                SMMOrder.objects.filter(status="FAILED", created_at__date=timezone.now().date(), reference__in=valid_refs).count()
             )
             return HttpResponse(str(failed_today))
         elif target == "revenue-today":
@@ -184,12 +189,13 @@ def dashboard(request):
             t_other, _ = get_other_order_stats(today)
             return HttpResponse(f"₦{t_vtu + t_smm + t_other:,.2f}")
             
-    vtu_count = VTUOrder.objects.count()
-    smm_count = SMMOrder.objects.count()
-    airtime_count = AirtimeOrder.objects.count()
-    cable_count = CableOrder.objects.count()
-    electricity_count = ElectricityOrder.objects.count()
-    exampin_count = ExamPinOrder.objects.count()
+    valid_refs = WalletTransaction.objects.values('reference')
+    vtu_count = VTUOrder.objects.filter(reference__in=valid_refs).count()
+    smm_count = SMMOrder.objects.filter(reference__in=valid_refs).count()
+    airtime_count = AirtimeOrder.objects.filter(reference__in=valid_refs).count()
+    cable_count = CableOrder.objects.filter(reference__in=valid_refs).count()
+    electricity_count = ElectricityOrder.objects.filter(reference__in=valid_refs).count()
+    exampin_count = ExamPinOrder.objects.filter(reference__in=valid_refs).count()
 
     context = {
         "active_nav": "dashboard",
