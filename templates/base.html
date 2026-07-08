@@ -322,8 +322,8 @@
         document.addEventListener('DOMContentLoaded', function() {
             let deferredPrompt;
             const pwaBanner = document.getElementById('pwa-install-banner');
-            const pwaInstallBtn = document.getElementById('pwa-install-btn');
-            const pwaCancelBtn = document.getElementById('pwa-cancel-btn');
+            const pwaInstallBtn = document.getElementById('pwa-install');
+            const pwaCancelBtn = document.getElementById('pwa-cancel');
 
             // Check if user dismissed it in the last 24 hours
             const dismissedTime = localStorage.getItem('pwa-install-dismissed');
