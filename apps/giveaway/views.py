@@ -16,41 +16,52 @@ from apps.giveaway.tasks import process_giveaway_claim
 @login_required
 def create_giveaway(request):
     if request.method == 'POST':
-        reward_type = request.POST.get('reward_type')
-        network = request.POST.get('network')
-        slots = int(request.POST.get('slots', 0))
-        title = request.POST.get('title') or "Giveaway 🎉"
-        pin = request.POST.get('transaction_pin')
-        
-        # Verify PIN (simplified for now, assumes pin is verified via middleware/session or custom logic)
-        if not request.user.check_transaction_pin(pin):
-            messages.error(request, "Invalid transaction PIN.")
-            return redirect('giveaway:create')
-            
-        if slots < 1:
-            messages.error(request, "Number of recipients must be at least 1.")
-            return redirect('giveaway:create')
-
-        amount_per_slot = Decimal('0.00')
-        plan_id = ""
-
-        if reward_type == 'DATA':
-            plan_id = request.POST.get('plan_id')
-            if not plan_id:
-                messages.error(request, "Please select a valid data plan.")
-                return redirect('giveaway:create')
-            plan = get_object_or_404(VTUPlan, plan_id=plan_id)
-            network = plan.network # Use the actual plan's network, not the user's potentially out-of-sync selection
-            amount_per_slot = plan.subhero_price
-        else:
-            amount_per_slot = Decimal(request.POST.get('amount_per_slot', 0))
-            if amount_per_slot < Decimal('10'):
-                messages.error(request, "Airtime amount per recipient must be at least ₦10.")
-                return redirect('giveaway:create')
-
-        total_cost = amount_per_slot * slots
-        
         try:
+            reward_type = request.POST.get('reward_type')
+            network = request.POST.get('network')
+            
+            try:
+                slots = int(request.POST.get('slots', 0))
+            except ValueError:
+                messages.error(request, "Number of recipients must be a valid integer.")
+                return redirect('giveaway:create')
+                
+            title = request.POST.get('title') or "Giveaway 🎉"
+            pin = request.POST.get('transaction_pin')
+            
+            # Verify PIN
+            if not request.user.check_pin(pin):
+                messages.error(request, "Invalid transaction PIN.")
+                return redirect('giveaway:create')
+                
+            if slots < 1:
+                messages.error(request, "Number of recipients must be at least 1.")
+                return redirect('giveaway:create')
+
+            amount_per_slot = Decimal('0.00')
+            plan_id = ""
+
+            if reward_type == 'DATA':
+                plan_id = request.POST.get('plan_id')
+                if not plan_id:
+                    messages.error(request, "Please select a valid data plan.")
+                    return redirect('giveaway:create')
+                plan = get_object_or_404(VTUPlan, plan_id=plan_id)
+                network = plan.network # Use the actual plan's network, not the user's potentially out-of-sync selection
+                amount_per_slot = plan.subhero_price
+            else:
+                try:
+                    amount_per_slot = Decimal(request.POST.get('amount_per_slot', 0))
+                except (ValueError, ArithmeticError):
+                    messages.error(request, "Invalid airtime amount.")
+                    return redirect('giveaway:create')
+                    
+                if amount_per_slot < Decimal('10'):
+                    messages.error(request, "Airtime amount per recipient must be at least ₦10.")
+                    return redirect('giveaway:create')
+
+            total_cost = amount_per_slot * slots
+            
             with transaction.atomic():
                 wallet = Wallet.objects.select_for_update().get(user=request.user)
                 if wallet.balance < total_cost:
