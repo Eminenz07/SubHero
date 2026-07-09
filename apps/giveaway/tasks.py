@@ -23,6 +23,25 @@ def _format_phone(raw_phone: str) -> str:
         phone = "0" + phone
     return phone
 
+def get_network_by_prefix(phone: str) -> str:
+    if not phone or len(phone) < 4:
+        return None
+    prefix = phone[:4]
+    mtn_prefixes = {'0703', '0706', '0803', '0806', '0810', '0813', '0814', '0816', '0903', '0906', '0913', '0916'}
+    airtel_prefixes = {'0701', '0708', '0802', '0808', '0812', '0901', '0902', '0904', '0907', '0912'}
+    glo_prefixes = {'0705', '0805', '0807', '0811', '0815', '0905', '0915'}
+    nine_mobile_prefixes = {'0809', '0817', '0818', '0908', '0909'}
+    
+    if prefix in mtn_prefixes:
+        return 'mtn'
+    elif prefix in airtel_prefixes:
+        return 'airtel'
+    elif prefix in glo_prefixes:
+        return 'glo'
+    elif prefix in nine_mobile_prefixes:
+        return '9mobile'
+    return None
+
 @shared_task
 def process_giveaway_claim(claim_id):
     """
@@ -61,9 +80,12 @@ def process_giveaway_claim(claim_id):
                 }
             else:
                 url = f"{base_url}/vtu/api/airtime/{api_key}"
+                network_to_use = giveaway.network
+                if network_to_use == 'all':
+                    network_to_use = get_network_by_prefix(_format_phone(claim.phone_number)) or 'mtn'
                 payload = {
                     "pin": pin,
-                    "network": str(giveaway.network).lower(),
+                    "network": str(network_to_use).lower(),
                     "phone": _format_phone(claim.phone_number),
                     "amount": str(giveaway.amount_per_slot),
                     "reference": f"GWY_CLM_{claim.id}"

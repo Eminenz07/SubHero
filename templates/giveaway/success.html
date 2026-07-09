@@ -2,16 +2,146 @@
 {% block title %}Claim Success — SubHero{% endblock %}
 
 {% block content %}
-<div class="px-4 pt-20 pb-10 max-w-sm mx-auto text-center flex flex-col justify-center min-h-[80vh]">
-    <div class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
-        <i data-feather="check" class="w-10 h-10"></i>
+<div class="px-4 pt-10 pb-10 max-w-sm mx-auto text-center flex flex-col justify-center min-h-[85vh] space-y-6">
+    <!-- Animated SVG Checkmark -->
+    <div class="success-checkmark mb-2">
+        <div class="check-icon">
+            <span class="icon-line line-tip"></span>
+            <span class="icon-line line-long"></span>
+            <div class="icon-circle"></div>
+            <div class="icon-fix"></div>
+        </div>
     </div>
     
-    <h1 class="text-2xl font-bold text-text-primary mb-2">Claim Successful! 🎉</h1>
-    <p class="text-sm text-text-muted mb-8">Your {{ giveaway.get_giveaway_type_display|lower }} has been sent to your number. Enjoy your free gift courtesy of <strong>{{ giveaway.host.first_name|default:"SubHero User" }}</strong>.</p>
-    
-    <a href="{% url 'landing' %}" class="btn btn-primary btn-block py-3.5 rounded-xl font-bold text-sm no-underline inline-block">
-        Create Your Own Giveaway
+    <div>
+        <h1 class="text-2xl font-black text-text-primary tracking-tight mb-2">Sent Successfully! ⚡</h1>
+        <p class="text-sm text-text-muted font-medium">
+            Your {{ giveaway.get_network_display }} {% if giveaway.giveaway_type == 'DATA' %}data{% else %}airtime{% endif %} has been sent to
+            <span class="font-bold text-text-primary">{{ phone }}</span>.
+        </p>
+        <p class="text-xs text-brand-primary font-bold mt-1">Delivery is usually instant!</p>
+    </div>
+
+    <!-- Divider -->
+    <div class="border-t border-surface-border my-2"></div>
+
+    <!-- Conversion Box -->
+    <div class="bg-white p-5 rounded-2xl border border-surface-border text-left space-y-4 shadow-sm relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-24 h-24 bg-brand-primary/5 rounded-full -mr-8 -mt-8"></div>
+        
+        <h3 class="text-sm font-bold text-text-primary flex items-center gap-1.5">
+            <span class="text-lg">💸</span> Buy cheap data for yourself
+        </h3>
+
+        <!-- Price Grid -->
+        <div class="grid grid-cols-3 gap-2 text-center">
+            <div class="p-2 bg-yellow-50/50 border border-yellow-100 rounded-xl">
+                <div class="text-[10px] font-black text-yellow-800">MTN 1GB</div>
+                <div class="text-xs font-black text-yellow-950 mt-0.5">₦350</div>
+            </div>
+            <div class="p-2 bg-red-50/50 border border-red-100 rounded-xl">
+                <div class="text-[10px] font-black text-red-800">Airtel 2GB</div>
+                <div class="text-xs font-black text-red-950 mt-0.5">₦650</div>
+            </div>
+            <div class="p-2 bg-green-50/50 border border-green-100 rounded-xl">
+                <div class="text-[10px] font-black text-green-800">GLO 5GB</div>
+                <div class="text-xs font-black text-green-950 mt-0.5">₦1,200</div>
+            </div>
+        </div>
+
+        <p class="text-[11px] text-text-secondary leading-relaxed font-medium">
+            Join SubHero today to buy cheap data, send money for free, pay bills, and host your own giveaways!
+        </p>
+
+        <a href="{{ register_url }}" class="btn btn-primary btn-block py-3.5 rounded-xl font-bold text-sm no-underline inline-block text-center shadow-lg shadow-brand-primary/10">
+            Create Free Account →
+        </a>
+        <div class="text-center text-[10px] text-text-muted font-bold">Takes less than 2 minutes</div>
+    </div>
+
+    <!-- Testimonial -->
+    <div class="bg-surface-page/50 p-4 rounded-xl border border-surface-border/50 text-left space-y-1.5">
+        <div class="flex items-center gap-1">
+            <span class="text-amber-400">★★★★★</span>
+            <span class="text-[10px] text-text-muted font-bold">— Tunde, Lagos</span>
+        </div>
+        <p class="text-xs text-text-secondary leading-relaxed italic font-medium">
+            "Been using SubHero for 3 months. Already saving over ₦2,000 every single month on data."
+        </p>
+    </div>
+
+    <a href="{% url 'landing' %}" class="text-xs font-bold text-text-muted hover:text-text-primary transition-colors no-underline block pt-2">
+        Maybe Later
     </a>
 </div>
+
+<style>
+    /* Premium CSS Checkmark Animation */
+    .success-checkmark {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto;
+    }
+    .success-checkmark .check-icon {
+        width: 80px;
+        height: 80px;
+        position: relative;
+        border-radius: 50%;
+        box-sizing: content-box;
+        border: 4px solid #4CAF50;
+    }
+    .success-checkmark .check-icon::before, .success-checkmark .check-icon::after {
+        content: '';
+        height: 100px;
+        position: absolute;
+        background: transparent;
+        transform: rotate(-45deg);
+    }
+    .success-checkmark .check-icon .icon-line {
+        height: 5px;
+        background-color: #4CAF50;
+        display: block;
+        border-radius: 2px;
+        position: absolute;
+        z-index: 10;
+    }
+    .success-checkmark .check-icon .icon-line.line-tip {
+        width: 25px;
+        left: 14px;
+        top: 46px;
+        transform: rotate(45deg);
+        animation: icon-line-tip 0.75s;
+    }
+    .success-checkmark .check-icon .icon-line.line-long {
+        width: 47px;
+        right: 8px;
+        top: 38px;
+        transform: rotate(-45deg);
+        animation: icon-line-long 0.75s;
+    }
+    .success-checkmark .check-icon .icon-circle {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        position: absolute;
+        left: -4px;
+        top: -4px;
+        box-sizing: content-box;
+        z-index: 1;
+        border: 4px solid rgba(76, 175, 80, 0.1);
+    }
+    @keyframes icon-line-tip {
+        0% { width: 0; left: 1px; top: 19px; }
+        54% { width: 0; left: 1px; top: 19px; }
+        70% { width: 50px; left: -8px; top: 37px; }
+        84% { width: 17px; left: 21px; top: 48px; }
+        100% { width: 25px; left: 14px; top: 46px; }
+    }
+    @keyframes icon-line-long {
+        0% { width: 0; right: 46px; top: 54px; }
+        65% { width: 0; right: 46px; top: 54px; }
+        84% { width: 55px; right: 0px; top: 35px; }
+        100% { width: 47px; right: 8px; top: 38px; }
+    }
+</style>
 {% endblock %}

@@ -1,5 +1,16 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block title %}Claim Giveaway — SubHero{% endblock %}
+
+{% block extra_head %}
+<meta property="og:title" content="🎁 {{ giveaway.title }} — Claim Free {{ giveaway.get_giveaway_type_display }}">
+<meta property="og:description" content="{{ giveaway.remaining_slots }} of {{ giveaway.total_slots }} slots remaining. No account needed — claim instantly.">
+<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'img/giveaway-og.png' %}">
+<meta property="og:url" content="{{ request.scheme }}://{{ request.get_host }}/g/{{ giveaway.slug }}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="🎁 {{ giveaway.title }}">
+<meta name="twitter:description" content="{{ giveaway.remaining_slots }} free slots left on SubHero">
+{% endblock %}
 
 {% block content %}
 <div class="px-4 pt-10 pb-10 max-w-sm mx-auto text-center h-screen flex flex-col justify-center">
@@ -9,10 +20,53 @@
     </div>
     
     <h1 class="text-2xl font-bold text-text-primary mb-2">{{ giveaway.title }}</h1>
-    <p class="text-sm text-text-muted mb-8">You've been invited to claim a free {{ giveaway.get_giveaway_type_display|lower }} reward ({{ giveaway.get_network_display }}) courtesy of <strong>{{ giveaway.host.first_name|default:"A SubHero User" }}</strong>!</p>
+    
+    <p class="text-sm text-text-muted mb-6">
+        You've been invited to claim a free 
+        {% if giveaway.giveaway_type == 'DATA' %}
+            {{ giveaway.plan_id }} data
+        {% else %}
+            ₦{{ giveaway.amount_per_slot|floatformat:0 }} airtime
+        {% endif %} 
+        reward ({% if giveaway.network == 'all' %}any network{% else %}{{ giveaway.get_network_display }}{% endif %}) courtesy of <strong>{{ giveaway.host.first_name|default:"A SubHero User" }}</strong>!
+    </p>
+
+    <!-- Slots Remaining & Progress Bar -->
+    <div class="mb-6 space-y-2">
+        <div class="flex justify-between items-center text-xs font-semibold">
+            <span class="text-text-secondary">Progress</span>
+            <span class="text-text-primary font-bold">
+                {% if giveaway.remaining_slots <= 0 %}
+                    0 slots left
+                {% else %}
+                    {{ giveaway.remaining_slots }} of {{ giveaway.total_slots }} slots left
+                {% endif %}
+            </span>
+        </div>
+        
+        <!-- Progress Bar -->
+        {% widthratio giveaway.claimed_slots giveaway.total_slots 100 as progress %}
+        {% widthratio giveaway.remaining_slots giveaway.total_slots 100 as remaining_pct_str %}
+        <div class="w-full bg-surface-border rounded-full h-2 overflow-hidden">
+            <div class="h-2 rounded-full transition-all duration-500 {% if giveaway.remaining_slots <= 2 %}bg-red-500 animate-pulse{% else %}bg-brand-primary{% endif %}" id="progress-indicator" data-width="{{ progress }}"></div>
+        </div>
+        <script>
+            (function() {
+                var ind = document.getElementById('progress-indicator');
+                if (ind) ind.style.width = (100 - parseInt(ind.dataset.width || 0)) + '%';
+            })();
+        </script>
+
+        <!-- Urgency trigger -->
+        {% if giveaway.remaining_slots <= 2 and giveaway.remaining_slots > 0 %}
+        <div class="text-[11px] font-black text-red-500 animate-pulse text-left flex items-center gap-1 mt-1">
+            <span>⚡</span> Only {{ giveaway.remaining_slots }} slots left! Claim yours now
+        </div>
+        {% endif %}
+    </div>
     
     {% if error %}
-    <div class="bg-red-50 border border-red-100 rounded-xl p-3 text-xs text-status-danger-text font-medium mb-6">
+    <div class="bg-red-50 border border-red-100 rounded-xl p-3 text-xs text-status-danger-text font-medium mb-6 text-left">
         {{ error }}
     </div>
     {% endif %}
@@ -22,7 +76,7 @@
             {% csrf_token %}
             <div class="space-y-5">
                 <div class="flex flex-col gap-1.5 text-left">
-                    <label class="text-xs font-semibold text-text-secondary">Your {{ giveaway.get_network_display }} Phone Number</label>
+                    <label class="text-xs font-semibold text-text-secondary">Your {% if giveaway.network == 'all' %}Phone{% else %}{{ giveaway.get_network_display }}{% endif %} Number</label>
                     <input type="tel" name="phone_number" placeholder="080XXXXXXXX" required pattern="[0-9]{11}" maxlength="11" class="w-full px-4 py-3.5 rounded-xl border border-surface-border text-sm font-semibold text-text-primary focus:outline-none focus:border-brand-primary tracking-wide text-center" />
                 </div>
                 

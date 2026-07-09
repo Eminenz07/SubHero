@@ -41,7 +41,8 @@ class RegisterView(View):
     def get(self, request):
         if request.user.is_authenticated:
             return redirect("dashboard")
-        form = RegistrationForm()
+        phone = request.GET.get('phone', '')
+        form = RegistrationForm(initial={'phone_number': phone})
         return render(request, self.template_name, {"form": form})
 
     def post(self, request):
