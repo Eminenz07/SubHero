@@ -78,9 +78,8 @@ def create_giveaway(request):
                 while Giveaway.objects.filter(slug=slug).exists():
                     slug = generate_giveaway_slug()
 
-                from django.conf import settings
-                site_url = settings.SITE_URL.rstrip('/')
-                qr_base64 = generate_qr_code_base64(f"{site_url}/g/{slug}")
+                claim_url = f"{request.scheme}://{request.get_host()}/g/{slug}"
+                qr_base64 = generate_qr_code_base64(claim_url)
 
                 giveaway = Giveaway.objects.create(
                     host=request.user,

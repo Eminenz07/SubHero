@@ -35,7 +35,7 @@
         <div class="text-left">
             <label class="text-xs font-semibold text-text-secondary block mb-1">Share Link</label>
             <div class="flex gap-2">
-                <input type="text" id="share_link" readonly value="{{ giveaway.claim_url }}" class="w-full px-3 py-2 rounded-xl border border-surface-border bg-surface-page text-sm text-text-primary outline-none" />
+                <input type="text" id="share_link" readonly value="{{ request.scheme }}://{{ request.get_host }}/g/{{ giveaway.slug }}" class="w-full px-3 py-2 rounded-xl border border-surface-border bg-surface-page text-sm text-text-primary outline-none" />
                 <button onclick="copyLink()" class="btn btn-primary px-4 py-2 rounded-xl flex items-center justify-center" aria-label="Copy">
                     <i data-feather="copy" class="w-4 h-4"></i>
                 </button>
