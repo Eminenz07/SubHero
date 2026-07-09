@@ -208,26 +208,22 @@ def claim_page(request, slug):
     if request.method == 'POST':
         ip_address = get_client_ip(request)
         
-        # Rate limit 1: Per IP daily across all giveaways (max 10)
+        # Rate limit 1: Per IP daily across all giveaways (max 10 successful claims)
         today_str = datetime.date.today().isoformat()
-        daily_cache_key = f"ga_daily:{ip_address}:{today_str}"
+        daily_cache_key = f"ga_daily_success:{ip_address}:{today_str}"
         daily_count = cache.get(daily_cache_key, 0)
         if daily_count >= 10:
-            return render(request, 'giveaway/claim.html', {'giveaway': giveaway, 'error': 'Daily limit of 10 claims exceeded for this IP.'})
+            return render(request, 'giveaway/claim.html', {'giveaway': giveaway, 'error': 'Daily limit of 10 successful claims exceeded for this IP.'})
             
-        # Rate limit 2: Per IP per giveaway (max 3 per hour)
-        gwy_cache_key = f"ga_attempt:{giveaway.id}:{ip_address}"
-        attempt_count = cache.get(gwy_cache_key, 0)
-        if attempt_count >= 3:
-            return render(request, 'giveaway/claim.html', {'giveaway': giveaway, 'error': 'Hourly limit of 3 claim attempts for this giveaway exceeded.'})
+        # Rate limit 2: Per IP per giveaway (max 3 successful claims per hour)
+        gwy_cache_key = f"ga_success:{giveaway.id}:{ip_address}"
+        success_count = cache.get(gwy_cache_key, 0)
+        if success_count >= 3:
+            return render(request, 'giveaway/claim.html', {'giveaway': giveaway, 'error': 'Hourly limit of 3 successful claims for this giveaway exceeded.'})
             
         raw_phone = request.POST.get('phone_number')
         if not raw_phone:
             return render(request, 'giveaway/claim.html', {'giveaway': giveaway, 'error': 'Phone number required'})
-            
-        # Increment attempt and daily cache counters
-        cache.set(gwy_cache_key, attempt_count + 1, timeout=3600)
-        cache.set(daily_cache_key, daily_count + 1, timeout=86400)
             
         if not PHONE_REGEX.match(raw_phone.strip()):
             return render(request, 'giveaway/claim.html', {'giveaway': giveaway, 'error': 'Invalid Nigerian phone number format. Use 080XXXXXXXX.'})
@@ -252,11 +248,10 @@ def claim_page(request, slug):
         try:
             with transaction.atomic():
                 giveaway_locked = Giveaway.objects.select_for_update().get(id=giveaway.id)
-                
-                if giveaway_locked.remaining_slots <= 0 or giveaway_locked.status != 'ACTIVE':
+                if not giveaway_locked.is_claimable:
                     return render(request, 'giveaway/closed.html', {'giveaway': giveaway_locked})
-                
-                # Delete any failed claims first so the user can retry
+                    
+                # Clean up any failed attempts for this number so they can retry
                 GiveawayClaim.objects.filter(giveaway=giveaway_locked, phone_number=normalized_phone, status='FAILED').delete()
                 
                 # Check for active or pending claims
@@ -270,7 +265,7 @@ def claim_page(request, slug):
                     giveaway=giveaway_locked,
                     phone_number=normalized_phone,
                     amount=giveaway_locked.amount_per_slot,
-                    ip_address=request.META.get('REMOTE_ADDR')
+                    ip_address=ip_address
                 )
                 
             # Dispatch Celery Task

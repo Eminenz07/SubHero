@@ -121,6 +121,24 @@ def process_giveaway_claim(claim_id):
                 giveaway.total_spent += giveaway.amount_per_slot
                 giveaway.save(update_fields=['total_spent'])
                 
+            # Increment successful claim rate limits for the IP
+            if claim.ip_address:
+                try:
+                    from django.core.cache import cache
+                    import datetime
+                    # Hourly key
+                    gwy_cache_key = f"ga_success:{giveaway.id}:{claim.ip_address}"
+                    success_count = cache.get(gwy_cache_key, 0)
+                    cache.set(gwy_cache_key, success_count + 1, timeout=3600)
+                    
+                    # Daily key
+                    today_str = datetime.date.today().isoformat()
+                    daily_cache_key = f"ga_daily_success:{claim.ip_address}:{today_str}"
+                    daily_count = cache.get(daily_cache_key, 0)
+                    cache.set(daily_cache_key, daily_count + 1, timeout=86400)
+                except Exception as cache_err:
+                    logger.error(f"Failed to increment IP rate limit cache: {cache_err}")
+                
             # SMS follow up (PRD Touchpoint 4)
             try:
                 from apps.notifications.tasks import send_transaction_sms
