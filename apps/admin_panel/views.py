@@ -1316,11 +1316,17 @@ def giveaways_list(request):
         )
 
     # Analytics metrics for giveaways
-    metrics = Giveaway.objects.aggregate(
-        total_count=Count('id'),
-        total_locked=Sum('total_locked'),
-        total_spent=Sum('total_spent')
-    )
+    total_count = Giveaway.objects.count()
+    total_spent = Giveaway.objects.aggregate(sum=Sum('total_spent'))['sum'] or Decimal('0.00')
+    total_locked = Giveaway.objects.filter(status='ACTIVE').aggregate(
+        locked=Sum(F('total_locked') - F('total_spent'))
+    )['locked'] or Decimal('0.00')
+    
+    metrics = {
+        'total_count': total_count,
+        'total_locked': total_locked,
+        'total_spent': total_spent
+    }
 
     paginator = Paginator(giveaways, 30)
     page_number = request.GET.get("page", 1)
