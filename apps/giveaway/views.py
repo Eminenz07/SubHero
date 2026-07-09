@@ -62,6 +62,24 @@ def create_giveaway(request):
 
             total_cost = amount_per_slot * slots
             
+            # Parse optional expires_at
+            expires_at = None
+            expires_at_raw = request.POST.get('expires_at')
+            if expires_at_raw:
+                from django.utils.dateparse import parse_datetime
+                from django.utils.timezone import is_aware, make_aware, get_current_timezone
+                parsed_dt = parse_datetime(expires_at_raw)
+                if parsed_dt:
+                    if not is_aware(parsed_dt):
+                        parsed_dt = make_aware(parsed_dt, get_current_timezone())
+                    if parsed_dt <= now():
+                        messages.error(request, "Expiry date and time must be in the future.")
+                        return redirect('giveaway:create')
+                    expires_at = parsed_dt
+                else:
+                    messages.error(request, "Invalid expiry date/time format.")
+                    return redirect('giveaway:create')
+            
             with transaction.atomic():
                 wallet = Wallet.objects.select_for_update().get(user=request.user)
                 if wallet.balance < total_cost:
@@ -91,7 +109,8 @@ def create_giveaway(request):
                     amount_per_slot=amount_per_slot,
                     total_slots=slots,
                     total_locked=total_cost,
-                    qr_code_base64=qr_base64
+                    qr_code_base64=qr_base64,
+                    expires_at=expires_at
                 )
 
                 GiveawayEscrow.objects.create(
@@ -121,7 +140,8 @@ def create_giveaway(request):
 
     # GET Request
     plans = VTUPlan.objects.filter(is_active=True).order_by('network', 'subhero_price')
-    return render(request, 'giveaway/create.html', {'plans': plans})
+    wallet_balance = request.user.wallet.balance if hasattr(request.user, 'wallet') else Decimal('0.00')
+    return render(request, 'giveaway/create.html', {'plans': plans, 'wallet_balance': wallet_balance})
 
 
 @login_required
@@ -235,11 +255,12 @@ def claim_page(request, slug):
 def claim_status(request, slug, claim_id):
     claim = get_object_or_404(GiveawayClaim, id=claim_id, giveaway__slug=slug)
     if claim.status == 'SUCCESS':
+        redirect_url = reverse('giveaway:claim_success', kwargs={'slug': slug}) + f"?phone={claim.phone_number}"
         if request.headers.get('HX-Request'):
             response = HttpResponse()
-            response['HX-Redirect'] = reverse('giveaway:claim_success', kwargs={'slug': slug})
+            response['HX-Redirect'] = redirect_url
             return response
-        return redirect('giveaway:claim_success', slug=slug)
+        return redirect(redirect_url)
     elif claim.status == 'FAILED':
         if request.headers.get('HX-Request'):
             response = HttpResponse()
@@ -255,8 +276,58 @@ def claim_status(request, slug, claim_id):
 
 def claim_success(request, slug):
     giveaway = get_object_or_404(Giveaway, slug=slug)
-    return render(request, 'giveaway/success.html', {'giveaway': giveaway})
+    phone = request.GET.get('phone', '')
+    register_url = reverse('accounts:register') + f"?phone={phone}&source=giveaway&ref={slug}"
+    return render(request, 'giveaway/success.html', {
+        'giveaway': giveaway,
+        'phone': phone,
+        'register_url': register_url
+    })
 
 def claim_failed(request, slug):
     giveaway = get_object_or_404(Giveaway, slug=slug)
     return render(request, 'giveaway/failed.html', {'giveaway': giveaway})
+
+@login_required
+def cancel_giveaway(request, slug):
+    giveaway = get_object_or_404(Giveaway, slug=slug, host=request.user)
+    
+    if giveaway.status != 'ACTIVE':
+        messages.error(request, "Only active giveaways can be cancelled.")
+        return redirect('giveaway:detail', slug=slug)
+        
+    if giveaway.claimed_slots > 0:
+        messages.error(request, "Giveaways with active claims cannot be cancelled.")
+        return redirect('giveaway:detail', slug=slug)
+        
+    try:
+        with transaction.atomic():
+            wallet = Wallet.objects.select_for_update().get(user=request.user)
+            balance_before = wallet.balance
+            
+            # Refund escrow
+            refund_amount = giveaway.total_locked
+            wallet.balance += refund_amount
+            wallet.save()
+            
+            # Update giveaway
+            giveaway.status = 'CANCELLED'
+            giveaway.save()
+            
+            # Transaction log
+            WalletTransaction.objects.create(
+                wallet=wallet,
+                txn_type=WalletTransaction.TxnType.REFUND,
+                amount=refund_amount,
+                balance_before=balance_before,
+                balance_after=wallet.balance,
+                status=WalletTransaction.Status.SUCCESS,
+                reference=f"GWY_REFUND_{giveaway.id}",
+                description=f"Cancelled giveaway refund: {giveaway.title}"
+            )
+            
+        messages.success(request, f"Giveaway cancelled successfully! ₦{refund_amount} has been refunded to your wallet.")
+    except Exception as e:
+        messages.error(request, f"Failed to cancel giveaway: {str(e)}")
+        
+    return redirect('giveaway:mine')

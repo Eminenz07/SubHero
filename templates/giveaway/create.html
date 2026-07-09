@@ -66,12 +66,19 @@
                 </div>
 
                 <div class="flex flex-col gap-1.5">
+                    <label class="text-xs font-semibold text-text-secondary">Expiry Date & Time (Optional)</label>
+                    <input type="datetime-local" name="expires_at" id="expires_at" class="w-full px-4 py-3 rounded-xl border border-surface-border text-sm font-semibold text-text-primary focus:outline-none focus:border-brand-primary" />
+                </div>
+
+                <div class="flex flex-col gap-1.5">
                     <label class="text-xs font-semibold text-text-secondary">Transaction PIN</label>
                     <input type="text" inputmode="numeric" pattern="[0-9]{4}" name="transaction_pin" placeholder="Enter PIN (4 digits)" maxlength="4" oninput="this.value=this.value.replace(/[^0-9]/g,'')" required class="w-full px-4 py-3 rounded-xl border border-surface-border text-sm font-semibold text-text-primary focus:outline-none focus:border-brand-primary tracking-[0.5em] text-center" />
                 </div>
                 
-                <div class="bg-brand-accent/10 border border-brand-accent/25 rounded-xl p-3 text-xs text-text-secondary leading-relaxed">
-                    <span class="font-bold text-brand-primary">Total Cost:</span> ₦<span id="total_cost_display">0.00</span> will be locked from your wallet. Unused funds are refunded upon expiry.
+                <div class="bg-brand-accent/10 border border-brand-accent/25 rounded-xl p-3 text-xs text-text-secondary leading-relaxed space-y-1">
+                    <div><span class="font-bold text-brand-primary">Total Cost:</span> ₦<span id="total_cost_display">0.00</span></div>
+                    <div><span class="font-bold">Your Balance:</span> ₦{{ wallet_balance|floatformat:2 }}</div>
+                    <div><span class="font-bold">Balance After:</span> ₦<span id="remaining_balance_display">{{ wallet_balance|floatformat:2 }}</span></div>
                 </div>
 
                 <button type="submit" class="btn btn-primary btn-block py-3 rounded-xl font-bold flex items-center justify-center gap-2 mt-4">
@@ -141,6 +148,16 @@
         
         const total = (amount * slots).toFixed(2);
         document.getElementById('total_cost_display').innerText = total;
+        
+        const balance = parseFloat("{{ wallet_balance }}") || 0;
+        const remaining = (balance - total).toFixed(2);
+        const remDisplay = document.getElementById('remaining_balance_display');
+        remDisplay.innerText = remaining;
+        if (remaining < 0) {
+            remDisplay.parentElement.style.color = '#EF4444';
+        } else {
+            remDisplay.parentElement.style.color = '';
+        }
     }
 
     document.getElementById('slots').addEventListener('input', calculateTotal);
