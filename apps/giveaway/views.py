@@ -134,6 +134,39 @@ def giveaway_detail(request, slug):
     giveaway = get_object_or_404(Giveaway, slug=slug, host=request.user)
     return render(request, 'giveaway/detail.html', {'giveaway': giveaway})
 
+import re
+
+PHONE_REGEX = re.compile(r'^(0[7-9][0-1]\d{8}|\+234[7-9][0-1]\d{8}|234[7-9][0-1]\d{8})$')
+
+def normalize_phone(raw_phone: str) -> str:
+    if not raw_phone:
+        return ""
+    phone = str(raw_phone).replace("+", "").replace(" ", "").strip()
+    if phone.startswith("234"):
+        phone = "0" + phone[3:]
+    if len(phone) == 10 and not phone.startswith("0"):
+        phone = "0" + phone
+    return phone
+
+def get_network_by_prefix(phone: str) -> str:
+    if not phone or len(phone) < 4:
+        return None
+    prefix = phone[:4]
+    mtn_prefixes = {'0703', '0706', '0803', '0806', '0810', '0813', '0814', '0816', '0903', '0906', '0913', '0916'}
+    airtel_prefixes = {'0701', '0708', '0802', '0808', '0812', '0901', '0902', '0904', '0907', '0912'}
+    glo_prefixes = {'0705', '0805', '0807', '0811', '0815', '0905', '0915'}
+    nine_mobile_prefixes = {'0809', '0817', '0818', '0908', '0909'}
+    
+    if prefix in mtn_prefixes:
+        return 'mtn'
+    elif prefix in airtel_prefixes:
+        return 'airtel'
+    elif prefix in glo_prefixes:
+        return 'glo'
+    elif prefix in nine_mobile_prefixes:
+        return '9mobile'
+    return None
+
 # ================= PUBLIC VIEWS =================
 def claim_page(request, slug):
     giveaway = get_object_or_404(Giveaway, slug=slug)
@@ -142,9 +175,29 @@ def claim_page(request, slug):
         return render(request, 'giveaway/closed.html', {'giveaway': giveaway})
         
     if request.method == 'POST':
-        phone = request.POST.get('phone_number')
-        if not phone:
+        raw_phone = request.POST.get('phone_number')
+        if not raw_phone:
             return render(request, 'giveaway/claim.html', {'giveaway': giveaway, 'error': 'Phone number required'})
+            
+        if not PHONE_REGEX.match(raw_phone.strip()):
+            return render(request, 'giveaway/claim.html', {'giveaway': giveaway, 'error': 'Invalid Nigerian phone number format. Use 080XXXXXXXX.'})
+            
+        normalized_phone = normalize_phone(raw_phone)
+        
+        # Self-claim check
+        if normalized_phone == normalize_phone(giveaway.host.phone_number):
+            return render(request, 'giveaway/claim.html', {'giveaway': giveaway, 'error': 'You cannot claim your own giveaway!'})
+            
+        # Network mismatch validation (skip if network is 'all')
+        if giveaway.network != 'all':
+            detected_network = get_network_by_prefix(normalized_phone)
+            if not detected_network or detected_network != giveaway.network:
+                expected_net = giveaway.get_network_display()
+                detected_net = detected_network.upper() if detected_network else 'unknown'
+                return render(request, 'giveaway/claim.html', {
+                    'giveaway': giveaway,
+                    'error': f"This number looks like an {detected_net} line. This giveaway is for {expected_net} numbers only."
+                })
             
         try:
             with transaction.atomic():
@@ -153,15 +206,19 @@ def claim_page(request, slug):
                 if giveaway_locked.remaining_slots <= 0 or giveaway_locked.status != 'ACTIVE':
                     return render(request, 'giveaway/closed.html', {'giveaway': giveaway_locked})
                 
-                if GiveawayClaim.objects.filter(giveaway=giveaway_locked, phone_number=phone).exists():
+                # Delete any failed claims first so the user can retry
+                GiveawayClaim.objects.filter(giveaway=giveaway_locked, phone_number=normalized_phone, status='FAILED').delete()
+                
+                # Check for active or pending claims
+                if GiveawayClaim.objects.filter(giveaway=giveaway_locked, phone_number=normalized_phone).exists():
                     return render(request, 'giveaway/claim.html', {'giveaway': giveaway_locked, 'error': 'Number already claimed!'})
-
+ 
                 giveaway_locked.claimed_slots += 1
                 giveaway_locked.save(update_fields=['claimed_slots'])
                 
                 claim = GiveawayClaim.objects.create(
                     giveaway=giveaway_locked,
-                    phone_number=phone,
+                    phone_number=normalized_phone,
                     amount=giveaway_locked.amount_per_slot,
                     ip_address=request.META.get('REMOTE_ADDR')
                 )
