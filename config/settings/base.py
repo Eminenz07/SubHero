@@ -23,6 +23,9 @@ SECRET_KEY = config("SECRET_KEY", default="django-insecure-fallback-key-for-migr
 
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1", cast=Csv())
 
+# Site URL for absolute links (Giveaways, emails, etc.)
+SITE_URL = config("SITE_URL", default="http://localhost:8000")
+
 # Admin URL — configurable via .env, randomised in production
 ADMIN_URL = config("ADMIN_URL", default="admin/")
 ADMIN_HQ_URL = config("ADMIN_HQ_URL", default="subhero-hq-sh9k4x2/")

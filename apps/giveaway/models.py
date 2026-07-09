@@ -34,7 +34,9 @@ class Giveaway(models.Model):
 
     @property
     def claim_url(self):
-        return f'https://subhero.ng/g/{self.slug}'
+        from django.conf import settings
+        site_url = settings.SITE_URL.rstrip('/')
+        return f'{site_url}/g/{self.slug}'
 
     @property
     def is_claimable(self):

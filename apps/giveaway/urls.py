@@ -12,4 +12,5 @@ urlpatterns = [
     path('claim/<str:slug>/', views.claim_page, name='claim_page'),
     path('claim/<str:slug>/status/<uuid:claim_id>/', views.claim_status, name='claim_status'),
     path('claim/<str:slug>/success/', views.claim_success, name='claim_success'),
+    path('claim/<str:slug>/failed/', views.claim_failed, name='claim_failed'),
 ]

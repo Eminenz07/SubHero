@@ -2,7 +2,7 @@ from decimal import Decimal
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.db import transaction
 from django.urls import reverse
 from django.core.cache import cache
@@ -78,7 +78,9 @@ def create_giveaway(request):
                 while Giveaway.objects.filter(slug=slug).exists():
                     slug = generate_giveaway_slug()
 
-                qr_base64 = generate_qr_code_base64(f"https://subhero.ng/g/{slug}")
+                from django.conf import settings
+                site_url = settings.SITE_URL.rstrip('/')
+                qr_base64 = generate_qr_code_base64(f"{site_url}/g/{slug}")
 
                 giveaway = Giveaway.objects.create(
                     host=request.user,
@@ -177,9 +179,17 @@ def claim_page(request, slug):
 def claim_status(request, slug, claim_id):
     claim = get_object_or_404(GiveawayClaim, id=claim_id, giveaway__slug=slug)
     if claim.status == 'SUCCESS':
+        if request.headers.get('HX-Request'):
+            response = HttpResponse()
+            response['HX-Redirect'] = reverse('giveaway:claim_success', kwargs={'slug': slug})
+            return response
         return redirect('giveaway:claim_success', slug=slug)
     elif claim.status == 'FAILED':
-        return render(request, 'giveaway/failed.html', {'giveaway': claim.giveaway})
+        if request.headers.get('HX-Request'):
+            response = HttpResponse()
+            response['HX-Redirect'] = reverse('giveaway:claim_failed', kwargs={'slug': slug})
+            return response
+        return redirect('giveaway:claim_failed', slug=slug)
         
     # HTMX Polling Endpoint
     if request.headers.get('HX-Request'):
@@ -190,3 +200,7 @@ def claim_status(request, slug, claim_id):
 def claim_success(request, slug):
     giveaway = get_object_or_404(Giveaway, slug=slug)
     return render(request, 'giveaway/success.html', {'giveaway': giveaway})
+
+def claim_failed(request, slug):
+    giveaway = get_object_or_404(Giveaway, slug=slug)
+    return render(request, 'giveaway/failed.html', {'giveaway': giveaway})
