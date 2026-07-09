@@ -83,11 +83,20 @@ def process_giveaway_claim(claim_id):
                 network_to_use = giveaway.network
                 if network_to_use == 'all':
                     network_to_use = get_network_by_prefix(_format_phone(claim.phone_number)) or 'mtn'
+                
+                net_map = {
+                    "mtn": "10",
+                    "airtel": "11",
+                    "glo": "12",
+                    "9mobile": "1651"
+                }
+                plan_id = net_map.get(str(network_to_use).lower(), "10")
+                
                 payload = {
                     "pin": pin,
-                    "network": str(network_to_use).lower(),
+                    "plan_id": plan_id,
                     "phone": _format_phone(claim.phone_number),
-                    "amount": str(giveaway.amount_per_slot),
+                    "amount": str(int(giveaway.amount_per_slot)),
                     "reference": f"GWYCLM{str(claim.id).replace('-', '')}"
                 }
                 
