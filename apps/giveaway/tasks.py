@@ -76,7 +76,7 @@ def process_giveaway_claim(claim_id):
                     "pin": pin,
                     "plan_id": str(giveaway.plan_id),
                     "phone": _format_phone(claim.phone_number),
-                    "reference": f"GWY_CLM_{claim.id}"
+                    "reference": f"GWYCLM{str(claim.id).replace('-', '')}"
                 }
             else:
                 url = f"{base_url}/vtu/api/buy/{api_key}"
@@ -88,7 +88,7 @@ def process_giveaway_claim(claim_id):
                     "network": str(network_to_use).lower(),
                     "phone": _format_phone(claim.phone_number),
                     "amount": str(giveaway.amount_per_slot),
-                    "reference": f"GWY_CLM_{claim.id}"
+                    "reference": f"GWYCLM{str(claim.id).replace('-', '')}"
                 }
                 
             response = requests.post(url, data=payload, timeout=25)
@@ -97,7 +97,7 @@ def process_giveaway_claim(claim_id):
                 code = str(response_data.get("code"))
                 if code in ["200", "400"]:
                     success = True
-                    provider_ref = response_data.get("reference", response_data.get("id", f"GWY_CLM_{claim.id}"))
+                    provider_ref = response_data.get("reference", response_data.get("id", f"GWYCLM{str(claim.id).replace('-', '')}"))
                 else:
                     logger.error(f"Sabuss API rejected claim {claim_id}: {response_data}")
             else:
