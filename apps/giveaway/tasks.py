@@ -79,7 +79,7 @@ def process_giveaway_claim(claim_id):
                     "reference": f"GWY_CLM_{claim.id}"
                 }
             else:
-                url = f"{base_url}/vtu/api/airtime/{api_key}"
+                url = f"{base_url}/vtu/api/buy/{api_key}"
                 network_to_use = giveaway.network
                 if network_to_use == 'all':
                     network_to_use = get_network_by_prefix(_format_phone(claim.phone_number)) or 'mtn'
