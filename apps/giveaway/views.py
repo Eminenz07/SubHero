@@ -215,11 +215,11 @@ def claim_page(request, slug):
         if daily_count >= 10:
             return render(request, 'giveaway/claim.html', {'giveaway': giveaway, 'error': 'Daily limit of 10 successful claims exceeded for this IP.'})
             
-        # Rate limit 2: Per IP per giveaway (max 3 successful claims per hour)
+        # Rate limit 2: Per IP per giveaway (max 1 successful claim per hour)
         gwy_cache_key = f"ga_success:{giveaway.id}:{ip_address}"
         success_count = cache.get(gwy_cache_key, 0)
-        if success_count >= 3:
-            return render(request, 'giveaway/claim.html', {'giveaway': giveaway, 'error': 'Hourly limit of 3 successful claims for this giveaway exceeded.'})
+        if success_count >= 1:
+            return render(request, 'giveaway/claim.html', {'giveaway': giveaway, 'error': 'This IP address has already successfully claimed from this giveaway.'})
             
         raw_phone = request.POST.get('phone_number')
         if not raw_phone:
