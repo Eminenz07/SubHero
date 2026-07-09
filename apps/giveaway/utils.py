@@ -4,6 +4,10 @@ import qrcode
 import base64
 from io import BytesIO
 
+import os
+from django.conf import settings
+from PIL import Image
+
 def generate_giveaway_slug():
     """Generates a random 8-character uppercase alphanumeric slug."""
     chars = string.ascii_uppercase + string.digits
@@ -11,8 +15,8 @@ def generate_giveaway_slug():
 
 def generate_qr_code_base64(url: str) -> str:
     """
-    Generates a QR code for the given URL and returns it as a base64 encoded PNG string.
-    This avoids writing to Render's ephemeral filesystem.
+    Generates a branded green QR code for the given URL with favicon overlay,
+    returning it as a base64 encoded PNG string.
     """
     qr = qrcode.QRCode(
         version=1,
@@ -23,8 +27,27 @@ def generate_qr_code_base64(url: str) -> str:
     qr.add_data(url)
     qr.make(fit=True)
 
-    # Generate Image
-    img = qr.make_image(fill_color="#0F172A", back_color="white").convert("RGB")
+    # Generate brand green QR code
+    img = qr.make_image(fill_color="#006B3E", back_color="white").convert("RGB")
+    
+    # Overlay logo
+    try:
+        # favicon.png is in static directory
+        favicon_path = os.path.join(settings.BASE_DIR, 'static', 'favicon.png')
+        if os.path.exists(favicon_path):
+            logo = Image.open(favicon_path).convert("RGBA")
+            img_w, img_h = img.size
+            logo_size = int(img_w * 0.15)
+            logo = logo.resize((logo_size, logo_size), Image.LANCZOS)
+            
+            # Put logo on a white container background to make it stand out
+            logo_bg = Image.new("RGBA", (logo_size + 8, logo_size + 8), "white")
+            logo_bg.paste(logo, (4, 4), mask=logo)
+            
+            pos = ((img_w - logo_bg.size[0]) // 2, (img_h - logo_bg.size[1]) // 2)
+            img.paste(logo_bg, pos, mask=logo_bg)
+    except Exception:
+        pass
     
     # Save to BytesIO buffer
     buffered = BytesIO()

@@ -187,6 +187,16 @@ def get_network_by_prefix(phone: str) -> str:
         return '9mobile'
     return None
 
+import datetime
+
+def get_client_ip(request):
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0].strip()
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
+
 # ================= PUBLIC VIEWS =================
 def claim_page(request, slug):
     giveaway = get_object_or_404(Giveaway, slug=slug)
@@ -195,9 +205,28 @@ def claim_page(request, slug):
         return render(request, 'giveaway/closed.html', {'giveaway': giveaway})
         
     if request.method == 'POST':
+        ip_address = get_client_ip(request)
+        
+        # Rate limit 1: Per IP daily across all giveaways (max 10)
+        today_str = datetime.date.today().isoformat()
+        daily_cache_key = f"ga_daily:{ip_address}:{today_str}"
+        daily_count = cache.get(daily_cache_key, 0)
+        if daily_count >= 10:
+            return render(request, 'giveaway/claim.html', {'giveaway': giveaway, 'error': 'Daily limit of 10 claims exceeded for this IP.'})
+            
+        # Rate limit 2: Per IP per giveaway (max 3 per hour)
+        gwy_cache_key = f"ga_attempt:{giveaway.id}:{ip_address}"
+        attempt_count = cache.get(gwy_cache_key, 0)
+        if attempt_count >= 3:
+            return render(request, 'giveaway/claim.html', {'giveaway': giveaway, 'error': 'Hourly limit of 3 claim attempts for this giveaway exceeded.'})
+            
         raw_phone = request.POST.get('phone_number')
         if not raw_phone:
             return render(request, 'giveaway/claim.html', {'giveaway': giveaway, 'error': 'Phone number required'})
+            
+        # Increment attempt and daily cache counters
+        cache.set(gwy_cache_key, attempt_count + 1, timeout=3600)
+        cache.set(daily_cache_key, daily_count + 1, timeout=86400)
             
         if not PHONE_REGEX.match(raw_phone.strip()):
             return render(request, 'giveaway/claim.html', {'giveaway': giveaway, 'error': 'Invalid Nigerian phone number format. Use 080XXXXXXXX.'})
