@@ -1290,3 +1290,48 @@ def export_transactions_csv(request):
     response = StreamingHttpResponse(row_generator(), content_type="text/csv")
     response["Content-Disposition"] = f'attachment; filename="subhero_transactions_{timezone.now().strftime("%Y%m%d_%H%M%S")}.csv"'
     return response
+
+@admin_required
+def giveaways_list(request):
+    from apps.giveaway.models import Giveaway
+    from django.core.paginator import Paginator
+    from django.db.models import Sum, Count
+
+    status_filter = request.GET.get("status", "").strip()
+    type_filter = request.GET.get("type", "").strip()
+    q = request.GET.get("q", "").strip()
+
+    giveaways = Giveaway.objects.all().select_related("host").order_by("-created_at")
+
+    if status_filter:
+        giveaways = giveaways.filter(status=status_filter)
+    if type_filter:
+        giveaways = giveaways.filter(giveaway_type=type_filter)
+    if q:
+        giveaways = giveaways.filter(
+            Q(slug__icontains=q) |
+            Q(title__icontains=q) |
+            Q(host__email__icontains=q) |
+            Q(host__phone_number__icontains=q)
+        )
+
+    # Analytics metrics for giveaways
+    metrics = Giveaway.objects.aggregate(
+        total_count=Count('id'),
+        total_locked=Sum('total_locked'),
+        total_spent=Sum('total_spent')
+    )
+
+    paginator = Paginator(giveaways, 30)
+    page_number = request.GET.get("page", 1)
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        "active_nav": "giveaways",
+        "page_obj": page_obj,
+        "status": status_filter,
+        "type": type_filter,
+        "q": q,
+        "metrics": metrics
+    }
+    return render(request, "admin_panel/giveaways.html", context)

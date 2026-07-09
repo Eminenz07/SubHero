@@ -31,6 +31,14 @@
             })();
         </script>
 
+        {% if giveaway.status == 'COMPLETED' or giveaway.status == 'EXPIRED' %}
+        <div class="mt-4 pt-4 border-t border-surface-border">
+            <a href="{% url 'giveaway:receipt' giveaway.slug %}" class="w-full py-3 rounded-xl bg-brand-primary text-white font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-all no-underline text-xs shadow-lg shadow-brand-primary/10">
+                <i data-feather="image" class="w-4 h-4"></i> Download Shareable Receipt Card
+            </a>
+        </div>
+        {% endif %}
+
         {% if giveaway.status == 'ACTIVE' %}
         <!-- QR Code -->
         <div class="bg-surface-page border border-surface-border p-4 rounded-xl inline-block mx-auto mb-4">

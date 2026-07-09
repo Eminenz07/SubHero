@@ -33,8 +33,9 @@ urlpatterns = [
     path("smm-pricing/bulk-update/", views.smm_pricing_bulk_update, name="smm_pricing_bulk_update"),
     path("smm-pricing/exchange-rate/", views.update_exchange_rate, name="update_exchange_rate"),
 
-    # Orders
+    # Orders & Giveaways
     path("orders/", views.orders_list, name="orders"),
+    path("giveaways/", views.giveaways_list, name="giveaways"),
     path("orders/<uuid:order_id>/refund/", views.manual_refund, name="manual_refund"),
     path("orders/<uuid:order_id>/retry/", views.manual_retry, name="manual_retry"),
     path("orders/<uuid:order_id>/mark-delivered/", views.manual_mark_delivered, name="manual_mark_delivered"),

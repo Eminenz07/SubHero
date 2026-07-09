@@ -1,0 +1,158 @@
+{% extends "admin_panel/base_admin.html" %}
+{% load static %}
+
+{% block title %}Giveaway Management — SubHero HQ{% endblock %}
+
+{% block header_title %}Giveaways{% endblock %}
+
+{% block header_subtitle %}
+<span class="text-xs text-slate-400 font-mono ml-2">Monitor all data and airtime giveaways hosted on SubHero</span>
+{% endblock %}
+
+{% block admin_content %}
+<div class="flex flex-col gap-6">
+    <!-- Analytics Metrics -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <!-- Count Card -->
+        <div class="admin-card p-5 flex flex-col justify-center">
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Total Giveaways</span>
+            <div class="text-2xl font-bold text-emerald-400 font-mono">{{ metrics.total_count|default:0 }}</div>
+        </div>
+        
+        <!-- Locked Funds Card -->
+        <div class="admin-card p-5 flex flex-col justify-center">
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Total Funds Locked</span>
+            <div class="text-2xl font-bold text-amber-400 font-mono">₦{{ metrics.total_locked|default:0|floatformat:2 }}</div>
+        </div>
+
+        <!-- Spent Card -->
+        <div class="admin-card p-5 flex flex-col justify-center">
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Total Funds Spent</span>
+            <div class="text-2xl font-bold text-blue-400 font-mono">₦{{ metrics.total_spent|default:0|floatformat:2 }}</div>
+        </div>
+
+        <!-- Filters Box -->
+        <div class="admin-card p-4 flex flex-wrap items-center justify-between gap-4">
+            <form method="GET" class="flex flex-wrap items-center gap-4 flex-1 w-full">
+                <!-- Search -->
+                <div class="relative flex-1 min-w-[150px]">
+                    <input type="text" name="q" value="{{ q }}" placeholder="Search slug, host..." class="w-full px-3 py-2 text-xs bg-slate-900 border border-white/[0.06] rounded-lg text-white font-semibold">
+                </div>
+
+                <!-- Type -->
+                <div class="min-w-[110px]">
+                    <select name="type" class="w-full px-3 py-2 text-xs bg-slate-900 border border-white/[0.06] rounded-lg text-slate-300 font-semibold cursor-pointer">
+                        <option value="">All Types</option>
+                        <option value="DATA" {% if type == 'DATA' %}selected{% endif %}>Data</option>
+                        <option value="AIRTIME" {% if type == 'AIRTIME' %}selected{% endif %}>Airtime</option>
+                    </select>
+                </div>
+
+                <!-- Status -->
+                <div class="min-w-[110px]">
+                    <select name="status" class="w-full px-3 py-2 text-xs bg-slate-900 border border-white/[0.06] rounded-lg text-slate-300 font-semibold cursor-pointer">
+                        <option value="">All Statuses</option>
+                        <option value="ACTIVE" {% if status == 'ACTIVE' %}selected{% endif %}>Active</option>
+                        <option value="COMPLETED" {% if status == 'COMPLETED' %}selected{% endif %}>Completed</option>
+                        <option value="EXPIRED" {% if status == 'EXPIRED' %}selected{% endif %}>Expired</option>
+                        <option value="CANCELLED" {% if status == 'CANCELLED' %}selected{% endif %}>Cancelled</option>
+                    </select>
+                </div>
+
+                <div class="flex gap-2">
+                    <button type="submit" class="px-4 py-2 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors">
+                        Filter
+                    </button>
+                    {% if q or type or status %}
+                    <a href="{% url 'admin_panel:giveaways' %}" class="px-4 py-2 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 hover:text-white border border-white/[0.04] transition-colors">
+                        Reset
+                    </a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Data Table -->
+    <div class="admin-card overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full border-collapse text-left text-xs font-medium text-slate-300">
+                <thead>
+                    <tr class="bg-slate-950/45 border-b border-white/[0.06] text-slate-400 font-bold uppercase tracking-wider">
+                        <th class="px-6 py-4">Slug</th>
+                        <th class="px-6 py-4">Host</th>
+                        <th class="px-6 py-4">Title</th>
+                        <th class="px-6 py-4">Reward</th>
+                        <th class="px-6 py-4">Claims</th>
+                        <th class="px-6 py-4">Locked / Spent</th>
+                        <th class="px-6 py-4">Status</th>
+                        <th class="px-6 py-4">Created At</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/[0.04]">
+                    {% for g in page_obj %}
+                    <tr class="hover:bg-white/[0.02] transition-colors">
+                        <td class="px-6 py-4 font-mono font-bold text-white">{{ g.slug }}</td>
+                        <td class="px-6 py-4">
+                            <div>{{ g.host.full_name|default:"SubHero User" }}</div>
+                            <div class="text-[10px] text-slate-500 font-mono mt-0.5">{{ g.host.phone_number }}</div>
+                        </td>
+                        <td class="px-6 py-4 font-semibold">{{ g.title }}</td>
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase {% if g.giveaway_type == 'DATA' %}bg-blue-500/10 text-blue-400{% else %}bg-purple-500/10 text-purple-400{% endif %}">
+                                {{ g.get_giveaway_type_display }}
+                            </span>
+                            <div class="text-[10px] text-slate-500 mt-1 uppercase font-semibold">
+                                {% if g.network == 'all' %}any network{% else %}{{ g.network }}{% endif %}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 font-semibold font-mono">{{ g.claimed_slots }} / {{ g.total_slots }}</td>
+                        <td class="px-6 py-4 font-mono">
+                            <div>Locked: ₦{{ g.total_locked|floatformat:2 }}</div>
+                            <div class="text-emerald-400 mt-0.5">Spent: ₦{{ g.total_spent|floatformat:2 }}</div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase 
+                            {% if g.status == 'ACTIVE' %}bg-emerald-500/10 text-emerald-400
+                            {% elif g.status == 'COMPLETED' %}bg-blue-500/10 text-blue-400
+                            {% elif g.status == 'EXPIRED' %}bg-amber-500/10 text-amber-400
+                            {% else %}bg-red-500/10 text-red-400{% endif %}">
+                                {{ g.status }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-slate-400 font-mono">{{ g.created_at|date:"Y-m-d H:i:s" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="px-6 py-12 text-center text-slate-500 font-semibold">
+                            No giveaways found matching the search criteria.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+        <div class="px-6 py-4 border-t border-white/[0.06] flex items-center justify-between bg-slate-950/20">
+            <span class="text-xs text-slate-400 font-medium">
+                Showing page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+            </span>
+            <div class="flex gap-2">
+                {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q }}{% endif %}{% if status %}&status={{ status }}{% endif %}{% if type %}&type={{ type }}{% endif %}" class="px-3 py-1.5 bg-slate-900 border border-white/[0.06] hover:border-emerald-500 rounded-lg text-white font-bold transition-all no-underline">
+                        Previous
+                    </a>
+                {% endif %}
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q }}{% endif %}{% if status %}&status={{ status }}{% endif %}{% if type %}&type={{ type }}{% endif %}" class="px-3 py-1.5 bg-slate-900 border border-white/[0.06] hover:border-emerald-500 rounded-lg text-white font-bold transition-all no-underline">
+                        Next
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

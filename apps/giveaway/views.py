@@ -360,3 +360,84 @@ def cancel_giveaway(request, slug):
         messages.error(request, f"Failed to cancel giveaway: {str(e)}")
         
     return redirect('giveaway:mine')
+
+import os
+from django.conf import settings
+from PIL import Image, ImageDraw, ImageFont
+
+@login_required
+def giveaway_receipt_card(request, slug):
+    giveaway = get_object_or_404(Giveaway, slug=slug, host=request.user)
+    
+    # Create image
+    img = Image.new("RGB", (1080, 1080))
+    draw = ImageDraw.Draw(img)
+    
+    # Draw green gradient background
+    for y in range(1080):
+        r = 0
+        g = int(77 + (143 - 77) * y / 1080)
+        b = int(44 + (80 - 44) * y / 1080)
+        draw.line([(0, y), (1080, y)], fill=(r, g, b))
+        
+    # Draw clean white rounded card in the center
+    draw.rounded_rectangle([100, 100, 980, 980], radius=40, fill=(255, 255, 255))
+    
+    # Helper to get standard fonts on local and production
+    def get_font(size):
+        font_paths = [
+            "C:\\Windows\\Fonts\\arial.ttf",
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+            "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+        ]
+        for path in font_paths:
+            if os.path.exists(path):
+                try:
+                    return ImageFont.truetype(path, size)
+                except Exception:
+                    pass
+        return ImageFont.load_default()
+        
+    font_large = get_font(44)
+    font_medium = get_font(32)
+    font_small = get_font(22)
+    
+    # 1. Overlay Favicon
+    try:
+        favicon_path = os.path.join(settings.BASE_DIR, 'static', 'favicon.png')
+        if os.path.exists(favicon_path):
+            logo = Image.open(favicon_path).convert("RGBA")
+            logo = logo.resize((120, 120), Image.LANCZOS)
+            img.paste(logo, (480, 160), mask=logo)
+    except Exception:
+        pass
+        
+    # 2. Title
+    draw.text((540, 320), giveaway.title, fill=(15, 23, 42), font=font_large, anchor="mm")
+    
+    # 3. Divider
+    draw.line([(340, 380), (740, 380)], fill=(229, 231, 235), width=4)
+    
+    # 4. Slots Shared
+    type_label = "free Data plans" if giveaway.giveaway_type == 'DATA' else "free Airtime vouchers"
+    slots_text = f"{giveaway.claimed_slots} people received {type_label}"
+    draw.text((540, 450), slots_text, fill=(75, 85, 99), font=font_medium, anchor="mm")
+    
+    # 5. Total Shared amount
+    total_val = giveaway.claimed_slots * giveaway.amount_per_slot
+    amt_text = f"₦{int(total_val):,} total value shared"
+    draw.text((540, 520), amt_text, fill=(0, 107, 62), font=font_large, anchor="mm")
+    
+    # 6. Success badge
+    draw.rounded_rectangle([340, 630, 740, 710], radius=20, fill=(0, 107, 62))
+    draw.text((540, 670), "GIVEAWAY COMPLETED", fill=(255, 255, 255), font=font_medium, anchor="mm")
+    
+    # 7. Footer
+    draw.text((540, 800), "Host your own giveaway at", fill=(107, 114, 128), font=font_small, anchor="mm")
+    draw.text((540, 840), "subhero.ng", fill=(0, 107, 62), font=font_medium, anchor="mm")
+    
+    # Output to response
+    response = HttpResponse(content_type="image/png")
+    response['Content-Disposition'] = f'attachment; filename="giveaway_receipt_{giveaway.slug}.png"'
+    img.save(response, "PNG")
+    return response

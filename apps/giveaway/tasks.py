@@ -121,8 +121,43 @@ def process_giveaway_claim(claim_id):
                 giveaway.total_spent += giveaway.amount_per_slot
                 giveaway.save(update_fields=['total_spent'])
                 
-            # SMS follow up handled separately if needed, but per instructions we keep OTP/Follow ups
-            # We could send an SMS here if we wanted.
+            # SMS follow up (PRD Touchpoint 4)
+            try:
+                from apps.notifications.tasks import send_transaction_sms
+                def format_termii_phone(phone: str) -> str:
+                    phone = str(phone).replace("+", "").replace(" ", "").strip()
+                    if phone.startswith("0"):
+                        phone = "234" + phone[1:]
+                    elif not phone.startswith("234"):
+                        phone = "234" + phone
+                    return phone
+                
+                reward_desc = f"{giveaway.plan_id} data" if giveaway.giveaway_type == 'DATA' else f"₦{int(giveaway.amount_per_slot)} airtime"
+                sms_message = f"You've received {reward_desc} from {giveaway.host.first_name or 'a SubHero user'} via SubHero. Buy your own cheap data at subhero.ng"
+                send_transaction_sms.delay(format_termii_phone(claim.phone_number), sms_message)
+            except Exception as e:
+                logger.error(f"Failed to send claimant SMS: {e}")
+
+            # Check if now complete
+            if giveaway.claimed_slots >= giveaway.total_slots:
+                giveaway.status = 'COMPLETED'
+                giveaway.save(update_fields=['status'])
+                
+                # Notify Host via Email
+                try:
+                    from django.core.mail import send_mail
+                    subject = f"Your giveaway '{giveaway.title}' is complete! 🎉"
+                    mail_message = f"Hello {giveaway.host.first_name or 'SubHero User'},\n\nAll {giveaway.total_slots} slots in your giveaway '{giveaway.title}' have been successfully claimed!\n\nThank you for using SubHero!"
+                    send_mail(
+                        subject=subject,
+                        message=mail_message,
+                        from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@subhero.ng'),
+                        recipient_list=[giveaway.host.email],
+                        fail_silently=True
+                    )
+                except Exception as mail_err:
+                    logger.error(f"Failed to send completion email: {mail_err}")
+                    
             logger.info(f"Giveaway claim {claim_id} successful.")
         else:
             with transaction.atomic():
@@ -222,3 +257,18 @@ def refund_giveaway_unused_slots(giveaway_id):
                 )
             except Exception as e:
                 logger.error(f"Notification creation failed: {e}")
+
+            # Notify Host via Email
+            try:
+                from django.core.mail import send_mail
+                subject = f"Your giveaway '{giveaway.title}' has expired ⏳"
+                mail_message = f"Hello {giveaway.host.first_name or 'SubHero User'},\n\nYour giveaway '{giveaway.title}' has expired. \n\nSlots claimed: {giveaway.claimed_slots}/{giveaway.total_slots}\nRefund amount: ₦{unused_amount}\n\nThe refund of ₦{unused_amount} has been credited back to your wallet.\n\nThank you for using SubHero!"
+                send_mail(
+                    subject=subject,
+                    message=mail_message,
+                    from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@subhero.ng'),
+                    recipient_list=[giveaway.host.email],
+                    fail_silently=True
+                )
+            except Exception as mail_err:
+                logger.error(f"Failed to send expiry email: {mail_err}")
