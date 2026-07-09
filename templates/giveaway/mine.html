@@ -7,6 +7,13 @@
 
 {% block content %}
 <div class="px-4 pt-5 pb-10 max-w-md mx-auto space-y-4">
+    <div class="flex justify-between items-center mb-2">
+        <span class="text-xs font-bold text-text-secondary uppercase tracking-wider">History</span>
+        <a href="{% url 'giveaway:create' %}" class="btn btn-primary py-2 px-4 rounded-xl font-bold text-xs flex items-center gap-1.5 no-underline">
+            <i data-feather="plus" class="w-3.5 h-3.5"></i> New Giveaway
+        </a>
+    </div>
+
     {% for giveaway in giveaways %}
     <a href="{% url 'giveaway:detail' giveaway.slug %}" class="card card-padding block border border-surface-border bg-white rounded-2xl shadow-sm hover:border-brand-primary transition-colors no-underline">
         <div class="flex justify-between items-start mb-2">
