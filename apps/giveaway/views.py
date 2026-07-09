@@ -6,6 +6,7 @@ from django.http import JsonResponse, HttpResponse
 from django.db import transaction
 from django.urls import reverse
 from django.core.cache import cache
+from django.utils.timezone import now
 
 from apps.giveaway.models import Giveaway, GiveawayEscrow, GiveawayClaim
 from apps.giveaway.utils import generate_giveaway_slug, generate_qr_code_base64
