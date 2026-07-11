@@ -48,7 +48,13 @@ class AnalyticsQueries:
 
         # Helper to get range stats
         def get_vtu_stats(model, qs_filter):
-            res = model.objects.filter(**qs_filter, created_at__gte=cutoff_date, status='SUCCESS').aggregate(
+            f = dict(qs_filter)
+            start = f.get('created_at__gte')
+            if start:
+                f['created_at__gte'] = max(start, cutoff_date)
+            else:
+                f['created_at__gte'] = cutoff_date
+            res = model.objects.filter(**f, status='SUCCESS').aggregate(
                 revenue=Sum('amount'),
                 cost=Sum('api_cost')
             )
@@ -67,9 +73,14 @@ class AnalyticsQueries:
             return total_rev, total_prof
 
         def get_smm_stats(qs_filter):
+            f = dict(qs_filter)
+            start = f.get('created_at__gte')
+            if start:
+                f['created_at__gte'] = max(start, cutoff_date)
+            else:
+                f['created_at__gte'] = cutoff_date
             res = SMMOrder.objects.filter(
-                **qs_filter, 
-                created_at__gte=cutoff_date,
+                **f, 
                 status__in=['SUCCESS', 'PARTIAL', 'PROCESSING'] # Often SMM is processing for long
             ).aggregate(
                 revenue=Sum('amount'),
@@ -80,9 +91,14 @@ class AnalyticsQueries:
             return r, (r - c)
 
         def get_deposit_stats(qs_filter):
+            f = dict(qs_filter)
+            start = f.get('created_at__gte')
+            if start:
+                f['created_at__gte'] = max(start, cutoff_date)
+            else:
+                f['created_at__gte'] = cutoff_date
             res = WalletTransaction.objects.filter(
-                **qs_filter, 
-                created_at__gte=cutoff_date,
+                **f, 
                 txn_type=WalletTransaction.TxnType.FUND,
                 status=WalletTransaction.Status.SUCCESS
             ).aggregate(
