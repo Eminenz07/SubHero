@@ -38,16 +38,17 @@ class AnalyticsQueries:
         now = timezone.now()
         start_date = now - timedelta(days=days)
         
+        import datetime
+        cutoff_date = datetime.datetime(2026, 7, 4, tzinfo=timezone.utc)
+        
         # 1. Global simple stats
         total_users = User.objects.count()
         total_balance = Wallet.objects.aggregate(t=Sum('balance'))['t'] or Decimal('0.00')
-        giveaways_created = Giveaway.objects.count()
+        giveaways_created = Giveaway.objects.filter(created_at__gte=cutoff_date).count()
 
         # Helper to get range stats
         def get_vtu_stats(model, qs_filter):
-            res = model.objects.filter(**qs_filter, status='SUCCESS').exclude(
-                api_cost=0
-            ).aggregate(
+            res = model.objects.filter(**qs_filter, created_at__gte=cutoff_date, status='SUCCESS').aggregate(
                 revenue=Sum('amount'),
                 cost=Sum('api_cost')
             )
@@ -68,9 +69,8 @@ class AnalyticsQueries:
         def get_smm_stats(qs_filter):
             res = SMMOrder.objects.filter(
                 **qs_filter, 
+                created_at__gte=cutoff_date,
                 status__in=['SUCCESS', 'PARTIAL', 'PROCESSING'] # Often SMM is processing for long
-            ).exclude(
-                api_cost=0
             ).aggregate(
                 revenue=Sum('amount'),
                 cost=Sum('api_cost')
@@ -82,6 +82,7 @@ class AnalyticsQueries:
         def get_deposit_stats(qs_filter):
             res = WalletTransaction.objects.filter(
                 **qs_filter, 
+                created_at__gte=cutoff_date,
                 txn_type=WalletTransaction.TxnType.FUND,
                 status=WalletTransaction.Status.SUCCESS
             ).aggregate(
