@@ -132,7 +132,7 @@ def dashboard(request):
     
     # Active orders count (excluding mock orders before July 4th, 2026)
     import datetime
-    cutoff_date = datetime.datetime(2026, 7, 4, tzinfo=timezone.utc)
+    cutoff_date = datetime.datetime(2026, 7, 4, tzinfo=datetime.timezone.utc)
     valid_refs = WalletTransaction.objects.filter(created_at__gte=cutoff_date).values('reference')
     active_orders = (
         VTUOrder.objects.filter(status__in=["PENDING", "PROCESSING"], reference__in=valid_refs).count() +
@@ -1218,7 +1218,7 @@ def transactions_list(request):
     q = request.GET.get("q", "").strip()
     
     import datetime
-    cutoff_date = datetime.datetime(2026, 7, 4, tzinfo=timezone.utc)
+    cutoff_date = datetime.datetime(2026, 7, 4, tzinfo=datetime.timezone.utc)
     txns = WalletTransaction.objects.filter(created_at__gte=cutoff_date).select_related("wallet__user")
     
     if type_filter:

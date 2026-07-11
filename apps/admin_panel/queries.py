@@ -39,7 +39,7 @@ class AnalyticsQueries:
         start_date = now - timedelta(days=days)
         
         import datetime
-        cutoff_date = datetime.datetime(2026, 7, 4, tzinfo=timezone.utc)
+        cutoff_date = datetime.datetime(2026, 7, 4, tzinfo=datetime.timezone.utc)
         
         # 1. Global simple stats
         total_users = User.objects.count()
