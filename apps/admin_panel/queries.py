@@ -39,16 +39,14 @@ class AnalyticsQueries:
         start_date = now - timedelta(days=days)
         
         # 1. Global simple stats
-        total_users = User.objects.filter(is_staff=False, is_superuser=False).count()
-        total_balance = Wallet.objects.exclude(user__is_staff=True).exclude(user__is_superuser=True).aggregate(t=Sum('balance'))['t'] or Decimal('0.00')
-        giveaways_created = Giveaway.objects.exclude(host__is_staff=True).exclude(host__is_superuser=True).count()
+        total_users = User.objects.count()
+        total_balance = Wallet.objects.aggregate(t=Sum('balance'))['t'] or Decimal('0.00')
+        giveaways_created = Giveaway.objects.count()
 
         # Helper to get range stats
         def get_vtu_stats(model, qs_filter):
             res = model.objects.filter(**qs_filter, status='SUCCESS').exclude(
-                user__is_staff=True
-            ).exclude(
-                user__is_superuser=True
+                api_cost=0
             ).aggregate(
                 revenue=Sum('amount'),
                 cost=Sum('api_cost')
@@ -72,9 +70,7 @@ class AnalyticsQueries:
                 **qs_filter, 
                 status__in=['SUCCESS', 'PARTIAL', 'PROCESSING'] # Often SMM is processing for long
             ).exclude(
-                user__is_staff=True
-            ).exclude(
-                user__is_superuser=True
+                api_cost=0
             ).aggregate(
                 revenue=Sum('amount'),
                 cost=Sum('api_cost')
@@ -88,10 +84,6 @@ class AnalyticsQueries:
                 **qs_filter, 
                 txn_type=WalletTransaction.TxnType.FUND,
                 status=WalletTransaction.Status.SUCCESS
-            ).exclude(
-                wallet__user__is_staff=True
-            ).exclude(
-                wallet__user__is_superuser=True
             ).aggregate(
                 volume=Sum('amount'),
                 fees=Sum('deposit_fee')

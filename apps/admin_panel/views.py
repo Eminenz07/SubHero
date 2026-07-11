@@ -128,10 +128,14 @@ def dashboard(request):
     from apps.admin_panel.queries import AnalyticsQueries
     stats = AnalyticsQueries.get_dashboard_stats(days=30)
     
-    new_users_today = User.objects.filter(date_joined__date=timezone.now().date(), is_staff=False, is_superuser=False).count()
+    new_users_today = User.objects.filter(date_joined__date=timezone.now().date()).count()
     
-    # Active orders count (excluding staff and superuser orders)
-    valid_refs = WalletTransaction.objects.exclude(wallet__user__is_staff=True).exclude(wallet__user__is_superuser=True).values('reference')
+    # Active orders count (excluding mock orders with api_cost=0)
+    mock_refs = set()
+    for model in [VTUOrder, AirtimeOrder, CableOrder, ElectricityOrder, ExamPinOrder, SMMOrder]:
+        mock_refs.update(model.objects.filter(api_cost=0).values_list('reference', flat=True))
+        
+    valid_refs = WalletTransaction.objects.exclude(reference__in=mock_refs).values('reference')
     active_orders = (
         VTUOrder.objects.filter(status__in=["PENDING", "PROCESSING"], reference__in=valid_refs).count() +
         SMMOrder.objects.filter(status__in=["PENDING", "PROCESSING"], reference__in=valid_refs).count() +
@@ -1215,11 +1219,7 @@ def transactions_list(request):
     status_filter = request.GET.get("status", "").strip()
     q = request.GET.get("q", "").strip()
     
-    txns = WalletTransaction.objects.exclude(
-        wallet__user__is_staff=True
-    ).exclude(
-        wallet__user__is_superuser=True
-    ).select_related("wallet__user")
+    txns = WalletTransaction.objects.all().select_related("wallet__user")
     
     if type_filter:
         txns = txns.filter(txn_type=type_filter)
@@ -1232,12 +1232,18 @@ def transactions_list(request):
             Q(wallet__user__email__icontains=q)
         )
         
+    mock_refs = set()
+    for model in [VTUOrder, AirtimeOrder, CableOrder, ElectricityOrder, ExamPinOrder, SMMOrder]:
+        mock_refs.update(model.objects.filter(api_cost=0).values_list('reference', flat=True))
+        
     total_volume = txns.filter(status="SUCCESS").exclude(
         txn_type__in=[
             WalletTransaction.TxnType.REFUND,
             WalletTransaction.TxnType.GIVEAWAY_LOCK,
             WalletTransaction.TxnType.P2P_RECEIVE
         ]
+    ).exclude(
+        reference__in=mock_refs
     ).aggregate(sum=Sum('amount'))['sum'] or Decimal("0")
     
     from django.core.paginator import Paginator
