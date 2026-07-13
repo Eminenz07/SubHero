@@ -53,6 +53,7 @@
                 <thead>
                     <tr class="border-b border-white/[0.06] text-slate-400">
                         <th class="py-2">User</th>
+                        <th class="py-2 text-right">Total Deposited</th>
                         <th class="py-2 text-right">Total Spent</th>
                     </tr>
                 </thead>
@@ -65,13 +66,16 @@
                             </a>
                             <div class="text-[10px] text-slate-500 font-mono">{{ u.phone_number }}</div>
                         </td>
+                        <td class="py-3 text-right font-mono text-slate-400">
+                            ₦{{ u.total_deposited|default:0|floatformat:2 }}
+                        </td>
                         <td class="py-3 text-right font-mono font-bold text-white">
                             ₦{{ u.total_spent|default:0|floatformat:2 }}
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="2" class="py-4 text-center text-slate-500">No users found.</td>
+                        <td colspan="3" class="py-4 text-center text-slate-500">No users found.</td>
                     </tr>
                     {% endfor %}
                 </tbody>

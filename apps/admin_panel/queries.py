@@ -256,6 +256,14 @@ def get_top_users_by_spend(limit: int = 10) -> List[User]:
                     wallet__transactions__status='SUCCESS',
                     wallet__transactions__created_at__gte=CUTOFF_DATE
                 )
+            ),
+            total_deposited=Sum(
+                'wallet__transactions__amount',
+                filter=Q(
+                    wallet__transactions__txn_type='FUND',
+                    wallet__transactions__status='SUCCESS',
+                    wallet__transactions__created_at__gte=CUTOFF_DATE
+                )
             )
         ).order_by('-total_spent')[:limit]
     )
