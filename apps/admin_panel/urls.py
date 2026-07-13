@@ -52,6 +52,11 @@ urlpatterns = [
     path("transactions/", views.transactions_list, name="transactions"),
     path("transactions/export/", views.export_transactions_csv, name="export_transactions_csv"),
 
+    # Analytics Dashboard
+    path("analytics/", views.analytics_page, name="analytics"),
+    path("analytics/data/", views.analytics_data, name="analytics_data"),
+    path("analytics/chart/", views.analytics_chart_data, name="analytics_chart"),
+
     # Settings
     path("settings/", views.system_settings, name="settings"),
 ]

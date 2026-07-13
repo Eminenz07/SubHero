@@ -1,0 +1,94 @@
+<!-- Metrics Cards Row -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+    <!-- Card 1: Gross Revenue -->
+    <div class="admin-card p-5">
+        <div class="flex items-center justify-between text-slate-400 mb-2">
+            <span class="text-xs font-semibold uppercase tracking-wider">Gross Revenue</span>
+            <i data-feather="dollar-sign" class="w-4 h-4 text-emerald-400"></i>
+        </div>
+        <div class="text-2xl font-bold text-white font-mono">₦{{ revenue.total|floatformat:2 }}</div>
+        <div class="text-[10px] text-slate-500 mt-2 font-mono">
+            VTU: ₦{{ revenue.vtu|floatformat:0 }} | SMM: ₦{{ revenue.smm|floatformat:0 }}
+        </div>
+    </div>
+
+    <!-- Card 2: Net Profit -->
+    <div class="admin-card p-5">
+        <div class="flex items-center justify-between text-slate-400 mb-2">
+            <span class="text-xs font-semibold uppercase tracking-wider">Net Profit</span>
+            <i data-feather="trending-up" class="w-4 h-4 text-cyan-400"></i>
+        </div>
+        <div class="text-2xl font-bold text-white font-mono">₦{{ profit.total|floatformat:2 }}</div>
+        <div class="text-[10px] text-slate-500 mt-2 font-mono">
+            VTU: ₦{{ profit.vtu|floatformat:0 }} | SMM: ₦{{ profit.smm|floatformat:0 }}
+        </div>
+    </div>
+
+    <!-- Card 3: Deposit Fees -->
+    <div class="admin-card p-5">
+        <div class="flex items-center justify-between text-slate-400 mb-2">
+            <span class="text-xs font-semibold uppercase tracking-wider">Deposit Fees</span>
+            <i data-feather="percent" class="w-4 h-4 text-yellow-400"></i>
+        </div>
+        <div class="text-2xl font-bold text-white font-mono">₦{{ deposit_fees.fee_revenue|floatformat:2 }}</div>
+        <div class="text-[10px] text-slate-500 mt-2 font-mono">
+            Deposits: {{ deposit_fees.small_deposits|add:deposit_fees.large_deposits }} count
+        </div>
+    </div>
+
+    <!-- Card 4: Total Wallet Balance -->
+    <div class="admin-card p-5">
+        <div class="flex items-center justify-between text-slate-400 mb-2">
+            <span class="text-xs font-semibold uppercase tracking-wider">Total User Balances</span>
+            <i data-feather="database" class="w-4 h-4 text-indigo-400"></i>
+        </div>
+        <div class="text-2xl font-bold text-white font-mono">₦{{ total_wallet_balance|floatformat:2 }}</div>
+        <div class="text-[10px] text-slate-500 mt-2 font-mono">
+            Total users: {{ user_stats.total }}
+        </div>
+    </div>
+
+    <!-- Card 5: Total Refunds -->
+    <div class="admin-card p-5">
+        <div class="flex items-center justify-between text-slate-400 mb-2">
+            <span class="text-xs font-semibold uppercase tracking-wider">Refunds/Reversals</span>
+            <i data-feather="rotate-ccw" class="w-4 h-4 text-red-400"></i>
+        </div>
+        <div class="text-2xl font-bold text-white font-mono">₦{{ refunds.total|floatformat:2 }}</div>
+        <div class="text-[10px] text-slate-500 mt-2 font-mono">
+            Count: {{ refunds.count }} refunds
+        </div>
+    </div>
+</div>
+
+<!-- Chart & Insights grid -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div class="lg:col-span-2 admin-card p-6">
+        <h3 class="text-base font-bold text-white mb-4">Financial Volume Over Time</h3>
+        <div class="h-80 w-full relative">
+            <canvas id="revenue-chart"></canvas>
+        </div>
+    </div>
+
+    <div class="admin-card p-6">
+        <h3 class="text-base font-bold text-white mb-4">General Platform Statistics</h3>
+        <div class="space-y-4">
+            <div class="flex justify-between items-center py-2.5 border-b border-white/[0.04]">
+                <span class="text-sm text-slate-400">New Registrations</span>
+                <span class="text-sm font-bold text-white font-mono">+{{ user_stats.new_in_range }}</span>
+            </div>
+            <div class="flex justify-between items-center py-2.5 border-b border-white/[0.04]">
+                <span class="text-sm text-slate-400">30D Active Customers</span>
+                <span class="text-sm font-bold text-white font-mono">{{ user_stats.active_30d }}</span>
+            </div>
+            <div class="flex justify-between items-center py-2.5 border-b border-white/[0.04]">
+                <span class="text-sm text-slate-400">Funded Accounts</span>
+                <span class="text-sm font-bold text-white font-mono">{{ user_stats.funded }}</span>
+            </div>
+            <div class="flex justify-between items-center py-2.5">
+                <span class="text-sm text-slate-400">Zero Balance Accounts</span>
+                <span class="text-sm font-bold text-white font-mono">{{ user_stats.zero_balance }}</span>
+            </div>
+        </div>
+    </div>
+</div>

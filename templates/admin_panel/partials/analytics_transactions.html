@@ -1,0 +1,104 @@
+<!-- Metrics Cards Row -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+    <div class="admin-card p-5">
+        <div class="flex items-center justify-between text-slate-400 mb-2">
+            <span class="text-xs font-semibold uppercase tracking-wider">Total Ledger Actions</span>
+            <i data-feather="database" class="w-4 h-4 text-emerald-400"></i>
+        </div>
+        <div class="text-2xl font-bold text-white font-mono">{{ txn_stats.total_initiated }}</div>
+        <div class="text-[11px] text-slate-500 mt-2 font-mono">Initiated in period</div>
+    </div>
+
+    <div class="admin-card p-5">
+        <div class="flex items-center justify-between text-slate-400 mb-2">
+            <span class="text-xs font-semibold uppercase tracking-wider">Successful Actions</span>
+            <i data-feather="check-circle" class="w-4 h-4 text-cyan-400"></i>
+        </div>
+        <div class="text-2xl font-bold text-white font-mono">{{ txn_stats.total_completed }}</div>
+        <div class="text-[11px] text-emerald-400 mt-2 font-semibold">
+            Success rate: 
+            {% if txn_stats.total_initiated > 0 %}
+                {% widthratio txn_stats.total_completed txn_stats.total_initiated 100 %}%
+            {% else %}
+                100%
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="admin-card p-5">
+        <div class="flex items-center justify-between text-slate-400 mb-2">
+            <span class="text-xs font-semibold uppercase tracking-wider">Failed Actions</span>
+            <i data-feather="x-circle" class="w-4 h-4 text-red-400"></i>
+        </div>
+        <div class="text-2xl font-bold text-white font-mono">{{ txn_stats.total_failed }}</div>
+        <div class="text-[11px] text-slate-500 mt-2 font-mono">Encountered errors</div>
+    </div>
+
+    <div class="admin-card p-5">
+        <div class="flex items-center justify-between text-slate-400 mb-2">
+            <span class="text-xs font-semibold uppercase tracking-wider">Deposit Volume</span>
+            <i data-feather="trending-up" class="w-4 h-4 text-yellow-400"></i>
+        </div>
+        <div class="text-2xl font-bold text-white font-mono">₦{{ txn_stats.deposit_volume|floatformat:2 }}</div>
+        <div class="text-[11px] text-slate-500 mt-2 font-mono">Deposits count: {{ txn_stats.deposit_count }}</div>
+    </div>
+
+    <div class="admin-card p-5">
+        <div class="flex items-center justify-between text-slate-400 mb-2">
+            <span class="text-xs font-semibold uppercase tracking-wider">P2P Volume</span>
+            <i data-feather="users" class="w-4 h-4 text-indigo-400"></i>
+        </div>
+        <div class="text-2xl font-bold text-white font-mono">₦{{ txn_stats.p2p_volume|floatformat:2 }}</div>
+        <div class="text-[11px] text-slate-500 mt-2 font-mono">Transfers count: {{ txn_stats.p2p_count }}</div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div class="admin-card p-6 flex flex-col justify-center items-center text-center">
+        <div class="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mb-4">
+            <i data-feather="clock" class="w-8 h-8"></i>
+        </div>
+        <h3 class="text-lg font-bold text-white mb-2">Peak Load Hour</h3>
+        <p class="text-slate-400 text-sm max-w-xs mb-6">This shows which hour of the day experiences the highest volume of transaction ledger activity all-time.</p>
+        <div class="text-4xl font-extrabold text-white font-mono tracking-tight bg-slate-900 border border-white/[0.06] px-6 py-3 rounded-2xl">
+            {% if peak_hour %}
+                {{ peak_hour.hour|stringformat:"02d" }}:00
+            {% else %}
+                --:--
+            {% endif %}
+        </div>
+        <div class="text-xs text-slate-500 font-mono mt-3">{{ peak_hour.count|default:0 }} total actions logged at this hour</div>
+    </div>
+
+    <div class="lg:col-span-2 admin-card p-6">
+        <h3 class="text-base font-bold text-white mb-4">SubHero Financial Ledger Insights</h3>
+        <div class="space-y-4">
+            <div class="p-4 bg-slate-900 border border-white/[0.04] rounded-xl flex items-center justify-between">
+                <div>
+                    <div class="text-sm font-semibold text-white">Deposit to Transfer Ratio</div>
+                    <div class="text-xs text-slate-500 mt-0.5">Ratio of external wallet funding volume compared to internal user-to-user P2P transfers.</div>
+                </div>
+                <div class="text-right">
+                    <div class="text-lg font-bold text-white font-mono">
+                        {% if txn_stats.p2p_volume > 0 %}
+                            1 : {% widthratio txn_stats.deposit_volume txn_stats.p2p_volume 1 %}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="p-4 bg-slate-900 border border-white/[0.04] rounded-xl flex items-center justify-between">
+                <div>
+                    <div class="text-sm font-semibold text-white">Failed Transaction Cost</div>
+                    <div class="text-xs text-slate-500 mt-0.5">Estimated friction from failed deposits/purchases.</div>
+                </div>
+                <div class="text-right">
+                    <div class="text-lg font-bold text-red-400 font-mono">
+                        {{ txn_stats.total_failed }} failed
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

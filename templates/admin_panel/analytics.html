@@ -1,0 +1,260 @@
+{% extends "admin_panel/base_admin.html" %}
+{% load static %}
+
+{% block title %}HQ Analytics — SubHero{% endblock %}
+
+{% block extra_head %}
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    .platform-tab {
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+    }
+    .platform-tab:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+    .platform-tab.active {
+        background-color: rgba(16, 185, 129, 0.15);
+        color: #34d399;
+        border-color: rgba(16, 185, 129, 0.3);
+    }
+</style>
+{% endblock %}
+
+{% block header_title %}Analytics{% endblock %}
+
+{% block header_subtitle %}
+<span class="text-xs text-slate-400 font-mono ml-2">System performance, volume, and customer insights</span>
+{% endblock %}
+
+{% block admin_content %}
+<!-- Date Filter Toolbar -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 bg-[#0c1220] p-4 rounded-xl border border-white/[0.06]">
+    <div class="flex flex-wrap gap-2" id="date-presets">
+        <button onclick="setDatePreset('today')" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold border border-white/[0.08] text-slate-300 hover:text-white transition-all bg-[#0f172a] preset-btn" data-preset="today">Today</button>
+        <button onclick="setDatePreset('7d')" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold border border-white/[0.08] text-slate-300 hover:text-white transition-all bg-[#0f172a] preset-btn" data-preset="7d">7 Days</button>
+        <button onclick="setDatePreset('30d')" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold border border-emerald-500/20 text-emerald-400 bg-emerald-500/10 transition-all preset-btn" data-preset="30d">30 Days</button>
+        <button onclick="setDatePreset('90d')" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold border border-white/[0.08] text-slate-300 hover:text-white transition-all bg-[#0f172a] preset-btn" data-preset="90d">90 Days</button>
+        <button onclick="setDatePreset('1y')" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold border border-white/[0.08] text-slate-300 hover:text-white transition-all bg-[#0f172a] preset-btn" data-preset="1y">1 Year</button>
+        <button onclick="setDatePreset('all')" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold border border-white/[0.08] text-slate-300 hover:text-white transition-all bg-[#0f172a] preset-btn" data-preset="all">All Time</button>
+    </div>
+
+    <!-- Custom Date Range picker -->
+    <div class="flex items-center gap-2">
+        <input type="date" id="custom-start" class="bg-slate-900 border border-white/[0.08] rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500 font-mono">
+        <span class="text-xs text-slate-400 font-mono">to</span>
+        <input type="date" id="custom-end" class="bg-slate-900 border border-white/[0.08] rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500 font-mono">
+        <button onclick="applyCustomRange()" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all shadow-md">Apply</button>
+    </div>
+</div>
+
+<!-- Tab Navigation Bar -->
+<div class="flex border-b border-white/[0.06] overflow-x-auto gap-1 mb-8 scrollbar-none">
+    <div onclick="switchTab('overview')" class="platform-tab px-5 py-3 border-b-2 border-transparent font-semibold text-sm whitespace-nowrap text-slate-400 active" data-tab="overview">📊 Overview</div>
+    <div onclick="switchTab('users')" class="platform-tab px-5 py-3 border-b-2 border-transparent font-semibold text-sm whitespace-nowrap text-slate-400" data-tab="users">👥 Users</div>
+    <div onclick="switchTab('vtu')" class="platform-tab px-5 py-3 border-b-2 border-transparent font-semibold text-sm whitespace-nowrap text-slate-400" data-tab="vtu">⚡ VTU</div>
+    <div onclick="switchTab('smm')" class="platform-tab px-5 py-3 border-b-2 border-transparent font-semibold text-sm whitespace-nowrap text-slate-400" data-tab="smm">📱 SMM</div>
+    <div onclick="switchTab('giveaway')" class="platform-tab px-5 py-3 border-b-2 border-transparent font-semibold text-sm whitespace-nowrap text-slate-400" data-tab="giveaway">🎁 Giveaways</div>
+    <div onclick="switchTab('transactions')" class="platform-tab px-5 py-3 border-b-2 border-transparent font-semibold text-sm whitespace-nowrap text-slate-400" data-tab="transactions">💼 Transactions</div>
+</div>
+
+<!-- Hidden inputs to track state for HTMX -->
+<form id="analytics-filter-form" style="display:none;">
+    <input type="hidden" name="range" id="filter-range" value="30d">
+    <input type="hidden" name="tab" id="filter-tab" value="overview">
+    <!-- Trigger button for HTMX -->
+    <button id="trigger-htmx" 
+            hx-get="{% url 'admin_panel:analytics_data' %}" 
+            hx-include="#analytics-filter-form" 
+            hx-target="#analytics-body" 
+            hx-trigger="click"></button>
+</form>
+
+<!-- Target for tab content -->
+<div id="analytics-body" class="transition-all duration-200">
+    {% include "admin_panel/partials/analytics_overview.html" %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let activeTab = "overview";
+    let activeRange = "30d";
+    let loadedCharts = {};
+
+    function switchTab(tabName) {
+        activeTab = tabName;
+        document.getElementById('filter-tab').value = tabName;
+        
+        // Update tab styling
+        document.querySelectorAll('.platform-tab').forEach(el => {
+            if (el.getAttribute('data-tab') === tabName) {
+                el.classList.add('active');
+            } else {
+                el.classList.remove('active');
+            }
+        });
+
+        // Trigger HTMX swap
+        document.getElementById('trigger-htmx').click();
+    }
+
+    function setDatePreset(preset) {
+        activeRange = preset;
+        document.getElementById('filter-range').value = preset;
+
+        // Reset preset buttons styling
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            if (btn.getAttribute('data-preset') === preset) {
+                btn.className = "px-3.5 py-1.5 rounded-lg text-xs font-semibold border border-emerald-500/20 text-emerald-400 bg-emerald-500/10 transition-all preset-btn";
+            } else {
+                btn.className = "px-3.5 py-1.5 rounded-lg text-xs font-semibold border border-white/[0.08] text-slate-300 hover:text-white transition-all bg-[#0f172a] preset-btn";
+            }
+        });
+
+        // Clear custom inputs
+        document.getElementById('custom-start').value = "";
+        document.getElementById('custom-end').value = "";
+
+        // Trigger HTMX swap
+        document.getElementById('trigger-htmx').click();
+    }
+
+    function applyCustomRange() {
+        const start = document.getElementById('custom-start').value;
+        const end = document.getElementById('custom-end').value;
+        if (!start || !end) {
+            alert("Please select both start and end dates.");
+            return;
+        }
+
+        const value = `custom:${start},${end}`;
+        activeRange = value;
+        document.getElementById('filter-range').value = value;
+
+        // Reset preset buttons styling
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.className = "px-3.5 py-1.5 rounded-lg text-xs font-semibold border border-white/[0.08] text-slate-300 hover:text-white transition-all bg-[#0f172a] preset-btn";
+        });
+
+        // Trigger HTMX swap
+        document.getElementById('trigger-htmx').click();
+    }
+
+    // Chart Helper
+    function loadChart(canvasId, chartType, endpoint, datasetLabel, dataKey, extraConfig = {}) {
+        const fullUrl = `${endpoint}?range=${encodeURIComponent(activeRange)}`;
+        
+        // Destroy existing chart if loaded before to prevent hover artifacts
+        if (loadedCharts[canvasId]) {
+            loadedCharts[canvasId].destroy();
+        }
+
+        fetch(fullUrl)
+            .then(res => res.json())
+            .then(data => {
+                const ctx = document.getElementById(canvasId);
+                if (!ctx) return;
+
+                let chartData = {};
+                if (chartType === 'line-multi') {
+                    // Specific to revenue + profit multi line chart
+                    chartData = {
+                        labels: data.labels,
+                        datasets: [
+                            {
+                                label: 'Revenue (₦)',
+                                data: data.revenue,
+                                borderColor: '#10b981',
+                                backgroundColor: 'rgba(16, 185, 129, 0.05)',
+                                fill: true,
+                                tension: 0.3
+                            },
+                            {
+                                label: 'Profit (₦)',
+                                data: data.profit,
+                                borderColor: '#06b6d4',
+                                backgroundColor: 'rgba(6, 182, 212, 0.05)',
+                                fill: true,
+                                tension: 0.3
+                            }
+                        ]
+                    };
+                } else if (chartType === 'donut') {
+                    chartData = {
+                        labels: data.labels,
+                        datasets: [{
+                            data: data.counts,
+                            backgroundColor: data.colors || ['#ec4899', '#000000', '#ef4444', '#3b82f6', '#06b6d4', '#e2e8f0'],
+                            borderWidth: 0
+                        }]
+                    };
+                } else {
+                    // Simple line or bar
+                    chartData = {
+                        labels: data.labels,
+                        datasets: [{
+                            label: datasetLabel,
+                            data: data[dataKey],
+                            backgroundColor: chartType === 'bar' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(16, 185, 129, 0.05)',
+                            borderColor: '#10b981',
+                            borderWidth: 2,
+                            fill: chartType === 'line'
+                        }]
+                    };
+                }
+
+                const config = {
+                    type: chartType === 'line-multi' ? 'line' : (chartType === 'donut' ? 'doughnut' : chartType),
+                    data: chartData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: chartType === 'donut' || chartType === 'line-multi',
+                                position: 'bottom',
+                                labels: { color: '#94a3b8', font: { family: 'DM Sans', size: 11 } }
+                            }
+                        },
+                        scales: chartType === 'donut' ? {} : {
+                            x: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#64748b', font: { size: 10 } } },
+                            y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#64748b', font: { size: 10 } } }
+                        },
+                        ...extraConfig
+                    }
+                };
+
+                loadedCharts[canvasId] = new Chart(ctx, config);
+            });
+    }
+
+    // Hook HTMX swap events to initialize tab specific charts
+    document.body.addEventListener('htmx:afterSwap', function(evt) {
+        if (evt.detail.target.id === 'analytics-body') {
+            initTabSpecifics();
+        }
+    });
+
+    function initTabSpecifics() {
+        if (activeTab === 'overview') {
+            loadChart('revenue-chart', 'line-multi', '{% url "admin_panel:analytics_chart" %}', 'Revenue', 'revenue');
+        } else if (activeTab === 'users') {
+            loadChart('user-growth-chart', 'bar', '{% url "admin_panel:analytics_chart" %}?chart=user_growth', 'New Registrations', 'counts');
+        } else if (activeTab === 'vtu') {
+            loadChart('vtu-network-chart', 'donut', '{% url "admin_panel:analytics_chart" %}?chart=vtu_network', 'Network Split', 'counts');
+            loadChart('vtu-hourly-chart', 'bar', '{% url "admin_panel:analytics_chart" %}?chart=vtu_hourly', 'Order Volume', 'counts');
+        } else if (activeTab === 'smm') {
+            loadChart('smm-platform-chart', 'donut', '{% url "admin_panel:analytics_chart" %}?chart=smm_platform', 'Platform Split', 'counts');
+        } else if (activeTab === 'giveaway') {
+            loadChart('giveaway-claims-chart', 'line', '{% url "admin_panel:analytics_chart" %}?chart=giveaway_claims', 'Claim Count', 'counts');
+        }
+    }
+
+    // Initial load
+    document.addEventListener("DOMContentLoaded", function() {
+        initTabSpecifics();
+    });
+</script>
+{% endblock %}

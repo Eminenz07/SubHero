@@ -1359,3 +1359,191 @@ def giveaways_list(request):
         "metrics": metrics
     }
     return render(request, "admin_panel/giveaways.html", context)
+
+
+# ─────────────────────────────────────────────────────────────
+# ANALYTICS DASHBOARD
+# ─────────────────────────────────────────────────────────────
+
+from django.http import JsonResponse
+from apps.admin_panel.queries import (
+    get_total_wallet_balance, get_gross_revenue, get_net_profit,
+    get_deposit_fee_revenue, get_revenue_chart_data, get_average_order_value,
+    get_total_refunds, get_user_stats, get_user_growth_chart,
+    get_top_users_by_spend, get_arpu, get_vtu_stats,
+    get_vtu_network_split, get_vtu_service_split, get_top_vtu_plans,
+    get_vtu_orders_by_hour, get_smm_stats, get_smm_platform_split,
+    get_smm_avg_delivery_time, get_giveaway_stats, get_giveaway_claim_rate,
+    get_top_giveaway_hosts, get_transaction_stats, get_peak_transaction_hour
+)
+
+def parse_date_range(range_param):
+    today = timezone.now().date()
+    if range_param == 'today':
+        return today, today + timedelta(days=1)
+    elif range_param == '7d':
+        return today - timedelta(days=7), today
+    elif range_param == '90d':
+        return today - timedelta(days=90), today
+    elif range_param == '1y':
+        return today - timedelta(days=365), today
+    elif range_param == 'all':
+        return date.min, today
+    elif range_param.startswith('custom:'):
+        try:
+            parts = range_param.replace('custom:', '').split(',')
+            return date.fromisoformat(parts[0]), date.fromisoformat(parts[1])
+        except Exception:
+            pass
+    # default is 30d
+    return today - timedelta(days=30), today
+
+
+@admin_required
+def analytics_page(request):
+    """Main analytics page — initial load"""
+    range_param = request.GET.get('range', '30d')
+    start, end = parse_date_range(range_param)
+
+    context = {
+        'active_nav': 'analytics',
+        'range': range_param,
+        'total_wallet_balance': get_total_wallet_balance(),
+        'revenue': get_gross_revenue(start, end),
+        'profit': get_net_profit(start, end),
+        'deposit_fees': get_deposit_fee_revenue(start, end),
+        'user_stats': get_user_stats(start, end),
+        'refunds': get_total_refunds(start, end),
+    }
+    return render(request, 'admin_panel/analytics.html', context)
+
+
+@admin_required
+def analytics_data(request):
+    """HTMX endpoint — returns updated metric cards when date range filter changes"""
+    range_param = request.GET.get('range', '30d')
+    tab = request.GET.get('tab', 'overview')
+    start, end = parse_date_range(range_param)
+
+    if tab == 'overview':
+        context = {
+            'revenue': get_gross_revenue(start, end),
+            'profit': get_net_profit(start, end),
+            'deposit_fees': get_deposit_fee_revenue(start, end),
+            'user_stats': get_user_stats(start, end),
+            'refunds': get_total_refunds(start, end),
+            'total_wallet_balance': get_total_wallet_balance(),
+        }
+        return render(request, 'admin_panel/partials/analytics_overview.html', context)
+
+    elif tab == 'users':
+        context = {
+            'user_stats': get_user_stats(start, end),
+            'top_users': get_top_users_by_spend(10),
+            'arpu': get_arpu(start, end),
+        }
+        return render(request, 'admin_panel/partials/analytics_users.html', context)
+
+    elif tab == 'vtu':
+        context = {
+            'vtu_stats': get_vtu_stats(start, end),
+            'network_split': get_vtu_network_split(start, end),
+            'service_split': get_vtu_service_split(start, end),
+            'top_plans': get_top_vtu_plans(start, end),
+            'hourly': get_vtu_orders_by_hour(start, end),
+        }
+        return render(request, 'admin_panel/partials/analytics_vtu.html', context)
+
+    elif tab == 'smm':
+        context = {
+            'smm_stats': get_smm_stats(start, end),
+            'platform_split': get_smm_platform_split(start, end),
+            'avg_delivery': get_smm_avg_delivery_time(start, end),
+        }
+        return render(request, 'admin_panel/partials/analytics_smm.html', context)
+
+    elif tab == 'giveaway':
+        context = {
+            'giveaway_stats': get_giveaway_stats(start, end),
+            'claim_rate': get_giveaway_claim_rate(start, end),
+            'top_hosts': get_top_giveaway_hosts(start, end),
+        }
+        return render(request, 'admin_panel/partials/analytics_giveaway.html', context)
+
+    elif tab == 'transactions':
+        context = {
+            'txn_stats': get_transaction_stats(start, end),
+            'peak_hour': get_peak_transaction_hour(),
+        }
+        return render(request, 'admin_panel/partials/analytics_transactions.html', context)
+
+    return HttpResponse("Invalid active tab", status=400)
+
+
+@admin_required
+def analytics_chart_data(request):
+    """JSON endpoint for Chart.js — returns chart data"""
+    chart = request.GET.get('chart')
+    range_param = request.GET.get('range', '30d')
+    start, end = parse_date_range(range_param)
+    cache_key = f'chart:{chart}:{range_param}'
+    cached = cache.get(cache_key)
+    if cached:
+        return JsonResponse(cached, safe=False)
+
+    if chart == 'revenue':
+        data = get_revenue_chart_data(start, end)
+        result = {
+            'labels': [d['day'].strftime('%b %d') for d in data],
+            'revenue': [float(d['revenue']) for d in data],
+            'profit': [float(d['profit']) for d in data],
+        }
+    elif chart == 'user_growth':
+        data = get_user_growth_chart(start, end)
+        result = {
+            'labels': [d['day'].strftime('%b %d') for d in data],
+            'counts': [d['count'] for d in data],
+        }
+    elif chart == 'vtu_network':
+        data = get_vtu_network_split(start, end)
+        result = {
+            'labels': [d['network'].upper() for d in data],
+            'counts': [d['count'] for d in data],
+            'colors': ['#FFCC00', '#E40000', '#00AA00', '#006B3E'],
+        }
+    elif chart == 'vtu_hourly':
+        data = get_vtu_orders_by_hour(start, end)
+        hours = {d['hour']: d['count'] for d in data}
+        result = {
+            'labels': [f'{h:02d}:00' for h in range(24)],
+            'counts': [hours.get(h, 0) for h in range(24)],
+        }
+    elif chart == 'smm_platform':
+        data = get_smm_platform_split(start, end)
+        result = {
+            'labels': [d['platform'].capitalize() if d['platform'] else "Other" for d in data],
+            'counts': [d['count'] for d in data],
+        }
+    elif chart == 'giveaway_claims':
+        data = list(
+            GiveawayClaim.objects.filter(
+                status='SUCCESS',
+                claimed_at__range=(
+                    datetime.combine(start, datetime.min.time(), tzinfo=timezone.utc),
+                    datetime.combine(end, datetime.max.time(), tzinfo=timezone.utc)
+                )
+            ).annotate(
+                day=TruncDate('claimed_at')
+            ).values('day').annotate(
+                count=Count('id')
+            ).order_by('day')
+        )
+        result = {
+            'labels': [d['day'].strftime('%b %d') for d in data],
+            'counts': [d['count'] for d in data],
+        }
+    else:
+        result = {}
+
+    cache.set(cache_key, result, timeout=300)
+    return JsonResponse(result, safe=False)

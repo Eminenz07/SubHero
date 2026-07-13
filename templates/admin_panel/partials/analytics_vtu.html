@@ -1,0 +1,89 @@
+<!-- Metrics Cards Row -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+    <div class="admin-card p-5">
+        <div class="flex items-center justify-between text-slate-400 mb-2">
+            <span class="text-xs font-semibold uppercase tracking-wider">Total Orders</span>
+            <i data-feather="shopping-bag" class="w-4 h-4 text-emerald-400"></i>
+        </div>
+        <div class="text-2xl font-bold text-white font-mono">{{ vtu_stats.total }}</div>
+        <div class="text-[11px] text-slate-500 mt-2 font-mono">Initiated in period</div>
+    </div>
+
+    <div class="admin-card p-5">
+        <div class="flex items-center justify-between text-slate-400 mb-2">
+            <span class="text-xs font-semibold uppercase tracking-wider">Success Rate</span>
+            <i data-feather="check-circle" class="w-4 h-4 text-cyan-400"></i>
+        </div>
+        <div class="text-2xl font-bold text-white font-mono">
+            {% if vtu_stats.total > 0 %}
+                {{ vtu_stats.success|default:0|stringformat:"d" }}
+            {% else %}
+                0
+            {% endif %}
+        </div>
+        <div class="text-[11px] text-slate-500 mt-2 font-mono">Successful fulfillments</div>
+    </div>
+
+    <div class="admin-card p-5">
+        <div class="flex items-center justify-between text-slate-400 mb-2">
+            <span class="text-xs font-semibold uppercase tracking-wider">Failed Orders</span>
+            <i data-feather="x-circle" class="w-4 h-4 text-red-400"></i>
+        </div>
+        <div class="text-2xl font-bold text-white font-mono">{{ vtu_stats.failed }}</div>
+        <div class="text-[11px] text-slate-500 mt-2 font-mono">Refunded/reversed</div>
+    </div>
+
+    <div class="admin-card p-5">
+        <div class="flex items-center justify-between text-slate-400 mb-2">
+            <span class="text-xs font-semibold uppercase tracking-wider">Gross Revenue</span>
+            <i data-feather="dollar-sign" class="w-4 h-4 text-yellow-400"></i>
+        </div>
+        <div class="text-2xl font-bold text-white font-mono">₦{{ vtu_stats.revenue|floatformat:2 }}</div>
+        <div class="text-[11px] text-slate-500 mt-2 font-mono">Naira transaction value</div>
+    </div>
+
+    <div class="admin-card p-5">
+        <div class="flex items-center justify-between text-slate-400 mb-2">
+            <span class="text-xs font-semibold uppercase tracking-wider">Net Profit</span>
+            <i data-feather="trending-up" class="w-4 h-4 text-indigo-400"></i>
+        </div>
+        <div class="text-2xl font-bold text-white font-mono">₦{{ vtu_stats.profit|floatformat:2 }}</div>
+        <div class="text-[11px] text-slate-500 mt-2 font-mono">VTU markup revenue</div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+    <div class="admin-card p-6">
+        <h3 class="text-base font-bold text-white mb-4">Network Distribution</h3>
+        <div class="h-64 w-full relative">
+            <canvas id="vtu-network-chart"></canvas>
+        </div>
+    </div>
+
+    <div class="admin-card p-6">
+        <h3 class="text-base font-bold text-white mb-4">Top 5 Purchased Plans</h3>
+        <div class="space-y-4">
+            {% for p in top_plans %}
+            <div class="flex justify-between items-center py-2.5 border-b border-white/[0.04] last:border-0">
+                <div>
+                    <div class="text-sm font-bold text-white">{{ p.plan_name }}</div>
+                    <div class="text-[10px] text-slate-500 font-mono uppercase">{{ p.network }}</div>
+                </div>
+                <div class="text-right">
+                    <div class="text-xs font-bold text-white font-mono">{{ p.count }} orders</div>
+                    <div class="text-[10px] text-emerald-400 font-mono">₦{{ p.revenue|floatformat:2 }}</div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center py-8 text-slate-500 text-sm">No orders recorded in period.</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="admin-card p-6">
+        <h3 class="text-base font-bold text-white mb-4">Hourly Order Peak Load</h3>
+        <div class="h-64 w-full relative">
+            <canvas id="vtu-hourly-chart"></canvas>
+        </div>
+    </div>
+</div>
