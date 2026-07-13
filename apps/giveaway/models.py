@@ -7,7 +7,8 @@ from django.utils.timezone import now
 class Giveaway(models.Model):
     TYPES = [('DATA','Data'),('AIRTIME','Airtime')]
     NETWORKS = [('mtn','MTN'),('airtel','Airtel'),
-                ('glo','Glo'),('9mobile','9mobile')]
+                ('glo','Glo'),('9mobile','9mobile'),
+                ('all','All Networks')]
     STATUS = [('ACTIVE','Active'),('COMPLETED','Completed'),
               ('EXPIRED','Expired'),('CANCELLED','Cancelled')]
 

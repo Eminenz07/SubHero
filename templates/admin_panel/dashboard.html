@@ -16,7 +16,27 @@
 
 {% block admin_content %}
 <!-- Live API Wallets Banners -->
-<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+    <!-- Sabuss Balance Banner -->
+    <div class="p-5 rounded-xl border flex items-center justify-between transition-all {% if sabuss_status == 'critical' %}bg-red-950/20 border-red-500/30 text-red-200{% elif sabuss_status == 'warning' %}bg-yellow-950/20 border-yellow-500/30 text-yellow-200{% else %}bg-emerald-950/20 border-emerald-500/30 text-emerald-200{% endif %}">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-lg flex items-center justify-center border {% if sabuss_status == 'critical' %}bg-red-500/10 border-red-500/20 text-red-400{% elif sabuss_status == 'warning' %}bg-yellow-500/10 border-yellow-500/20 text-yellow-400{% else %}bg-emerald-500/10 border-emerald-500/20 text-emerald-400{% endif %}">
+                <i data-feather="database" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <div class="text-[11px] uppercase tracking-wider font-semibold opacity-75">Sabuss VTU Wallet</div>
+                <div class="text-2xl font-bold font-mono mt-0.5">₦{{ sabuss_balance|floatformat:2 }}</div>
+                <div class="text-[11px] mt-1 flex items-center gap-1">
+                    <span class="w-2 h-2 rounded-full {% if sabuss_status == 'critical' %}bg-red-500 animate-pulse{% elif sabuss_status == 'warning' %}bg-yellow-500 animate-pulse{% else %}bg-emerald-500{% endif %}"></span>
+                    {% if sabuss_status == 'critical' %}Critical Threshold Reached!{% elif sabuss_status == 'warning' %}Warning Threshold Reached{% else %}API Wallet Healthy{% endif %}
+                </div>
+            </div>
+        </div>
+        <a href="https://sabuss.com" target="_blank" class="px-4 py-2 rounded-lg text-xs font-bold border transition-all hover:scale-[1.02] {% if sabuss_status == 'critical' %}bg-red-500 text-white border-transparent hover:bg-red-600{% elif sabuss_status == 'warning' %}bg-yellow-500 text-slate-950 border-transparent hover:bg-yellow-600{% else %}bg-emerald-600 text-white border-transparent hover:bg-emerald-700{% endif %}">
+            Fund Now
+        </a>
+    </div>
+
     <!-- CheapDataHub Balance Banner -->
     <div class="p-5 rounded-xl border flex items-center justify-between transition-all {% if cdh_status == 'critical' %}bg-red-950/20 border-red-500/30 text-red-200{% elif cdh_status == 'warning' %}bg-yellow-950/20 border-yellow-500/30 text-yellow-200{% else %}bg-emerald-950/20 border-emerald-500/30 text-emerald-200{% endif %}">
         <div class="flex items-center gap-4">
@@ -24,7 +44,7 @@
                 <i data-feather="database" class="w-6 h-6"></i>
             </div>
             <div>
-                <div class="text-[11px] uppercase tracking-wider font-semibold opacity-75">CheapDataHub API Wallet</div>
+                <div class="text-[11px] uppercase tracking-wider font-semibold opacity-75">CheapDataHub Wallet</div>
                 <div class="text-2xl font-bold font-mono mt-0.5">₦{{ cdh_balance|floatformat:2 }}</div>
                 <div class="text-[11px] mt-1 flex items-center gap-1">
                     <span class="w-2 h-2 rounded-full {% if cdh_status == 'critical' %}bg-red-500 animate-pulse{% elif cdh_status == 'warning' %}bg-yellow-500 animate-pulse{% else %}bg-emerald-500{% endif %}"></span>
@@ -37,22 +57,22 @@
         </a>
     </div>
 
-    <!-- JAP SMM Balance Banner -->
-    <div class="p-5 rounded-xl border flex items-center justify-between transition-all {% if jap_status == 'critical' %}bg-red-950/20 border-red-500/30 text-red-200{% elif jap_status == 'warning' %}bg-yellow-950/20 border-yellow-500/30 text-yellow-200{% else %}bg-emerald-950/20 border-emerald-500/30 text-emerald-200{% endif %}">
+    <!-- Ogaviral SMM Balance Banner -->
+    <div class="p-5 rounded-xl border flex items-center justify-between transition-all {% if ogaviral_status == 'critical' %}bg-red-950/20 border-red-500/30 text-red-200{% elif ogaviral_status == 'warning' %}bg-yellow-950/20 border-yellow-500/30 text-yellow-200{% else %}bg-emerald-950/20 border-emerald-500/30 text-emerald-200{% endif %}">
         <div class="flex items-center gap-4">
-            <div class="w-12 h-12 rounded-lg flex items-center justify-center border {% if jap_status == 'critical' %}bg-red-500/10 border-red-500/20 text-red-400{% elif jap_status == 'warning' %}bg-yellow-500/10 border-yellow-500/20 text-yellow-400{% else %}bg-emerald-500/10 border-emerald-500/20 text-emerald-400{% endif %}">
+            <div class="w-12 h-12 rounded-lg flex items-center justify-center border {% if ogaviral_status == 'critical' %}bg-red-500/10 border-red-500/20 text-red-400{% elif ogaviral_status == 'warning' %}bg-yellow-500/10 border-yellow-500/20 text-yellow-400{% else %}bg-emerald-500/10 border-emerald-500/20 text-emerald-400{% endif %}">
                 <i data-feather="globe" class="w-6 h-6"></i>
             </div>
             <div>
-                <div class="text-[11px] uppercase tracking-wider font-semibold opacity-75">JAP SMM Wallet</div>
-                <div class="text-2xl font-bold font-mono mt-0.5">${{ jap_balance_usd|floatformat:2 }} <span class="text-sm font-normal opacity-80">(₦{{ jap_balance_ngn|floatformat:2 }})</span></div>
+                <div class="text-[11px] uppercase tracking-wider font-semibold opacity-75">Ogaviral SMM Wallet</div>
+                <div class="text-2xl font-bold font-mono mt-0.5">₦{{ ogaviral_balance|floatformat:2 }}</div>
                 <div class="text-[11px] mt-1 flex items-center gap-1">
-                    <span class="w-2 h-2 rounded-full {% if jap_status == 'critical' %}bg-red-500 animate-pulse{% elif jap_status == 'warning' %}bg-yellow-500 animate-pulse{% else %}bg-emerald-500{% endif %}"></span>
-                    {% if jap_status == 'critical' %}Critical Threshold Reached!{% elif jap_status == 'warning' %}Warning Threshold Reached{% else %}API Wallet Healthy{% endif %}
+                    <span class="w-2 h-2 rounded-full {% if ogaviral_status == 'critical' %}bg-red-500 animate-pulse{% elif ogaviral_status == 'warning' %}bg-yellow-500 animate-pulse{% else %}bg-emerald-500{% endif %}"></span>
+                    {% if ogaviral_status == 'critical' %}Critical Threshold Reached!{% elif ogaviral_status == 'warning' %}Warning Threshold Reached{% else %}API Wallet Healthy{% endif %}
                 </div>
             </div>
         </div>
-        <a href="https://justanotherpanel.com" target="_blank" class="px-4 py-2 rounded-lg text-xs font-bold border transition-all hover:scale-[1.02] {% if jap_status == 'critical' %}bg-red-500 text-white border-transparent hover:bg-red-600{% elif jap_status == 'warning' %}bg-yellow-500 text-slate-950 border-transparent hover:bg-yellow-600{% else %}bg-emerald-600 text-white border-transparent hover:bg-emerald-700{% endif %}">
+        <a href="https://ogaviral.com" target="_blank" class="px-4 py-2 rounded-lg text-xs font-bold border transition-all hover:scale-[1.02] {% if ogaviral_status == 'critical' %}bg-red-500 text-white border-transparent hover:bg-red-600{% elif ogaviral_status == 'warning' %}bg-yellow-500 text-slate-950 border-transparent hover:bg-yellow-600{% else %}bg-emerald-600 text-white border-transparent hover:bg-emerald-700{% endif %}">
             Fund Now
         </a>
     </div>
@@ -180,12 +200,12 @@
         // Donut Chart initialization
         const orderTypeCtx = document.getElementById('orderTypeChart').getContext('2d');
         
-        const vtuCount = {{ order_dist.vtu|default:0 }};
-        const smmCount = {{ order_dist.smm|default:0 }};
-        const airtimeCount = {{ order_dist.airtime|default:0 }};
-        const cableCount = {{ order_dist.cable|default:0 }};
-        const electricityCount = {{ order_dist.electricity|default:0 }};
-        const exampinCount = {{ order_dist.exampin|default:0 }};
+        const vtuCount = Number('{{ order_dist.vtu|default:0 }}');
+        const smmCount = Number('{{ order_dist.smm|default:0 }}');
+        const airtimeCount = Number('{{ order_dist.airtime|default:0 }}');
+        const cableCount = Number('{{ order_dist.cable|default:0 }}');
+        const electricityCount = Number('{{ order_dist.electricity|default:0 }}');
+        const exampinCount = Number('{{ order_dist.exampin|default:0 }}');
         
         const hasOrders = (vtuCount + smmCount + airtimeCount + cableCount + electricityCount + exampinCount) > 0;
         

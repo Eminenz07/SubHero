@@ -374,10 +374,10 @@ SABUSS_PROFIT_MARGIN = config("SABUSS_PROFIT_MARGIN", default=0.10, cast=float)
 
 
 # =============================================================
-# JUSTANOTHERPANEL (JAP) — Outbound SMM API
+# OGAVIRAL — Outbound SMM API
 # =============================================================
-JAP_API_KEY = config("JAP_API_KEY", default="")
-JAP_API_URL = config("JAP_API_URL", default="https://justanotherpanel.com/api/v2")
+OGAVIRAL_API_KEY = config("OGAVIRAL_API_KEY", default="REDACTED_OGAVIRAL_KEY")
+OGAVIRAL_API_URL = config("OGAVIRAL_API_URL", default="https://ogaviral.com/api/v2")
 
 # =============================================================
 # CELERY BEAT SCHEDULE

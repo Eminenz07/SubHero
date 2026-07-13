@@ -57,6 +57,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AddConstraint(
             model_name='wallet',
-            constraint=models.CheckConstraint(condition=models.Q(('balance__gte', 0)), name='wallet_balance_non_negative'),
+            constraint=models.CheckConstraint(check=models.Q(('balance__gte', 0)), name='wallet_balance_non_negative'),
         ),
     ]

@@ -87,8 +87,10 @@ def fetch_cheapdatahub_balance():
             return Decimal(str(r.json()['balance']))
     except Exception:
         pass
-        
-    # Fallback to Sabuss API balance
+    return Decimal("0.00")
+
+
+def fetch_sabuss_balance():
     try:
         api_key = getattr(settings, "SABUSS_API_KEY", "")
         pin = getattr(settings, "SABUSS_PIN", "")
@@ -104,10 +106,10 @@ def fetch_cheapdatahub_balance():
     return Decimal("0.00")
 
 
-def fetch_jap_balance():
+def fetch_ogaviral_balance():
     try:
-        r = requests.post(settings.JAP_API_URL, data={
-            "key": settings.JAP_API_KEY, "action": "balance"
+        r = requests.post(settings.OGAVIRAL_API_URL, data={
+            "key": settings.OGAVIRAL_API_KEY, "action": "balance"
         }, timeout=8)
         if r.status_code == 200:
             return Decimal(str(r.json()['balance']))
@@ -144,17 +146,22 @@ def dashboard(request):
     )
     
     # Live balance fetch
+    sabuss_balance = fetch_sabuss_balance()
     cdh_balance = fetch_cheapdatahub_balance()
-    jap_balance_usd = fetch_jap_balance()
+    ogaviral_balance = fetch_ogaviral_balance()
     
     alert_config = AlertConfig.objects.first()
     if not alert_config:
         alert_config = AlertConfig.objects.create(alert_email="admin@subhero.ng")
         
-    usd_rate = alert_config.usd_ngn_rate
-    jap_balance_ngn = jap_balance_usd * usd_rate
-    
     # Threshold checks
+    if sabuss_balance <= alert_config.cdh_critical_threshold:
+        sabuss_status = "critical"
+    elif sabuss_balance <= alert_config.cdh_warning_threshold:
+        sabuss_status = "warning"
+    else:
+        sabuss_status = "healthy"
+        
     if cdh_balance <= alert_config.cdh_critical_threshold:
         cdh_status = "critical"
     elif cdh_balance <= alert_config.cdh_warning_threshold:
@@ -162,12 +169,12 @@ def dashboard(request):
     else:
         cdh_status = "healthy"
         
-    if jap_balance_usd <= alert_config.jap_critical_threshold:
-        jap_status = "critical"
-    elif jap_balance_usd <= alert_config.jap_warning_threshold:
-        jap_status = "warning"
+    if ogaviral_balance <= alert_config.jap_critical_threshold:
+        ogaviral_status = "critical"
+    elif ogaviral_balance <= alert_config.jap_warning_threshold:
+        ogaviral_status = "warning"
     else:
-        jap_status = "healthy"
+        ogaviral_status = "healthy"
         
     # HTMX Auto-refresh handling
     if request.headers.get("HX-Request"):
@@ -199,11 +206,12 @@ def dashboard(request):
         "total_profit": stats.total_profit,
         "total_deposits": stats.total_deposits,
         "active_orders": active_orders,
+        "sabuss_balance": sabuss_balance,
+        "sabuss_status": sabuss_status,
         "cdh_balance": cdh_balance,
         "cdh_status": cdh_status,
-        "jap_balance_usd": jap_balance_usd,
-        "jap_balance_ngn": jap_balance_ngn,
-        "jap_status": jap_status,
+        "ogaviral_balance": ogaviral_balance,
+        "ogaviral_status": ogaviral_status,
         "alert_config": alert_config,
         "revenue_chart_json": json.dumps(stats.revenue_chart),
         "profit_chart_json": json.dumps(stats.profit_chart),
@@ -975,9 +983,9 @@ def api_wallets(request):
         
         return redirect("admin_panel:api_wallets")
         
+    sabuss_balance = fetch_sabuss_balance()
     cdh_balance = fetch_cheapdatahub_balance()
-    jap_balance_usd = fetch_jap_balance()
-    jap_balance_ngn = jap_balance_usd * alert_config.usd_ngn_rate
+    ogaviral_balance = fetch_ogaviral_balance()
     
     # 14-day history mock data
     history_data = []
@@ -987,16 +995,17 @@ def api_wallets(request):
         day = today - datetime.timedelta(days=i)
         history_data.append({
             "date": day.strftime("%b %d"),
+            "sabuss": float(sabuss_balance) + random.randint(-1500, 2500) if sabuss_balance > 0 else 12000 + random.randint(-1500, 2500),
             "cdh": float(cdh_balance) + random.randint(-1500, 2500) if cdh_balance > 0 else 12000 + random.randint(-1500, 2500),
-            "jap": float(jap_balance_usd) + random.uniform(-0.5, 1.2) if jap_balance_usd > 0 else 6.5 + random.uniform(-0.5, 1.2),
+            "ogaviral": float(ogaviral_balance) + random.randint(-5000, 10000) if ogaviral_balance > 0 else 25000 + random.randint(-5000, 10000),
         })
         
     context = {
         "active_nav": "api_wallets",
         "alert_config": alert_config,
+        "sabuss_balance": sabuss_balance,
         "cdh_balance": cdh_balance,
-        "jap_balance_usd": jap_balance_usd,
-        "jap_balance_ngn": jap_balance_ngn,
+        "ogaviral_balance": ogaviral_balance,
         "history_data": json.dumps(history_data),
     }
     return render(request, "admin_panel/api_wallets.html", context)
@@ -1014,11 +1023,10 @@ def test_alert_email(request):
                 subject="SubHero HQ — API Wallet Alert (TEST)",
                 message=f"This is a test notification from SubHero HQ.\n\n"
                         f"Current Alert Thresholds:\n"
-                        f"- CheapDataHub Warning: ₦{alert_config.cdh_warning_threshold:,.2f}\n"
-                        f"- CheapDataHub Critical: ₦{alert_config.cdh_critical_threshold:,.2f}\n"
-                        f"- JAP Warning: ${alert_config.jap_warning_threshold:.2f}\n"
-                        f"- JAP Critical: ${alert_config.jap_critical_threshold:.2f}\n"
-                        f"- USD/NGN Rate: ₦{alert_config.usd_ngn_rate:,.2f}\n",
+                        f"- Sabuss / CheapDataHub Warning: ₦{alert_config.cdh_warning_threshold:,.2f}\n"
+                        f"- Sabuss / CheapDataHub Critical: ₦{alert_config.cdh_critical_threshold:,.2f}\n"
+                        f"- Ogaviral Warning: ₦{alert_config.jap_warning_threshold:,.2f}\n"
+                        f"- Ogaviral Critical: ₦{alert_config.jap_critical_threshold:,.2f}\n",
                 from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@subhero.ng"),
                 recipient_list=[alert_config.alert_email],
                 fail_silently=False

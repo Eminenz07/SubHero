@@ -87,7 +87,20 @@
     <div class="lg:col-span-2 space-y-8">
         
         <!-- Live status -->
-        <div class="grid grid-cols-2 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Sabuss balance -->
+            <div class="admin-card p-5 border border-white/[0.05]">
+                <div class="text-[11px] uppercase tracking-wider font-semibold text-slate-400 mb-2">Sabuss Live Balance</div>
+                <div class="text-3xl font-extrabold text-white font-mono">₦{{ sabuss_balance|floatformat:2 }}</div>
+                <div class="mt-4 flex justify-between items-center text-xs">
+                    <span class="text-slate-500 font-medium">Critical: ₦{{ alert_config.cdh_critical_threshold }}</span>
+                    <a href="https://sabuss.com" target="_blank" class="text-emerald-400 hover:underline font-bold flex items-center gap-1">
+                        Fund Now
+                        <i data-feather="external-link" class="w-3.5 h-3.5"></i>
+                    </a>
+                </div>
+            </div>
+
             <!-- CDH balance -->
             <div class="admin-card p-5 border border-white/[0.05]">
                 <div class="text-[11px] uppercase tracking-wider font-semibold text-slate-400 mb-2">CheapDataHub Live Balance</div>
@@ -101,14 +114,13 @@
                 </div>
             </div>
 
-            <!-- JAP balance -->
+            <!-- Ogaviral SMM balance -->
             <div class="admin-card p-5 border border-white/[0.05]">
-                <div class="text-[11px] uppercase tracking-wider font-semibold text-slate-400 mb-2">JAP SMM Live Balance</div>
-                <div class="text-3xl font-extrabold text-white font-mono">${{ jap_balance_usd|floatformat:2 }}</div>
-                <div class="text-[10px] text-slate-400 mt-1 font-mono">Naira equivalent: ₦{{ jap_balance_ngn|floatformat:2 }}</div>
-                <div class="mt-2 flex justify-between items-center text-xs">
-                    <span class="text-slate-500 font-medium">Critical: ${{ alert_config.jap_critical_threshold }}</span>
-                    <a href="https://justanotherpanel.com" target="_blank" class="text-emerald-400 hover:underline font-bold flex items-center gap-1">
+                <div class="text-[11px] uppercase tracking-wider font-semibold text-slate-400 mb-2">Ogaviral Live Balance</div>
+                <div class="text-3xl font-extrabold text-white font-mono">₦{{ ogaviral_balance|floatformat:2 }}</div>
+                <div class="mt-4 flex justify-between items-center text-xs">
+                    <span class="text-slate-500 font-medium">Critical: ₦{{ alert_config.jap_critical_threshold }}</span>
+                    <a href="https://ogaviral.com" target="_blank" class="text-emerald-400 hover:underline font-bold flex items-center gap-1">
                         Fund Now
                         <i data-feather="external-link" class="w-3.5 h-3.5"></i>
                     </a>
@@ -133,13 +145,14 @@
     document.addEventListener("DOMContentLoaded", function() {
         const rawData = JSON.parse('{{ history_data|safe }}');
         const labels = rawData.map(d => d.date);
-        const cdhBalances = rawData.map(d => d.cdh);
-        const japBalances = rawData.map(d => d.jap);
+        const sabussBalances = rawData.map(d => d.sabuss);
+        const cdhBalances = rawData.map(d => d.cdh || 0);
+        const ogaviralBalances = rawData.map(d => d.ogaviral || 0);
 
-        renderHistoryChart(labels, cdhBalances, japBalances);
+        renderHistoryChart(labels, sabussBalances, cdhBalances, ogaviralBalances);
     });
 
-    function renderHistoryChart(labels, cdh, jap) {
+    function renderHistoryChart(labels, sabuss, cdh, ogaviral) {
         const ctx = document.getElementById('balanceHistoryChart').getContext('2d');
         new Chart(ctx, {
             type: 'line',
@@ -147,21 +160,28 @@
                 labels: labels,
                 datasets: [
                     {
-                        label: 'CheapDataHub (₦)',
-                        data: cdh,
+                        label: 'Sabuss (₦)',
+                        data: sabuss,
                         borderColor: '#10b981', // emerald-500
                         backgroundColor: 'transparent',
-                        yAxisID: 'y-cdh',
                         tension: 0.2,
                         borderWidth: 2,
                         pointHoverRadius: 5
                     },
                     {
-                        label: 'JAP USD ($)',
-                        data: jap,
+                        label: 'CheapDataHub (₦)',
+                        data: cdh,
+                        borderColor: '#eab308', // yellow-500
+                        backgroundColor: 'transparent',
+                        tension: 0.2,
+                        borderWidth: 2,
+                        pointHoverRadius: 5
+                    },
+                    {
+                        label: 'Ogaviral SMM (₦)',
+                        data: ogaviral,
                         borderColor: '#3b82f6', // blue-500
                         backgroundColor: 'transparent',
-                        yAxisID: 'y-jap',
                         tension: 0.2,
                         borderWidth: 2,
                         pointHoverRadius: 5
@@ -184,26 +204,12 @@
                         grid: { color: 'rgba(255, 255, 255, 0.03)' },
                         ticks: { color: '#64748b', font: { family: 'DM Sans' } }
                     },
-                    'y-cdh': {
-                        type: 'linear',
-                        display: true,
-                        position: 'left',
+                    y: {
                         grid: { color: 'rgba(255, 255, 255, 0.03)' },
                         ticks: {
-                            color: '#10b981',
+                            color: '#94a3b8',
                             font: { family: 'DM Sans' },
                             callback: function(v) { return '₦' + v.toLocaleString(); }
-                        }
-                    },
-                    'y-jap': {
-                        type: 'linear',
-                        display: true,
-                        position: 'right',
-                        grid: { drawOnChartArea: false },
-                        ticks: {
-                            color: '#3b82f6',
-                            font: { family: 'DM Sans' },
-                            callback: function(v) { return '$' + v; }
                         }
                     }
                 }

@@ -228,6 +228,7 @@
             display: flex !important;
         }
     </style>
+    {% block extra_head %}{% endblock %}
 </head>
 <body class="bg-slate-200 text-text-primary antialiased font-body flex justify-center items-start md:items-center min-h-[100dvh]" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
     

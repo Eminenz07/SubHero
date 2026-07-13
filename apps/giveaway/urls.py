@@ -8,6 +8,7 @@ urlpatterns = [
     path('mine/', views.my_giveaways, name='mine'),
     path('<str:slug>/detail/', views.giveaway_detail, name='detail'),
     path('<str:slug>/cancel/', views.cancel_giveaway, name='cancel'),
+    path('<str:slug>/receipt/', views.giveaway_receipt_card, name='receipt'),
     
     # Public Endpoints
     path('claim/<str:slug>/', views.claim_page, name='claim_page'),

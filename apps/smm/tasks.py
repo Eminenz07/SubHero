@@ -33,7 +33,7 @@ def process_smm_order(self, order_id):
         return
 
     # STEP 2: Call social booster gateway API
-    api_key = settings.JAP_API_KEY
+    api_key = settings.OGAVIRAL_API_KEY
     if not api_key:
         logger.warning("Social booster gateway API Key is not configured. Cannot process SMM order %s.", order_id)
         order.status = SMMOrder.Status.FAILED
@@ -44,7 +44,7 @@ def process_smm_order(self, order_id):
         refund_smm_order.delay(order_id)
         return
 
-    url = settings.JAP_API_URL
+    url = settings.OGAVIRAL_API_URL
     payload = {
         "key": api_key,
         "action": "add",
@@ -201,13 +201,13 @@ def poll_smm_orders():
     Triggers refunds for failed/canceled orders, or updates completed statuses.
     """
     logger.info("SMM orders polling triggered.")
-    api_key = settings.JAP_API_KEY
+    api_key = settings.OGAVIRAL_API_KEY
     if not api_key:
         logger.info("Social booster gateway API Key is not set. Skipping SMM polling.")
         return
-
+ 
     processing_orders = SMMOrder.objects.filter(status=SMMOrder.Status.PROCESSING)
-    url = settings.JAP_API_URL
+    url = settings.OGAVIRAL_API_URL
 
     for order in processing_orders:
         if not order.provider_order_id or order.provider_order_id.startswith("MOCK"):
@@ -315,7 +315,7 @@ def sync_smm_catalogue():
     Synchronizes active social booster services. Applied daily at 3:00 AM (Celery Beat).
     """
     logger.info("Synchronizing SMM Catalogue from booster gateway...")
-    api_key = settings.JAP_API_KEY
+    api_key = settings.OGAVIRAL_API_KEY
     if not api_key:
         # Pre-populate catalogue for local manual developer verification
         pre_populated = [
@@ -366,18 +366,16 @@ def sync_smm_catalogue():
                 }
             )
         logger.info("Mock SMM service catalogue loaded successfully.")
-        return
-
-    url = settings.JAP_API_URL
+    url = settings.OGAVIRAL_API_URL
     try:
         response = requests.post(url, data={"key": api_key, "action": "services"}, timeout=30)
         services = response.json()
-
+ 
         count = 0
         for s in services:
             category_lower = s["category"].lower()
             
-            # Map JAP categories to our 6 core frontend platform tabs
+            # Map categories to our 6 core frontend platform tabs
             platform = "other"
             if "instagram" in category_lower:
                 platform = "instagram"
@@ -391,28 +389,20 @@ def sync_smm_catalogue():
                 platform = "telegram"
             elif "spotify" in category_lower:
                 platform = "spotify"
-
-            # Skip unsupported categories to keep the catalogue curated and high quality
-            if platform == "other":
-                continue
-
-            rate_usd = Decimal(str(s["rate"]))
-            
-            # Dynamic USD to Naira exchange rate
-            from apps.admin_panel.models import AlertConfig, SystemSetting
-            alert_config = AlertConfig.objects.first()
-            usd_rate = alert_config.usd_ngn_rate if alert_config else Decimal("1600.00")
-            provider_rate_naira = rate_usd * usd_rate
+ 
+ 
+            rate_naira = Decimal(str(s["rate"]))
             
             # Dynamic SMM profit markup
+            from apps.admin_panel.models import SystemSetting
             try:
                 smm_margin_pct = Decimal(SystemSetting.get("smm_profit_margin", "50.00"))
             except Exception:
                 smm_margin_pct = Decimal("50.00")
             smm_margin = smm_margin_pct / Decimal("100")
             
-            subhero_price = provider_rate_naira * (Decimal("1") + smm_margin)
-
+            subhero_price = rate_naira * (Decimal("1") + smm_margin)
+ 
             SMMService.objects.update_or_create(
                 provider_service_id=str(s["service"]),
                 defaults={
@@ -421,12 +411,12 @@ def sync_smm_catalogue():
                     "subcategory": s.get("category", "").strip(),
                     "provider_min": int(s["min"]),
                     "provider_max": int(s["max"]),
-                    "provider_rate": rate_usd,
+                    "provider_rate": rate_naira,
                     "subhero_price_per_1k": subhero_price,
                     "is_active": True
                 }
             )
             count += 1
-        logger.info("SMM catalogue synced successfully via booster gateway. Mapped and updated %d services.", count)
+        logger.info("SMM catalogue synced successfully via Ogaviral booster gateway. Mapped and updated %d services.", count)
     except Exception as e:
         logger.error("Failed to sync SMM catalogue from booster gateway: %s", str(e))

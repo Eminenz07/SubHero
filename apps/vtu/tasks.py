@@ -362,11 +362,10 @@ def check_api_wallet_balance():
     if not alert_config:
         logger.warning("AlertConfig not found. Skipping balance verification checks.")
         return
-
-    # 1. Fetch CheapDataHub Naira balance
-    cdh_balance = Decimal("0.00")
+ 
+    # 1. Fetch Sabuss Naira balance
+    sabuss_balance = Decimal("0.00")
     try:
-        # Try Sabuss balance first as per tasks.py
         api_key = getattr(settings, "SABUSS_API_KEY", "")
         pin = getattr(settings, "SABUSS_PIN", "")
         base_url = getattr(settings, "SABUSS_BASE_URL", "https://sabuss.com")
@@ -375,52 +374,42 @@ def check_api_wallet_balance():
             if response.status_code == 200:
                 data = response.json()
                 if str(data.get("code")) == "200":
-                    cdh_balance = Decimal(str(data.get("balance", "0")))
-        
-        # If not Sabuss, try CheapDataHub reseller endpoint
-        if cdh_balance == 0 and getattr(settings, "CHEAPDATAHUB_API_KEY", ""):
-            r = requests.get(
-                f"{settings.CHEAPDATAHUB_BASE_URL}/balance/",
-                headers={"Authorization": f"Token {settings.CHEAPDATAHUB_API_KEY}"},
-                timeout=15
-            )
-            if r.status_code == 200:
-                cdh_balance = Decimal(str(r.json()['balance']))
+                    sabuss_balance = Decimal(str(data.get("balance", "0")))
     except Exception as e:
-        logger.error("Error fetching CheapDataHub balance: %s", str(e))
-
-    # 2. Fetch JAP USD balance
-    jap_balance_usd = Decimal("0.00")
+        logger.error("Error fetching Sabuss balance: %s", str(e))
+ 
+    # 2. Fetch Ogaviral NGN balance
+    ogaviral_balance = Decimal("0.00")
     try:
-        if getattr(settings, "JAP_API_KEY", ""):
-            r = requests.post(settings.JAP_API_URL, data={
-                "key": settings.JAP_API_KEY, "action": "balance"
+        if getattr(settings, "OGAVIRAL_API_KEY", ""):
+            r = requests.post(settings.OGAVIRAL_API_URL, data={
+                "key": settings.OGAVIRAL_API_KEY, "action": "balance"
             }, timeout=15)
             if r.status_code == 200:
-                jap_balance_usd = Decimal(str(r.json()['balance']))
+                ogaviral_balance = Decimal(str(r.json()['balance']))
     except Exception as e:
-        logger.error("Error fetching JAP balance: %s", str(e))
-
-    logger.info("Balances retrieved — CheapDataHub: ₦%s, JAP: $%s", cdh_balance, jap_balance_usd)
-
+        logger.error("Error fetching Ogaviral balance: %s", str(e))
+ 
+    logger.info("Balances retrieved — Sabuss: ₦%s, Ogaviral: ₦%s", sabuss_balance, ogaviral_balance)
+ 
     # 3. Check thresholds and alert
     alert_messages = []
     
-    # CheapDataHub
-    if cdh_balance <= alert_config.cdh_critical_threshold:
-        alert_messages.append(f"CRITICAL: CheapDataHub balance has dropped to ₦{cdh_balance:,.2f} (Threshold: ₦{alert_config.cdh_critical_threshold:,.2f})!")
-        syslog("ERROR", "VTU", f"CheapDataHub balance CRITICAL: ₦{cdh_balance:,.2f}")
-    elif cdh_balance <= alert_config.cdh_warning_threshold:
-        alert_messages.append(f"WARNING: CheapDataHub balance is low at ₦{cdh_balance:,.2f} (Threshold: ₦{alert_config.cdh_warning_threshold:,.2f})")
-        syslog("WARNING", "VTU", f"CheapDataHub balance low: ₦{cdh_balance:,.2f}")
+    # Sabuss
+    if sabuss_balance <= alert_config.cdh_critical_threshold:
+        alert_messages.append(f"CRITICAL: Sabuss balance has dropped to ₦{sabuss_balance:,.2f} (Threshold: ₦{alert_config.cdh_critical_threshold:,.2f})!")
+        syslog("ERROR", "VTU", f"Sabuss balance CRITICAL: ₦{sabuss_balance:,.2f}")
+    elif sabuss_balance <= alert_config.cdh_warning_threshold:
+        alert_messages.append(f"WARNING: Sabuss balance is low at ₦{sabuss_balance:,.2f} (Threshold: ₦{alert_config.cdh_warning_threshold:,.2f})")
+        syslog("WARNING", "VTU", f"Sabuss balance low: ₦{sabuss_balance:,.2f}")
         
-    # JAP
-    if jap_balance_usd <= alert_config.jap_critical_threshold:
-        alert_messages.append(f"CRITICAL: JAP SMM balance has dropped to ${jap_balance_usd:.2f} (Threshold: ${alert_config.jap_critical_threshold:.2f})!")
-        syslog("ERROR", "SMM", f"JAP balance CRITICAL: ${jap_balance_usd:.2f}")
-    elif jap_balance_usd <= alert_config.jap_warning_threshold:
-        alert_messages.append(f"WARNING: JAP SMM balance is low at ${jap_balance_usd:.2f} (Threshold: ${alert_config.jap_warning_threshold:.2f})")
-        syslog("WARNING", "SMM", f"JAP balance low: ${jap_balance_usd:.2f}")
+    # Ogaviral
+    if ogaviral_balance <= alert_config.jap_critical_threshold:
+        alert_messages.append(f"CRITICAL: Ogaviral SMM balance has dropped to ₦{ogaviral_balance:,.2f} (Threshold: ₦{alert_config.jap_critical_threshold:,.2f})!")
+        syslog("ERROR", "SMM", f"Ogaviral balance CRITICAL: ₦{ogaviral_balance:,.2f}")
+    elif ogaviral_balance <= alert_config.jap_warning_threshold:
+        alert_messages.append(f"WARNING: Ogaviral SMM balance is low at ₦{ogaviral_balance:,.2f} (Threshold: ₦{alert_config.jap_warning_threshold:,.2f})")
+        syslog("WARNING", "SMM", f"Ogaviral balance low: ₦{ogaviral_balance:,.2f}")
 
     if alert_messages:
         try:

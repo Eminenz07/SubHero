@@ -25,7 +25,20 @@ ALLOWED_SMM_DOMAINS = [
     "twitter.com",
     "x.com",
     "t.me",
-    "open.spotify.com"
+    "open.spotify.com",
+    "facebook.com",
+    "fb.me",
+    "fb.com",
+    "reddit.com",
+    "whatsapp.com",
+    "wa.me",
+    "linkedin.com",
+    "discord.gg",
+    "discord.com",
+    "twitch.tv",
+    "snapchat.com",
+    "pinterest.com",
+    "threads.net"
 ]
 
 class SmmIndexView(LoginRequiredMixin, PinRequiredMixin, View):
