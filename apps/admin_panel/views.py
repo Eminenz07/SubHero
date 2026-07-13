@@ -1377,6 +1377,8 @@ from apps.admin_panel.queries import (
     get_top_giveaway_hosts, get_transaction_stats, get_peak_transaction_hour
 )
 
+from datetime import date, timedelta
+
 def parse_date_range(range_param):
     today = timezone.now().date()
     if range_param == 'today':
