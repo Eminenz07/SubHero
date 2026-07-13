@@ -392,7 +392,8 @@ def sync_smm_catalogue():
  
  
             rate_naira = Decimal(str(s["rate"]))
-            
+            if rate_naira > Decimal("50000.00"):
+                continue
             # Dynamic SMM profit markup
             from apps.admin_panel.models import SystemSetting
             try:
