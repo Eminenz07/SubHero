@@ -488,3 +488,83 @@ def get_peak_transaction_hour() -> Any:
     ).values('hour').annotate(
         count=Count('id')
     ).order_by('-count').first()
+
+
+# ─────────────────────────────────────────────────────────────
+# BACKWARD COMPATIBILITY FOR MAIN ADMIN DASHBOARD
+# ─────────────────────────────────────────────────────────────
+
+@dataclass
+class AnalyticsData:
+    total_users: int
+    total_wallet_balance: Decimal
+    total_revenue: Decimal
+    total_profit: Decimal
+    total_deposits: Decimal
+    giveaways_created: int
+    
+    # Timeseries data for charts
+    revenue_chart: List[Dict[str, Any]]
+    profit_chart: List[Dict[str, Any]]
+    deposits_chart: List[Dict[str, Any]]
+
+
+class AnalyticsQueries:
+    """Wrapper class supporting the legacy dashboard view imports."""
+    
+    @staticmethod
+    def get_dashboard_stats(days=30) -> AnalyticsData:
+        start_date = now().date() - timedelta(days=days)
+        end_date = now().date()
+        
+        user_stats = get_user_stats(start_date, end_date)
+        wallet_bal = get_total_wallet_balance()
+        revenue = get_gross_revenue(start_date, end_date)
+        profit = get_net_profit(start_date, end_date)
+        giveaway = get_giveaway_stats(start_date, end_date)
+        txn = get_transaction_stats(start_date, end_date)
+
+        # Legacy timeseries chart format
+        # Legacy dashboard code expects list of Dicts with {'x': label, 'y': value}
+        rev_chart_data = get_revenue_chart_data(start_date, end_date)
+        revenue_chart = []
+        profit_chart = []
+        deposits_chart = []
+
+        # Populate legacy list mapping
+        for i in range(days):
+            day_start = start_date + timedelta(days=i)
+            # Find in rev_chart_data
+            matching = next((item for item in rev_chart_data if item["day"] == day_start), None)
+            label = day_start.strftime("%b %d")
+            
+            if matching:
+                revenue_chart.append({"x": label, "y": float(matching["revenue"])})
+                profit_chart.append({"x": label, "y": float(matching["profit"])})
+            else:
+                revenue_chart.append({"x": label, "y": 0.0})
+                profit_chart.append({"x": label, "y": 0.0})
+            
+            # Simple daily deposits calculation for legacy chart
+            s_dt = datetime.combine(day_start, datetime.min.time(), tzinfo=timezone.utc)
+            e_dt = datetime.combine(day_start, datetime.max.time(), tzinfo=timezone.utc)
+            dep_vol = WalletTransaction.objects.filter(
+                txn_type='FUND',
+                status='SUCCESS',
+                created_at__range=(s_dt, e_dt)
+            ).aggregate(t=Sum('amount'))['t'] or Decimal('0.00')
+            
+            deposits_chart.append({"x": label, "y": float(dep_vol)})
+
+        return AnalyticsData(
+            total_users=user_stats['total'],
+            total_wallet_balance=wallet_bal,
+            total_revenue=revenue['total'],
+            total_profit=profit['total'],
+            total_deposits=txn['deposit_volume'],
+            giveaways_created=giveaway['total_created'],
+            revenue_chart=revenue_chart,
+            profit_chart=profit_chart,
+            deposits_chart=deposits_chart
+        )
+
