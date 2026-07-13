@@ -432,7 +432,7 @@ def get_giveaway_stats(start: date, end: date) -> Dict[str, Any]:
         'active': base.filter(status='ACTIVE').count(),
         'completed': base.filter(status='COMPLETED').count(),
         'expired': base.filter(status='EXPIRED').count(),
-        'total_slots': base.aggregate(t=Sum('slots'))['t'] or 0,
+        'total_slots': base.aggregate(t=Sum('total_slots'))['t'] or 0,
         'claimed_slots': base.aggregate(t=Sum('claimed_slots'))['t'] or 0,
         'total_locked': base.aggregate(t=Sum('total_locked'))['t'] or Decimal('0.00'),
         'total_spent': base.aggregate(t=Sum('total_spent'))['t'] or Decimal('0.00'),
