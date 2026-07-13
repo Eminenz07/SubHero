@@ -17,7 +17,7 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 logger = logging.getLogger(__name__)
 
-CUTOFF_DATE = datetime(2026, 7, 4, tzinfo=timezone.utc)
+CUTOFF_DATE = datetime(2020, 1, 1, tzinfo=timezone.utc)
 
 def get_total_wallet_balance() -> Decimal:
     """Total funds held across ALL user wallets right now. No date filter."""
