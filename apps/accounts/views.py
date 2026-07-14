@@ -208,8 +208,31 @@ class LoginView(View):
                 f"Your account was logged in from IP address {client_ip}. If this wasn't you, please secure your account immediately.",
                 level="info"
             )
+            if user.email:
+                from django.core.mail import send_mail
+                from django.conf import settings
+                from django.utils import timezone
+                subject = "Security Alert: New Login Detected 🔐"
+                email_message = (
+                    f"Hello {user.full_name or 'SubHero User'},\n\n"
+                    f"We detected a new login to your SubHero account.\n\n"
+                    f"Details:\n"
+                    f"- Time: {timezone.now().strftime('%Y-%m-%d %H:%M:%S UTC')}\n"
+                    f"- IP Address: {client_ip}\n\n"
+                    f"If this was you, you can safely ignore this email.\n"
+                    f"If you did not log in, please change your password and secure your account immediately.\n\n"
+                    f"Best regards,\n"
+                    f"The SubHero Team"
+                )
+                send_mail(
+                    subject=subject,
+                    message=email_message,
+                    from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@subhero.ng"),
+                    recipient_list=[user.email],
+                    fail_silently=True
+                )
         except Exception as ex:
-            logger.error("Login notification creation failed: %s", str(ex))
+            logger.error("Login notification/email creation failed: %s", str(ex))
 
         # Remember me: 30 days (PRD Section 6.1.2)
         if remember_me:
@@ -311,8 +334,27 @@ class VerifyOTPView(View):
                                 f"Hi {user.full_name}, your account has been successfully verified. Fund your wallet to start purchasing VTU and SMM services!",
                                 level="success"
                             )
+                            if user.email:
+                                from django.core.mail import send_mail
+                                from django.conf import settings
+                                subject = "Welcome to SubHero! 🎉"
+                                email_message = (
+                                    f"Hello {user.full_name or 'SubHero User'},\n\n"
+                                    f"Welcome to SubHero! Your account has been successfully verified.\n\n"
+                                    f"You can now fund your wallet and start purchasing cheap data, airtime, and SMM social booster services.\n\n"
+                                    f"If you have any questions, feel free to contact support.\n\n"
+                                    f"Best regards,\n"
+                                    f"The SubHero Team"
+                                )
+                                send_mail(
+                                    subject=subject,
+                                    message=email_message,
+                                    from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@subhero.ng"),
+                                    recipient_list=[user.email],
+                                    fail_silently=True
+                                )
                         except Exception as ex:
-                            logger.error("Welcome notification creation failed: %s", str(ex))
+                            logger.error("Welcome notification/email creation failed: %s", str(ex))
 
                         messages.success(request, "Phone verified! Please set your transaction PIN.")
                         return redirect("accounts:set_pin")
@@ -488,8 +530,29 @@ class ProfileView(LoginRequiredMixin, View):
                     "Your account login password has been changed. Use your new password for subsequent logins.",
                     level="security"
                 )
+                if request.user.email:
+                    from django.core.mail import send_mail
+                    from django.conf import settings
+                    from django.utils import timezone
+                    subject = "Security Alert: Password Changed 🔐"
+                    email_message = (
+                        f"Hello {request.user.full_name or 'SubHero User'},\n\n"
+                        f"Your SubHero account login password has been successfully changed.\n\n"
+                        f"Details:\n"
+                        f"- Time: {timezone.now().strftime('%Y-%m-%d %H:%M:%S UTC')}\n\n"
+                        f"If you did not make this change, please contact support immediately to secure your account.\n\n"
+                        f"Best regards,\n"
+                        f"The SubHero Team"
+                    )
+                    send_mail(
+                        subject=subject,
+                        message=email_message,
+                        from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@subhero.ng"),
+                        recipient_list=[request.user.email],
+                        fail_silently=True
+                    )
             except Exception as ex:
-                logger.error("Password change notification creation failed: %s", str(ex))
+                logger.error("Password change notification/email creation failed: %s", str(ex))
 
             # Since password changed, log user in again to maintain session
             from django.contrib.auth import update_session_auth_hash

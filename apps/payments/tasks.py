@@ -96,8 +96,31 @@ def credit_wallet(self, transaction_ref, amount_naira,
                 f"Balance: ₦{wallet.balance:,.2f}. "
                 f"Ref: {transaction_ref[:12]}"
             )
-        except Exception as sms_err:
-            logger.error("SMS notification dispatch failed for refund ref=%s: %s", transaction_ref, str(sms_err))
+            if wallet.user.email:
+                from django.core.mail import send_mail
+                from django.conf import settings
+                subject = "Wallet Funding Successful 💰"
+                email_message = (
+                    f"Hello {wallet.user.full_name or 'SubHero User'},\n\n"
+                    f"Your SubHero wallet has been credited successfully.\n\n"
+                    f"Details:\n"
+                    f"- Amount Credited: ₦{net_amount:,.2f}\n"
+                    f"- Processing Fee: ₦{deposit_fee:,.2f}\n"
+                    f"- New Wallet Balance: ₦{wallet.balance:,.2f}\n"
+                    f"- Reference: {transaction_ref}\n\n"
+                    f"Thank you for using SubHero!\n\n"
+                    f"Best regards,\n"
+                    f"The SubHero Team"
+                )
+                send_mail(
+                    subject=subject,
+                    message=email_message,
+                    from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@subhero.ng"),
+                    recipient_list=[wallet.user.email],
+                    fail_silently=True
+                )
+        except Exception as notify_err:
+            logger.error("SMS/Email notification dispatch failed for credit ref=%s: %s", transaction_ref, str(notify_err))
 
     except Exception as exc:
         logger.error("Exception during atomic wallet credit for ref=%s: %s", transaction_ref, str(exc))

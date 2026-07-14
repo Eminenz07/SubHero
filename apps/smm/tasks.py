@@ -240,8 +240,32 @@ def poll_smm_orders():
                         description=f"Your SMM request for {order.service.name} has been successfully delivered.",
                         level="financial"
                     )
+                    if order.user.email:
+                        from django.core.mail import send_mail
+                        from django.conf import settings
+                        subject = "SMM Booster Order Completed 🎉"
+                        email_message = (
+                            f"Hello {order.user.full_name or 'SubHero User'},\n\n"
+                            f"Your SMM Social Booster order has been successfully completed and delivered!\n\n"
+                            f"Order Details:\n"
+                            f"- Service: {order.service.name}\n"
+                            f"- Quantity: {order.quantity:,}\n"
+                            f"- Cost: ₦{order.amount:,.2f}\n"
+                            f"- Target Link: {order.target_url}\n"
+                            f"- Reference: {order.reference}\n\n"
+                            f"Thank you for boosting with SubHero!\n\n"
+                            f"Best regards,\n"
+                            f"The SubHero Team"
+                        )
+                        send_mail(
+                            subject=subject,
+                            message=email_message,
+                            from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@subhero.ng"),
+                            recipient_list=[order.user.email],
+                            fail_silently=True
+                        )
                 except Exception as e:
-                    logger.error("Notification creation failed: %s", str(e))
+                    logger.error("Notification/Email creation failed: %s", str(e))
 
                 # Send SMS
                 send_transaction_sms.delay(
