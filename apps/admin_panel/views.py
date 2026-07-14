@@ -583,8 +583,7 @@ def smm_pricing_manager(request):
         
     services = list(services_qs.order_by("provider_rate"))
     for s in services:
-        cost_ngn = s.provider_rate * usd_rate
-        s.estimated_profit = s.subhero_price_per_1k - cost_ngn
+        s.estimated_profit = s.subhero_price_per_1k - s.provider_rate
         
     smm_profit_margin = SystemSetting.get("smm_profit_margin", "50.00")
         
@@ -595,7 +594,6 @@ def smm_pricing_manager(request):
         "selected_category": selected_category,
         "services": services,
         "q": q,
-        "usd_rate": usd_rate,
         "smm_profit_margin": smm_profit_margin,
     }
     return render(request, "admin_panel/smm_pricing.html", context)
@@ -614,11 +612,8 @@ def smm_pricing_save(request):
         except InvalidOperation:
             return HttpResponse("Invalid format", status=400)
             
-        alert_config = AlertConfig.objects.first()
-        usd_rate = alert_config.usd_ngn_rate if alert_config else Decimal("1600.00")
-        
         service = get_object_or_404(SMMService, id=service_id)
-        cost_ngn = service.provider_rate * usd_rate
+        cost_ngn = service.provider_rate
         
         # If markup_value is 0, revert to global profit margin
         if markup_value == 0:
@@ -657,23 +652,19 @@ def smm_pricing_bulk_update(request):
         except InvalidOperation:
             return HttpResponse("Invalid format", status=400)
             
-        alert_config = AlertConfig.objects.first()
-        usd_rate = alert_config.usd_ngn_rate if alert_config else Decimal("1600.00")
-        
         services = SMMService.objects.filter(category=category)
         
         if markup_type == "percent":
-            multiplier = usd_rate * (Decimal("1") + markup_value / Decimal("100"))
             updated = services.update(
                 markup_type=markup_type,
                 markup_value=markup_value,
-                subhero_price_per_1k=F('provider_rate') * multiplier
+                subhero_price_per_1k=F('provider_rate') * (Decimal("1") + markup_value / Decimal("100"))
             )
         else:
             updated = services.update(
                 markup_type=markup_type,
                 markup_value=markup_value,
-                subhero_price_per_1k=F('provider_rate') * usd_rate + markup_value
+                subhero_price_per_1k=F('provider_rate') + markup_value
             )
                 
         detail = f"Bulk SMM pricing update for category={category}: {updated} services updated to markup={markup_value} ({markup_type})"
