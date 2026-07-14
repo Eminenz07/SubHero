@@ -383,14 +383,20 @@ def sync_smm_catalogue():
                 platform = "tiktok"
             elif "youtube" in category_lower:
                 platform = "youtube"
-            elif "twitter" in category_lower or "x.com" in category_lower or "threads" in category_lower:
+            elif "twitter" in category_lower or "x.com" in category_lower or "threads" in category_lower or category_lower == "x" or category_lower.startswith("x ") or " x " in category_lower or "x -" in category_lower or category_lower.endswith(" x"):
                 platform = "twitter"
             elif "telegram" in category_lower:
                 platform = "telegram"
             elif "spotify" in category_lower:
                 platform = "spotify"
  
- 
+            # Rebrand OgaViral references to SubHero for frontend clients
+            clean_name = s["name"]
+            clean_subcategory = s.get("category", "").strip()
+            for old_branding in ["OgaViral", "Oga Viral", "Oga_Viral", "oga viral", "ogaviral", "oga_viral", "OGAVIRAL", "OGA VIRAL"]:
+                clean_name = clean_name.replace(old_branding, "SubHero")
+                clean_subcategory = clean_subcategory.replace(old_branding, "SubHero")
+
             rate_naira = Decimal(str(s["rate"]))
             if rate_naira > Decimal("50000.00"):
                 continue
@@ -407,9 +413,9 @@ def sync_smm_catalogue():
             SMMService.objects.update_or_create(
                 provider_service_id=str(s["service"]),
                 defaults={
-                    "name": s["name"],
+                    "name": clean_name,
                     "category": platform,
-                    "subcategory": s.get("category", "").strip(),
+                    "subcategory": clean_subcategory,
                     "provider_min": int(s["min"]),
                     "provider_max": int(s["max"]),
                     "provider_rate": rate_naira,
