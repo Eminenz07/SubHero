@@ -191,12 +191,12 @@ def dashboard(request):
             day_stats = AnalyticsQueries.get_dashboard_stats(days=1)
             return HttpResponse(f"₦{day_stats.total_revenue:,.2f}")
             
-    vtu_count = VTUOrder.objects.filter(reference__in=valid_refs).count()
-    smm_count = SMMOrder.objects.filter(reference__in=valid_refs).count()
-    airtime_count = AirtimeOrder.objects.filter(reference__in=valid_refs).count()
-    cable_count = CableOrder.objects.filter(reference__in=valid_refs).count()
-    electricity_count = ElectricityOrder.objects.filter(reference__in=valid_refs).count()
-    exampin_count = ExamPinOrder.objects.filter(reference__in=valid_refs).count()
+    vtu_count = VTUOrder.objects.filter(reference__in=valid_refs).exclude(status="FAILED").count()
+    smm_count = SMMOrder.objects.filter(reference__in=valid_refs).exclude(status="FAILED").count()
+    airtime_count = AirtimeOrder.objects.filter(reference__in=valid_refs).exclude(status="FAILED").count()
+    cable_count = CableOrder.objects.filter(reference__in=valid_refs).exclude(status="FAILED").count()
+    electricity_count = ElectricityOrder.objects.filter(reference__in=valid_refs).exclude(status="FAILED").count()
+    exampin_count = ExamPinOrder.objects.filter(reference__in=valid_refs).exclude(status="FAILED").count()
 
     context = {
         "active_nav": "dashboard",
