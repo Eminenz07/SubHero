@@ -6,30 +6,11 @@
 {% block header_title %}SMM Pricing Manager{% endblock %}
 
 {% block header_subtitle %}
-<span class="text-xs text-slate-400 font-mono ml-2">Convert JAP provider rates (USD) & apply Naira markups</span>
+<span class="text-xs text-slate-400 font-mono ml-2">Manage SMM provider rates & apply Naira markup configurations</span>
 {% endblock %}
 
 {% block admin_content %}
 <div class="flex flex-col gap-8">
-    
-    <!-- Exchange Rate and JAP Config Bar -->
-    <div class="admin-card p-6">
-        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">USD/NGN Cost Conversion Rate</h4>
-        <form action="{% url 'admin_panel:update_exchange_rate' %}" method="POST" class="flex items-end gap-6">
-            {% csrf_token %}
-            <div>
-                <label class="block text-[11px] font-semibold text-slate-400 uppercase mb-2">1 USD to NGN Rate</label>
-                <div class="relative">
-                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-mono text-xs font-semibold">₦</span>
-                    <input type="number" step="0.01" name="usd_ngn_rate" value="{{ usd_rate }}" required class="pl-7 pr-4 py-2 text-xs bg-slate-900 border border-white/[0.06] rounded-lg text-white font-semibold font-mono w-44">
-                </div>
-            </div>
-            <button type="submit" class="px-5 py-2 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors">
-                Update Rate & Recalculate Prices
-            </button>
-            <span class="text-[11px] text-slate-500 font-medium">All provider rates in USD are converted using this rate before markup calculations.</span>
-        </form>
-    </div>
     
     <!-- SMM Categories Accordion / Filter System -->
     <div class="space-y-6">
@@ -101,7 +82,7 @@
                         <tr class="border-b border-white/[0.05] bg-white/[0.005] text-slate-400 uppercase font-semibold">
                             <th class="py-3 px-6">ID</th>
                             <th class="py-3 px-6">Service Name</th>
-                            <th class="py-3 px-6">JAP Cost / 1k</th>
+                            <th class="py-3 px-6">Provider Cost / 1k</th>
                             <th class="py-3 px-6">Markup Config</th>
                             <th class="py-3 px-6">Client Price / 1k</th>
                             <th class="py-3 px-6">Estimated Profit</th>
@@ -124,18 +105,17 @@
                             </td>
                             
                             <td class="py-4 px-6 text-slate-400 font-mono">
-                                ${{ s.provider_rate|floatformat:4 }}
-                                <span class="text-[10px] block opacity-75">(₦{% widthratio s.provider_rate 1 usd_rate %})</span>
+                                ₦{{ s.provider_rate|floatformat:2 }}
                             </td>
 
                             <!-- Markup Config -->
                             <td class="py-2 px-6">
                                 <div class="flex items-center gap-1.5 min-w-[150px]">
-                                    <select name="markup_type" form="form-smm-{{ s.id }}" data-service-id="{{ s.id }}" data-provider-rate="{{ s.provider_rate }}" data-usd-rate="{{ usd_rate }}" onchange="handleSmmMarkupChange(this)" id="markup-type-{{ s.id }}" class="px-2 py-1 text-xs bg-slate-900 border border-white/[0.06] rounded text-slate-300">
+                                    <select name="markup_type" form="form-smm-{{ s.id }}" data-service-id="{{ s.id }}" data-provider-rate="{{ s.provider_rate }}" onchange="handleSmmMarkupChange(this)" id="markup-type-{{ s.id }}" class="px-2 py-1 text-xs bg-slate-900 border border-white/[0.06] rounded text-slate-300">
                                         <option value="fixed" {% if s.markup_value != 0 and s.markup_type == 'fixed' %}selected{% endif %}>Fixed (₦)</option>
                                         <option value="percent" {% if s.markup_value == 0 or s.markup_type == 'percent' %}selected{% endif %}>Percent (%)</option>
                                     </select>
-                                    <input type="number" step="0.01" name="markup_value" form="form-smm-{{ s.id }}" value="{% if s.markup_value == 0 %}{{ smm_profit_margin }}{% else %}{{ s.markup_value }}{% endif %}" data-service-id="{{ s.id }}" data-provider-rate="{{ s.provider_rate }}" data-usd-rate="{{ usd_rate }}" oninput="handleSmmMarkupChange(this)" id="markup-val-{{ s.id }}" class="w-16 px-2 py-1 text-xs bg-slate-900 border border-white/[0.06] rounded text-white font-mono">
+                                    <input type="number" step="0.01" name="markup_value" form="form-smm-{{ s.id }}" value="{% if s.markup_value == 0 %}{{ smm_profit_margin }}{% else %}{{ s.markup_value }}{% endif %}" data-service-id="{{ s.id }}" data-provider-rate="{{ s.provider_rate }}" oninput="handleSmmMarkupChange(this)" id="markup-val-{{ s.id }}" class="w-16 px-2 py-1 text-xs bg-slate-900 border border-white/[0.06] rounded text-white font-mono">
                                 </div>
                             </td>
 
@@ -183,14 +163,12 @@
     function handleSmmMarkupChange(element) {
         const serviceId = element.getAttribute('data-service-id');
         const providerRate = parseFloat(element.getAttribute('data-provider-rate') || 0);
-        const usdRate = parseFloat(element.getAttribute('data-usd-rate') || 0);
         const markupType = document.getElementById('markup-type-' + serviceId).value;
-        recalculateSmmPrice(serviceId, providerRate, usdRate, markupType);
+        recalculateSmmPrice(serviceId, providerRate, markupType);
     }
 
-    function recalculateSmmPrice(serviceId, providerRateUsd, usdRate, markupType) {
+    function recalculateSmmPrice(serviceId, costPriceNgn, markupType) {
         const markupVal = parseFloat(document.getElementById('markup-val-' + serviceId).value || 0);
-        const costPriceNgn = providerRateUsd * usdRate;
         let clientPrice = 0;
         let profit = 0;
 
