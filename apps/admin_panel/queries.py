@@ -467,7 +467,7 @@ def get_top_giveaway_hosts(start: date, end: date, limit: int = 5) -> List[Dict[
         ).annotate(
             total_given=Sum('giveaways__total_locked'),
             giveaway_count=Count('giveaways')
-        ).order_by('-total_given')[:limit].values('id', 'first_name', 'last_name', 'phone_number', 'total_given', 'giveaway_count')
+        ).order_by('-total_given')[:limit].values('id', 'full_name', 'phone_number', 'total_given', 'giveaway_count')
     )
 
 def get_transaction_stats(start: date, end: date) -> Dict[str, Any]:

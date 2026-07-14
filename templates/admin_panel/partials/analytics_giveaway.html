@@ -70,7 +70,7 @@
                     <tr class="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors">
                         <td class="py-3">
                             <a href="{% url 'admin_panel:user_detail' h.id %}" class="font-semibold text-emerald-400 hover:underline">
-                                {{ h.first_name }} {{ h.last_name }}
+                                {{ h.full_name }}
                             </a>
                             <div class="text-[10px] text-slate-500 font-mono">{{ h.phone_number }}</div>
                         </td>
