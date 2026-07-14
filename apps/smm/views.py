@@ -25,6 +25,9 @@ ALLOWED_SMM_DOMAINS = [
     "twitter.com",
     "x.com",
     "t.me",
+    "telegram.me",
+    "telegram.dog",
+    "telegram.org",
     "open.spotify.com",
     "facebook.com",
     "fb.me",
@@ -146,16 +149,21 @@ class SmmIndexView(LoginRequiredMixin, PinRequiredMixin, View):
 
         cache.delete(pin_attempts_key)
 
-        # 5. SSRF Link Validation (PRD Section 7.2)
-        valid_domain = False
-        for domain in ALLOWED_SMM_DOMAINS:
-            if domain in url.lower():
-                valid_domain = True
-                break
+        # 5. SSRF Link/Username Validation (PRD Section 7.2)
+        # If the input contains a protocol or domain structure, validate it against whitelisted social media domains.
+        # Otherwise, treat it as a safe username/handle.
+        is_url = "://" in url or url.lower().startswith("www.") or "." in url.split("/")[0]
         
-        if not valid_domain:
-            messages.error(request, "SSRF Threat Detected: Target URL is not within whitelisted social media domains.")
-            return render(request, self.template_name, context)
+        if is_url:
+            valid_domain = False
+            for domain in ALLOWED_SMM_DOMAINS:
+                if domain in url.lower():
+                    valid_domain = True
+                    break
+            
+            if not valid_domain:
+                messages.error(request, "SSRF Threat Detected: Target URL is not within whitelisted social media domains.")
+                return render(request, self.template_name, context)
 
         # 6. Fetch Service strictly from database
         try:
