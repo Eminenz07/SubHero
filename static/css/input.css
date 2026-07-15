@@ -235,6 +235,10 @@
     }
   }
 
+  .page-cta-wrapper > div {
+    padding-bottom: calc(12px + 64px + 16px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
   /* =============================================================
      Top Bar
      ============================================================= */
