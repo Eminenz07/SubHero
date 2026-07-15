@@ -230,6 +230,7 @@ def poll_smm_orders():
             if status == "Completed":
                 order.status = SMMOrder.Status.SUCCESS
                 order.save(update_fields=["status"])
+                WalletTransaction.objects.filter(reference=order.reference).update(status=WalletTransaction.Status.SUCCESS)
                 
                 # In-app Success Alert
                 try:
@@ -292,6 +293,7 @@ def poll_smm_orders():
 
                         order.status = SMMOrder.Status.PARTIAL
                         order.save(update_fields=["status"])
+                        WalletTransaction.objects.filter(reference=order.reference).update(status=WalletTransaction.Status.SUCCESS)
 
                         WalletTransaction.objects.create(
                             wallet=wallet,
