@@ -242,7 +242,6 @@ def poll_smm_orders():
                     )
                     if order.user.email:
                         from django.core.mail import send_mail
-                        from django.conf import settings
                         subject = "SMM Booster Order Completed 🎉"
                         email_message = (
                             f"Hello {order.user.full_name or 'SubHero User'},\n\n"
