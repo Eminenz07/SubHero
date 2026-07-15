@@ -6,25 +6,21 @@
 
 <nav class="bottom-nav">
     <a href="{{ dashboard_url }}" class="nav-item {% if request.path == dashboard_url %}active{% endif %}">
-        <span class="nav-dot"></span>
         <i data-feather="home" class="nav-icon"></i>
         <span>Home</span>
     </a>
     
     <a href="#" onclick="openVtuSheet(event)" class="nav-item {% if '/vtu/' in request.path %}active{% endif %}">
-        <span class="nav-dot"></span>
         <i data-feather="smartphone" class="nav-icon"></i>
         <span>VTU</span>
     </a>
     
     <a href="{{ smm_url }}" class="nav-item {% if request.path == smm_url %}active{% endif %}">
-        <span class="nav-dot"></span>
         <i data-feather="thumbs-up" class="nav-icon"></i>
         <span>SMM</span>
     </a>
     
     <a href="{{ profile_url }}" class="nav-item {% if request.path == profile_url %}active{% endif %}">
-        <span class="nav-dot"></span>
         <i data-feather="user" class="nav-icon"></i>
         <span>Profile</span>
     </a>
@@ -106,4 +102,34 @@
             document.body.style.overflow = '';
         }
     }
+
+    // Interactive glassmorphic ripple effect on touch/click
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('pointerdown', function(e) {
+                // Remove any existing ripples
+                const existingRipples = this.querySelectorAll('.nav-ripple');
+                existingRipples.forEach(r => r.remove());
+
+                const ripple = document.createElement('span');
+                ripple.classList.add('nav-ripple');
+                
+                const rect = this.getBoundingClientRect();
+                const size = Math.max(rect.width, rect.height);
+                ripple.style.width = ripple.style.height = `${size}px`;
+                
+                const x = e.clientX - rect.left - size / 2;
+                const y = e.clientY - rect.top - size / 2;
+                
+                ripple.style.left = `${x}px`;
+                ripple.style.top = `${y}px`;
+                
+                this.appendChild(ripple);
+                
+                setTimeout(() => {
+                    ripple.remove();
+                }, 500);
+            });
+        });
+    });
 </script>

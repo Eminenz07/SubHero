@@ -68,6 +68,7 @@
     -webkit-overflow-scrolling: touch;
     -ms-overflow-style: none;  /* IE and Edge */
     scrollbar-width: none;  /* Firefox */
+    padding-bottom: calc(var(--bottom-nav-h, 68px) + 24px + env(safe-area-inset-bottom, 0px));
   }
 
   .page-content::-webkit-scrollbar {
@@ -75,7 +76,7 @@
   }
 
   .page-content.no-bottom-nav {
-    @apply pb-0;
+    padding-bottom: 0px !important;
   }
 
   /* =============================================================
@@ -171,30 +172,67 @@
      Bottom Navigation
      ============================================================= */
   .bottom-nav {
-    @apply h-bottom-nav bg-surface-card border-t border-surface-border
-           flex items-center w-full z-[100] pb-safe-bottom shrink-0;
+    position: absolute;
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    left: 16px;
+    right: 16px;
+    width: auto;
+    height: 64px;
+    border-radius: 9999px;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0 8px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12), 0 1px 8px rgba(0, 0, 0, 0.04);
+    
+    /* Glassmorphism base */
+    background: rgba(255, 255, 255, 0.72) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(232, 236, 244, 0.5) !important;
   }
 
   .nav-item {
-    @apply flex-1 flex flex-col items-center gap-1 py-2 px-1
+    @apply flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 px-3
            cursor-pointer text-text-muted text-[11px] font-medium
-           transition-colors duration-150 relative;
+           transition-all duration-200 relative rounded-full mx-1 h-[48px] overflow-hidden;
+    -webkit-tap-highlight-color: transparent;
   }
 
   .nav-item.active {
     @apply text-brand-primary;
+    background: rgba(0, 107, 62, 0.08) !important;
+    border: 1.5px solid rgba(0, 107, 62, 0.15) !important;
   }
   
   .nav-dot {
-    @apply absolute top-1 w-1 h-1 rounded-full bg-brand-accent opacity-0;
+    display: none;
   }
   
   .nav-item.active .nav-dot {
-    @apply opacity-100;
+    display: none;
   }
 
   .nav-icon {
     @apply w-[22px] h-[22px];
+  }
+
+  /* Tactile Ripple effect inside nav-item */
+  .nav-ripple {
+    position: absolute;
+    border-radius: 50%;
+    transform: scale(0);
+    animation: ripple 0.5s ease-out;
+    background: rgba(0, 107, 62, 0.15);
+    pointer-events: none;
+  }
+
+  @keyframes ripple {
+    to {
+      transform: scale(4);
+      opacity: 0;
+    }
   }
 
   /* =============================================================
@@ -353,10 +391,16 @@ html.dark .card,
 html.dark .plan-card,
 html.dark .network-tab,
 html.dark .bottom-sheet,
-html.dark .bottom-nav,
 html.dark .top-bar {
   background-color: #111e36 !important;
   border-color: #1f2e4d !important;
+  color: #f1f5f9 !important;
+}
+
+html.dark .bottom-nav {
+  background: rgba(17, 30, 54, 0.75) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3), 0 1px 8px rgba(0, 0, 0, 0.1);
   color: #f1f5f9 !important;
 }
 
@@ -403,6 +447,12 @@ html.dark .bottom-nav a {
 
 html.dark .bottom-nav a.active {
   color: #00c46a !important;
+  background: rgba(0, 196, 106, 0.12) !important;
+  border: 1.5px solid rgba(0, 196, 106, 0.2) !important;
+}
+
+html.dark .nav-ripple {
+  background: rgba(255, 255, 255, 0.12);
 }
 
 /* ------- Typography ------- */
