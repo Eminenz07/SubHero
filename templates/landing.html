@@ -831,8 +831,8 @@
                 <span class="bento-card__label">SMM</span>
             </a>
 
-            <!-- Transfer -->
-            <a href="{% if request.user.is_authenticated %}{% url 'wallet:transfer' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="bento-card reveal">
+            <!-- Giveaways -->
+            <a href="{% if request.user.is_authenticated %}{% url 'giveaway:create' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="bento-card reveal">
                 <div class="bento-card__icon icon--accent">
                     <i data-feather="gift"></i>
                 </div>
