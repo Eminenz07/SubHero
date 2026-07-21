@@ -6,11 +6,13 @@ All views include security mitigations from PRD Section 7.
 """
 
 import logging
+import threading
 
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.core.cache import cache
+from django.core.mail import send_mail
 from django.shortcuts import redirect, render
 from django.views import View
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -21,6 +23,26 @@ from apps.core.utils import get_client_ip, normalize_phone, send_otp, verify_otp
 from .forms import LoginForm, OTPVerificationForm, RegistrationForm, TransactionPINForm
 
 logger = logging.getLogger(__name__)
+
+
+def _send_async_email(subject, message, from_email, recipient_list):
+    """
+    Spawns a background thread to send emails asynchronously so HTTP login/auth responses return instantly.
+    """
+    def _target():
+        try:
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=from_email,
+                recipient_list=recipient_list,
+                fail_silently=True,
+            )
+        except Exception as e:
+            logger.error("Async email dispatch error: %s", str(e))
+
+    thread = threading.Thread(target=_target, daemon=True)
+    thread.start()
 
 
 class RegisterView(View):
@@ -209,8 +231,6 @@ class LoginView(View):
                 level="info"
             )
             if user.email:
-                from django.core.mail import send_mail
-                from django.conf import settings
                 from django.utils import timezone
                 subject = "Security Alert: New Login Detected 🔐"
                 email_message = (
@@ -224,12 +244,11 @@ class LoginView(View):
                     f"Best regards,\n"
                     f"The SubHero Team"
                 )
-                send_mail(
+                _send_async_email(
                     subject=subject,
                     message=email_message,
                     from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@subhero.ng"),
                     recipient_list=[user.email],
-                    fail_silently=True
                 )
         except Exception as ex:
             logger.error("Login notification/email creation failed: %s", str(ex))
@@ -335,8 +354,6 @@ class VerifyOTPView(View):
                                 level="success"
                             )
                             if user.email:
-                                from django.core.mail import send_mail
-                                from django.conf import settings
                                 subject = "Welcome to SubHero! 🎉"
                                 email_message = (
                                     f"Hello {user.full_name or 'SubHero User'},\n\n"
@@ -346,12 +363,11 @@ class VerifyOTPView(View):
                                     f"Best regards,\n"
                                     f"The SubHero Team"
                                 )
-                                send_mail(
+                                _send_async_email(
                                     subject=subject,
                                     message=email_message,
                                     from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@subhero.ng"),
                                     recipient_list=[user.email],
-                                    fail_silently=True
                                 )
                         except Exception as ex:
                             logger.error("Welcome notification/email creation failed: %s", str(ex))
@@ -531,8 +547,6 @@ class ProfileView(LoginRequiredMixin, View):
                     level="security"
                 )
                 if request.user.email:
-                    from django.core.mail import send_mail
-                    from django.conf import settings
                     from django.utils import timezone
                     subject = "Security Alert: Password Changed 🔐"
                     email_message = (
@@ -544,12 +558,11 @@ class ProfileView(LoginRequiredMixin, View):
                         f"Best regards,\n"
                         f"The SubHero Team"
                     )
-                    send_mail(
+                    _send_async_email(
                         subject=subject,
                         message=email_message,
                         from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@subhero.ng"),
                         recipient_list=[request.user.email],
-                        fail_silently=True
                     )
             except Exception as ex:
                 logger.error("Password change notification/email creation failed: %s", str(ex))
