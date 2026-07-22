@@ -261,19 +261,7 @@
   }
 
   .page-cta-wrapper > div {
-    padding-bottom: calc(112px + env(safe-area-inset-bottom, 16px)) !important;
-  }
-
-  @media (max-width: 639px) {
-    .page-cta-wrapper > div {
-      padding-bottom: calc(118px + env(safe-area-inset-bottom, 16px)) !important;
-    }
-  }
-
-  @media all and (display-mode: standalone), all and (display-mode: minimal-ui) {
-    .page-cta-wrapper > div {
-      padding-bottom: calc(126px + env(safe-area-inset-bottom, 20px)) !important;
-    }
+    padding-bottom: calc(12px + 64px + 16px + env(safe-area-inset-bottom, 0px)) !important;
   }
 
   /* =============================================================
