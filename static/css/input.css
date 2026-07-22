@@ -173,7 +173,7 @@
      ============================================================= */
   .bottom-nav {
     position: absolute;
-    bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(18px + env(safe-area-inset-bottom, 0px));
     left: 16px;
     right: 16px;
     width: auto;
@@ -193,28 +193,13 @@
     border: 1px solid rgba(232, 236, 244, 0.5) !important;
   }
 
-  /* Mobile viewport & PWA Standalone Mode safe-area & gesture bar fixes */
-  @media (max-width: 639px) {
-    .bottom-nav {
-      position: fixed !important;
-      bottom: max(28px, calc(20px + env(safe-area-inset-bottom, 16px))) !important;
-      left: 16px !important;
-      right: 16px !important;
-    }
-    .page-content {
-      padding-bottom: calc(var(--bottom-nav-h, 68px) + 52px + env(safe-area-inset-bottom, 16px)) !important;
-    }
-  }
-
+  /* PWA Standalone Mode (Chrome Android / iOS PWA) safe-area & gesture bar fixes */
   @media all and (display-mode: standalone), all and (display-mode: minimal-ui) {
     .bottom-nav {
-      position: fixed !important;
-      bottom: max(32px, calc(24px + env(safe-area-inset-bottom, 20px))) !important;
-      left: 16px !important;
-      right: 16px !important;
+      bottom: max(24px, calc(20px + env(safe-area-inset-bottom, 14px))) !important;
     }
     .page-content {
-      padding-bottom: calc(var(--bottom-nav-h, 68px) + 56px + env(safe-area-inset-bottom, 20px)) !important;
+      padding-bottom: calc(var(--bottom-nav-h, 68px) + 42px + env(safe-area-inset-bottom, 14px)) !important;
     }
   }
 
