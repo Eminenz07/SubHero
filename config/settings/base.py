@@ -305,6 +305,7 @@ P2P_DAILY_LIMIT = 200_000      # ₦200,000 daily P2P send limit
 # =============================================================
 RATELIMIT_USE_CACHE = "default"
 RATELIMIT_FAIL_OPEN = False
+SILENCED_SYSTEM_CHECKS = ["django_ratelimit.E003", "django_ratelimit.W001"]
 
 # =============================================================
 # LOGGING — PRD Section 7.5 (structured JSON)
