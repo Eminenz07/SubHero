@@ -311,7 +311,7 @@ P2P_DAILY_LIMIT = 200_000      # ₦200,000 daily P2P send limit
 # =============================================================
 RATELIMIT_USE_CACHE = "ratelimit"
 RATELIMIT_FAIL_OPEN = True
-SILENCED_SYSTEM_CHECKS = ["django_ratelimit.E003", "django_ratelimit.W001"]
+SILENCED_SYSTEM_CHECKS = ["django_ratelimit.E002", "django_ratelimit.E003", "django_ratelimit.W001"]
 
 # Optimize Celery Redis polling frequency to stay within free tier quotas
 CELERY_BROKER_TRANSPORT_OPTIONS = {

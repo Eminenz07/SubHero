@@ -361,27 +361,26 @@ import os
 from django.conf import settings
 from PIL import Image, ImageDraw, ImageFont
 
+import qrcode
+
 @login_required
 def giveaway_receipt_card(request, slug):
     giveaway = get_object_or_404(Giveaway, slug=slug, host=request.user)
     
-    # Create image
-    img = Image.new("RGB", (1080, 1080))
+    width = 1080
+    height = 1440
+    img = Image.new("RGB", (width, height), (255, 255, 255))
     draw = ImageDraw.Draw(img)
-    
-    # Draw green gradient background
-    for y in range(1080):
-        r = 0
-        g = int(77 + (143 - 77) * y / 1080)
-        b = int(44 + (80 - 44) * y / 1080)
-        draw.line([(0, y), (1080, y)], fill=(r, g, b))
-        
-    # Draw clean white rounded card in the center
-    draw.rounded_rectangle([100, 100, 980, 980], radius=40, fill=(255, 255, 255))
-    
-    # Helper to get standard fonts on local and production
+
+    NAVY = (15, 23, 42)          # #0F172A
+    GREEN = (0, 107, 62)        # #006B3E
+    GRAY = (100, 116, 139)       # #64748B
+    LIGHT_GRAY = (203, 213, 225) # #CBD5E1
+
     def get_font(size):
         font_paths = [
+            os.path.join(settings.BASE_DIR, 'static', 'fonts', 'Inter.ttf'),
+            "C:\\Windows\\Fonts\\arialbd.ttf",
             "C:\\Windows\\Fonts\\arial.ttf",
             "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
             "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
@@ -393,46 +392,112 @@ def giveaway_receipt_card(request, slug):
                 except Exception:
                     pass
         return ImageFont.load_default()
-        
-    font_large = get_font(44)
-    font_medium = get_font(32)
-    font_small = get_font(22)
-    
-    # 1. Overlay Favicon
+
+    font_hero = get_font(68)
+    font_sub = get_font(34)
+    font_date = get_font(26)
+    font_label = get_font(30)
+    font_val = get_font(30)
+    font_footer = get_font(24)
+
+    # 1. Top Header Logo
+    logo_path = os.path.join(settings.BASE_DIR, 'static', 'img', 'sh-logo.png')
+    if not os.path.exists(logo_path):
+        logo_path = os.path.join(settings.BASE_DIR, 'static', 'favicon.png')
+
+    if os.path.exists(logo_path):
+        try:
+            logo = Image.open(logo_path).convert("RGBA")
+            w_percent = (320 / float(logo.width))
+            h_size = int((float(logo.height) * float(w_percent)))
+            logo = logo.resize((320, h_size), Image.LANCZOS)
+            img.paste(logo, (80, 75), mask=logo)
+        except Exception:
+            pass
+
+    # Right: Small QR Code linking to site URL
     try:
-        favicon_path = os.path.join(settings.BASE_DIR, 'static', 'favicon.png')
-        if os.path.exists(favicon_path):
-            logo = Image.open(favicon_path).convert("RGBA")
-            logo = logo.resize((120, 120), Image.LANCZOS)
-            img.paste(logo, (480, 160), mask=logo)
+        site_url = f"{request.scheme}://{request.get_host()}"
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_M,
+            box_size=4,
+            border=1
+        )
+        qr.add_data(site_url)
+        qr.make(fit=True)
+        qr_img = qr.make_image(fill_color="#0F172A", back_color="white").convert("RGB")
+        qr_img = qr_img.resize((130, 130), Image.LANCZOS)
+        img.paste(qr_img, (width - 210, 65))
     except Exception:
         pass
-        
-    # 2. Title
-    draw.text((540, 320), giveaway.title, fill=(15, 23, 42), font=font_large, anchor="mm")
-    
-    # 3. Divider
-    draw.line([(340, 380), (740, 380)], fill=(229, 231, 235), width=4)
-    
-    # 4. Slots Shared
-    type_label = "free Data plans" if giveaway.giveaway_type == 'DATA' else "free Airtime vouchers"
-    slots_text = f"{giveaway.claimed_slots} people received {type_label}"
-    draw.text((540, 450), slots_text, fill=(75, 85, 99), font=font_medium, anchor="mm")
-    
-    # 5. Total Shared amount
-    total_val = giveaway.claimed_slots * giveaway.amount_per_slot
-    amt_text = f"₦{int(total_val):,} total value shared"
-    draw.text((540, 520), amt_text, fill=(0, 107, 62), font=font_large, anchor="mm")
-    
-    # 6. Success badge
-    draw.rounded_rectangle([340, 630, 740, 710], radius=20, fill=(0, 107, 62))
-    draw.text((540, 670), "GIVEAWAY COMPLETED", fill=(255, 255, 255), font=font_medium, anchor="mm")
-    
-    # 7. Footer
-    draw.text((540, 800), "Host your own giveaway at", fill=(107, 114, 128), font=font_small, anchor="mm")
-    draw.text((540, 840), "subhero.ng", fill=(0, 107, 62), font=font_medium, anchor="mm")
-    
-    # Output to response
+
+    # 2. Hero Amount
+    total_val = giveaway.claimed_slots * giveaway.amount_per_slot if giveaway.claimed_slots > 0 else giveaway.total_locked
+    total_val_str = f"₦ {int(total_val):,}.00"
+    draw.text((width // 2, 270), total_val_str, fill=NAVY, font=font_hero, anchor="mm")
+
+    # 3. Status Text + Drawn Checkmark Icon
+    status_text = "Giveaway Successful"
+    bbox = draw.textbbox((0, 0), status_text, font=font_sub)
+    text_w = bbox[2] - bbox[0]
+
+    center_x = width // 2
+    status_y = 360
+
+    text_x = center_x - 24
+    draw.text((text_x, status_y), status_text, fill=NAVY, font=font_sub, anchor="mm")
+
+    icon_x = text_x + (text_w // 2) + 24
+    icon_y = status_y
+    r = 18
+    draw.ellipse([icon_x - r, icon_y - r, icon_x + r, icon_y + r], fill=GREEN)
+    draw.line([(icon_x - 8, icon_y), (icon_x - 2, icon_y + 6)], fill=(255, 255, 255), width=4)
+    draw.line([(icon_x - 2, icon_y + 6), (icon_x + 8, icon_y - 6)], fill=(255, 255, 255), width=4)
+
+    # 4. Date
+    date_str = giveaway.created_at.strftime("%B %d, %Y %I:%M:%S %p")
+    draw.text((width // 2, 420), date_str, fill=GREEN, font=font_date, anchor="mm")
+
+    # 5. Top Dashed Line
+    def draw_dashed_line(y):
+        dash_len = 16
+        gap_len = 10
+        x = 80
+        while x < width - 80:
+            draw.line([(x, y), (min(x + dash_len, width - 80), y)], fill=LIGHT_GRAY, width=3)
+            x += dash_len + gap_len
+
+    draw_dashed_line(490)
+
+    # 6. Key-Value Rows
+    type_label = "Data Top up" if giveaway.giveaway_type == 'DATA' else "Airtime Top up"
+    host_name = giveaway.host.get_full_name() or giveaway.host.username
+
+    rows = [
+        ("Giveaway Type:", type_label),
+        ("Network Provider:", giveaway.get_network_display()),
+        ("Amount Per Slot:", f"₦{int(giveaway.amount_per_slot):,}"),
+        ("Slots Claimed:", f"{giveaway.claimed_slots} / {giveaway.total_slots}"),
+        ("Giveaway ID:", giveaway.slug),
+        ("Host Name:", host_name),
+    ]
+
+    start_y = 560
+    row_height = 95
+
+    for i, (label, val) in enumerate(rows):
+        y = start_y + (i * row_height)
+        draw.text((80, y), label, fill=GREEN, font=font_label, anchor="lm")
+        draw.text((width - 80, y), val, fill=NAVY, font=font_val, anchor="rm")
+
+    # 7. Bottom Dashed Line
+    draw_dashed_line(start_y + (len(rows) * row_height) + 20)
+
+    # 8. Footer
+    footer_text = "Enjoy cheap subscriptions to all networks endlessly"
+    draw.text((width // 2, 1340), footer_text, fill=GRAY, font=font_footer, anchor="mm")
+
     response = HttpResponse(content_type="image/png")
     response['Content-Disposition'] = f'attachment; filename="giveaway_receipt_{giveaway.slug}.png"'
     img.save(response, "PNG")
