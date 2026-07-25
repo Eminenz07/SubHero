@@ -61,6 +61,10 @@ if REDIS_URL:
                 "IGNORE_EXCEPTIONS": True,
             },
         },
+        "ratelimit": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "unique-ratelimit-cache",
+        },
     }
 else:
     # Safe fallback if Redis is not provisioned or attached yet
@@ -72,6 +76,10 @@ else:
         "sessions": {
             "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
             "LOCATION": "unique-snowflake-sessions",
+        },
+        "ratelimit": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "unique-ratelimit-cache",
         },
     }
     # Fall back to database for persistent sessions, so user logins are saved safely

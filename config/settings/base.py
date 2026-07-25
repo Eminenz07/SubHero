@@ -166,6 +166,7 @@ CACHES = {
         "LOCATION": REDIS_URL,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "IGNORE_EXCEPTIONS": True,
         },
     },
     "sessions": {
@@ -173,7 +174,12 @@ CACHES = {
         "LOCATION": config("REDIS_SESSION_URL", default=REDIS_URL),
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "IGNORE_EXCEPTIONS": True,
         },
+    },
+    "ratelimit": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "unique-ratelimit-cache",
     },
 }
 
@@ -303,7 +309,7 @@ P2P_DAILY_LIMIT = 200_000      # ₦200,000 daily P2P send limit
 # =============================================================
 # RATE LIMITING — PRD Section 7.3
 # =============================================================
-RATELIMIT_USE_CACHE = "default"
+RATELIMIT_USE_CACHE = "ratelimit"
 RATELIMIT_FAIL_OPEN = True
 SILENCED_SYSTEM_CHECKS = ["django_ratelimit.E003", "django_ratelimit.W001"]
 
