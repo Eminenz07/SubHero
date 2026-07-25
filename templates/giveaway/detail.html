@@ -56,11 +56,17 @@
             </div>
             <div id="copy_msg" class="text-xs text-green-600 font-semibold mt-1 hidden">Copied to clipboard!</div>
             
-            <div class="flex gap-2 pt-1">
-                <a href="https://api.whatsapp.com/send?text=Claim%20free%20{% if giveaway.giveaway_type == 'DATA' %}data{% else %}airtime{% endif %}%20on%20SubHero!%20{{ request.scheme }}://{{ request.get_host }}/g/{{ giveaway.slug }}" target="_blank" class="flex-1 btn px-3 py-2 rounded-xl flex items-center justify-center gap-1.5 text-xs font-bold no-underline" style="background-color:#25D366; border-color:#25D366; color:white;">
+            <div class="grid grid-cols-2 gap-2 pt-1">
+                <a href="https://api.whatsapp.com/send?text=Claim%20free%20{% if giveaway.giveaway_type == 'DATA' %}data{% else %}airtime{% endif %}%20on%20SubHero!%20{{ request.scheme }}://{{ request.get_host }}/g/{{ giveaway.slug }}" target="_blank" class="btn px-3 py-2.5 rounded-xl flex items-center justify-center gap-1.5 text-xs font-bold no-underline text-white shadow-sm" style="background-color:#25D366; border-color:#25D366;">
                     <i data-feather="message-circle" class="w-4 h-4"></i> WhatsApp
                 </a>
-                <a href="{{ giveaway.qr_code_base64 }}" download="giveaway_qr_{{ giveaway.slug }}.png" class="flex-1 btn bg-slate-100 hover:bg-slate-200 text-text-primary px-3 py-2 rounded-xl flex items-center justify-center gap-1.5 text-xs font-bold no-underline border border-surface-border">
+                <a href="https://twitter.com/intent/tweet?text=Claim%20free%20{% if giveaway.giveaway_type == 'DATA' %}data{% else %}airtime{% endif %}%20on%20SubHero!&url={{ request.scheme }}://{{ request.get_host }}/g/{{ giveaway.slug }}" target="_blank" class="btn px-3 py-2.5 rounded-xl flex items-center justify-center gap-1.5 text-xs font-bold no-underline text-white shadow-sm bg-slate-900 hover:bg-black border-slate-900">
+                    <i data-feather="twitter" class="w-4 h-4"></i> X (Twitter)
+                </a>
+                <button onclick="shareInstagram()" class="btn px-3 py-2.5 rounded-xl flex items-center justify-center gap-1.5 text-xs font-bold no-underline text-white shadow-sm" style="background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%); border: none;">
+                    <i data-feather="instagram" class="w-4 h-4"></i> Instagram
+                </button>
+                <a href="{{ giveaway.qr_code_base64 }}" download="giveaway_qr_{{ giveaway.slug }}.png" class="btn bg-surface-page hover:bg-surface-border text-text-primary px-3 py-2.5 rounded-xl flex items-center justify-center gap-1.5 text-xs font-bold no-underline border border-surface-border shadow-sm">
                     <i data-feather="download" class="w-4 h-4"></i> Download QR
                 </a>
             </div>
@@ -107,6 +113,18 @@
             msg.classList.remove("hidden");
             setTimeout(() => msg.classList.add("hidden"), 2000);
         });
+    }
+
+    function shareInstagram() {
+        copyLink();
+        const msg = document.getElementById("copy_msg");
+        msg.textContent = "Link copied! Paste it in your Instagram story or bio.";
+        msg.classList.remove("hidden");
+        setTimeout(() => {
+            msg.classList.add("hidden");
+            msg.textContent = "Copied to clipboard!";
+        }, 3000);
+        window.open("https://instagram.com", "_blank");
     }
 </script>
 {% endblock %}
