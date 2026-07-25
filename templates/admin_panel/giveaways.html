@@ -31,8 +31,18 @@
             <div class="text-2xl font-bold text-blue-400 font-mono">₦{{ metrics.total_spent|default:0|floatformat:2 }}</div>
         </div>
 
-        <!-- Filters Box -->
-        <div class="admin-card p-4 flex flex-wrap items-center justify-between gap-4">
+        <!-- Giveaway Users Card -->
+        <div class="admin-card p-5 flex flex-col justify-center">
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Registered via Giveaway</span>
+            <div class="text-2xl font-bold text-purple-400 font-mono flex items-baseline justify-between">
+                <span>{{ metrics.giveaway_users_count|default:0 }}</span>
+                <span class="text-xs font-normal text-slate-400 font-sans">({{ metrics.conversion_rate|default:0 }}% conversion)</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters Box -->
+    <div class="admin-card p-4 flex flex-wrap items-center justify-between gap-4">
             <form method="GET" class="flex flex-wrap items-center gap-4 flex-1 w-full">
                 <!-- Search -->
                 <div class="relative flex-1 min-w-[150px]">

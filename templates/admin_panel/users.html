@@ -24,10 +24,11 @@
             </div>
 
             <!-- Status filter dropdown -->
-            <div class="min-w-[160px]">
+            <div class="min-w-[180px]">
                 <select name="status" class="w-full px-3 py-2 text-sm bg-slate-900 border border-white/[0.06] rounded-lg text-slate-300 focus:outline-none focus:border-emerald-500/50 transition-all font-semibold cursor-pointer">
                     <option value="">All Statuses</option>
                     <option value="active" {% if status == 'active' %}selected{% endif %}>Active Users</option>
+                    <option value="giveaway" {% if status == 'giveaway' %}selected{% endif %}>🎁 Giveaway Users</option>
                     <option value="suspended" {% if status == 'suspended' %}selected{% endif %}>Suspended Users</option>
                     <option value="frozen" {% if status == 'frozen' %}selected{% endif %}>Frozen Wallets</option>
                 </select>
@@ -98,7 +99,12 @@
                 <tbody class="divide-y divide-white/[0.04] text-sm font-medium">
                     {% for user in page_obj %}
                     <tr class="hover:bg-white/[0.02] transition-colors">
-                        <td class="py-4 px-6 text-white font-bold">{{ user.full_name }}</td>
+                        <td class="py-4 px-6 text-white font-bold">
+                            {{ user.full_name }}
+                            {% if user.phone_number in giveaway_claim_phones %}
+                                <span class="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-950 text-purple-300 border border-purple-800/40">🎁 Giveaway</span>
+                            {% endif %}
+                        </td>
                         <td class="py-4 px-6 text-slate-300 font-mono text-xs">{{ user.email }}</td>
                         <td class="py-4 px-6 text-slate-300 font-mono text-xs">{{ user.phone_number }}</td>
                         <td class="py-4 px-6 text-white font-mono font-bold">₦{{ user.wallet.balance|floatformat:2 }}</td>

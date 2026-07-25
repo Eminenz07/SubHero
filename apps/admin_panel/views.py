@@ -255,13 +255,16 @@ def revenue_chart_api(request):
 @admin_required
 def users_list(request):
     User = get_user_model()
+    from apps.giveaway.models import GiveawayClaim
+
     q = request.GET.get("q", "").strip()
     status_filter = request.GET.get("status", "").strip()
     sort_by = request.GET.get("sort", "date_joined").strip()
     direction = request.GET.get("dir", "desc").strip()
     
     users = User.objects.all().select_related("wallet")
-    
+    giveaway_claim_phones = set(GiveawayClaim.objects.values_list('phone_number', flat=True))
+
     if q:
         users = users.filter(
             Q(full_name__icontains=q) |
@@ -275,6 +278,8 @@ def users_list(request):
         users = users.filter(is_active=False)
     elif status_filter == "frozen":
         users = users.filter(wallet__is_frozen=True)
+    elif status_filter == "giveaway":
+        users = users.filter(phone_number__in=giveaway_claim_phones)
         
     # Sort mapping
     sort_fields = {
@@ -310,6 +315,7 @@ def users_list(request):
         "status": status_filter,
         "sort": sort_by,
         "dir": direction,
+        "giveaway_claim_phones": giveaway_claim_phones,
     }
     return render(request, "admin_panel/users.html", context)
 
@@ -317,9 +323,12 @@ def users_list(request):
 @admin_required
 def export_users_csv(request):
     User = get_user_model()
+    from apps.giveaway.models import GiveawayClaim
+
     q = request.GET.get("q", "").strip()
     status_filter = request.GET.get("status", "").strip()
-    
+    giveaway_claim_phones = set(GiveawayClaim.objects.values_list('phone_number', flat=True))
+
     users = User.objects.all().select_related("wallet").order_by("-date_joined")
     
     if q:
@@ -335,6 +344,8 @@ def export_users_csv(request):
         users = users.filter(is_active=False)
     elif status_filter == "frozen":
         users = users.filter(wallet__is_frozen=True)
+    elif status_filter == "giveaway":
+        users = users.filter(phone_number__in=giveaway_claim_phones)
         
     class Echo:
         def write(self, value):
@@ -344,16 +355,17 @@ def export_users_csv(request):
         pseudo_buffer = Echo()
         writer = csv.writer(pseudo_buffer)
         
-        yield pseudo_buffer.write(["User ID", "Full Name", "Email", "Phone", "Wallet Balance (₦)", "Account Status", "Wallet Status", "Date Joined"])
+        yield pseudo_buffer.write(["User ID", "Full Name", "Email", "Phone", "Wallet Balance (₦)", "Account Status", "Wallet Status", "Created via Giveaway", "Date Joined"])
         
         for u in users.iterator():
             balance = u.wallet.balance if hasattr(u, "wallet") and u.wallet else Decimal("0.00")
             acct_status = "Active" if u.is_active else "Suspended"
             wallet_status = "Frozen" if (hasattr(u, "wallet") and u.wallet and u.wallet.is_frozen) else "Active"
+            from_giveaway = "Yes" if u.phone_number in giveaway_claim_phones else "No"
             joined = u.date_joined.strftime("%Y-%m-%d %H:%M:%S")
             yield pseudo_buffer.write([
                 str(u.id), u.full_name, u.email, u.phone_number,
-                f"{balance:.2f}", acct_status, wallet_status, joined
+                f"{balance:.2f}", acct_status, wallet_status, from_giveaway, joined
             ])
             
     response = StreamingHttpResponse(row_generator(), content_type="text/csv")
@@ -1331,10 +1343,19 @@ def giveaways_list(request):
         locked=Sum(F('total_locked') - F('total_spent'))
     )['locked'] or Decimal('0.00')
     
+    from apps.giveaway.models import GiveawayClaim
+    giveaway_claimants_phones = set(GiveawayClaim.objects.values_list('phone_number', flat=True))
+    giveaway_users_count = User.objects.filter(phone_number__in=giveaway_claimants_phones).count()
+    total_claimants = len(giveaway_claimants_phones)
+    conversion_rate = round((giveaway_users_count / total_claimants * 100), 1) if total_claimants > 0 else 0.0
+
     metrics = {
         'total_count': total_count,
         'total_locked': total_locked,
-        'total_spent': total_spent
+        'total_spent': total_spent,
+        'giveaway_users_count': giveaway_users_count,
+        'total_claimants': total_claimants,
+        'conversion_rate': conversion_rate,
     }
 
     paginator = Paginator(giveaways, 30)
