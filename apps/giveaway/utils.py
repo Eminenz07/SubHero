@@ -6,7 +6,7 @@ from io import BytesIO
 
 import os
 from django.conf import settings
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 
 def generate_giveaway_slug():
     """Generates a random 8-character uppercase alphanumeric slug."""

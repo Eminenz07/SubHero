@@ -157,8 +157,14 @@ CONN_MAX_AGE = 60
 
 # =============================================================
 # CACHE — Redis (PRD Section 3.1)
-# =============================================================
-REDIS_URL = config("REDIS_URL", default="redis://localhost:6379/0")
+import ssl
+
+RAW_REDIS_URL = config("REDIS_URL", default="redis://localhost:6379/0")
+if RAW_REDIS_URL.startswith("rediss://") and "ssl_cert_reqs" not in RAW_REDIS_URL:
+    sep = "&" if "?" in RAW_REDIS_URL else "?"
+    REDIS_URL = f"{RAW_REDIS_URL}{sep}ssl_cert_reqs=none"
+else:
+    REDIS_URL = RAW_REDIS_URL
 
 CACHES = {
     "default": {
@@ -250,6 +256,14 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = "Africa/Lagos"
 CELERY_TASK_ALWAYS_EAGER = False
+
+if REDIS_URL.startswith("rediss://"):
+    CELERY_BROKER_USE_SSL = {
+        'ssl_cert_reqs': ssl.CERT_NONE,
+    }
+    CELERY_REDIS_BACKEND_USE_SSL = {
+        'ssl_cert_reqs': ssl.CERT_NONE,
+    }
 
 # =============================================================
 # TERMII — SMS / OTP (PRD Section 10)
