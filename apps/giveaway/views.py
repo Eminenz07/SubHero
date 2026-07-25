@@ -1,4 +1,10 @@
+import base64
+import os
+import logging
+from io import BytesIO
 from decimal import Decimal
+from PIL import Image, ImageDraw, ImageFont
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -7,12 +13,15 @@ from django.db import transaction
 from django.urls import reverse
 from django.core.cache import cache
 from django.utils.timezone import now
+from django.conf import settings
 
 from apps.giveaway.models import Giveaway, GiveawayEscrow, GiveawayClaim
 from apps.giveaway.utils import generate_giveaway_slug, generate_qr_code_base64
 from apps.wallet.models import Wallet, WalletTransaction
 from apps.vtu.models import VTUPlan
 from apps.giveaway.tasks import process_giveaway_claim
+
+logger = logging.getLogger(__name__)
 
 @login_required
 def create_giveaway(request):
@@ -430,7 +439,7 @@ def giveaway_receipt_card(request, slug):
     # 2. Top Right Branded QRCode Monkey QR (leading to homepage)
     try:
         site_url = f"{request.scheme}://{request.get_host()}"
-        qr_b64 = generate_qr_code_base64(site_url)
+        qr_b64 = generate_qr_code_base64(site_url) or giveaway.qr_code_base64
         if qr_b64 and "," in qr_b64:
             b64_data = qr_b64.split(",")[1]
             qr_bytes = base64.b64decode(b64_data)
@@ -438,8 +447,8 @@ def giveaway_receipt_card(request, slug):
             qr_size = 145
             qr_img = qr_img.resize((qr_size, qr_size), Image.LANCZOS)
             img.paste(qr_img, (width - 80 - qr_size, 75), mask=qr_img)
-    except Exception:
-        pass
+    except Exception as err:
+        logger.error(f"Failed to generate receipt QR code: {err}")
 
     # 3. Hero Amount
     total_val = giveaway.claimed_slots * giveaway.amount_per_slot if giveaway.claimed_slots > 0 else giveaway.total_locked
