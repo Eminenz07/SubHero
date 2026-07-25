@@ -1314,9 +1314,10 @@ def export_transactions_csv(request):
 
 @admin_required
 def giveaways_list(request):
-    from apps.giveaway.models import Giveaway
+    User = get_user_model()
+    from apps.giveaway.models import Giveaway, GiveawayClaim
     from django.core.paginator import Paginator
-    from django.db.models import Sum, Count
+    from django.db.models import Sum, Count, F
 
     status_filter = request.GET.get("status", "").strip()
     type_filter = request.GET.get("type", "").strip()
@@ -1343,7 +1344,6 @@ def giveaways_list(request):
         locked=Sum(F('total_locked') - F('total_spent'))
     )['locked'] or Decimal('0.00')
     
-    from apps.giveaway.models import GiveawayClaim
     giveaway_claimants_phones = set(GiveawayClaim.objects.values_list('phone_number', flat=True))
     giveaway_users_count = User.objects.filter(phone_number__in=giveaway_claimants_phones).count()
     total_claimants = len(giveaway_claimants_phones)
