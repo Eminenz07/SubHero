@@ -87,7 +87,11 @@ class InitiateCardPaymentView(View):
 def payment_callback(request):
     """
     Redirect endpoint from Squad after a card checkout attempt.
+    Credits the wallet immediately and redirects the user to their Dashboard.
     """
+    from django.contrib import messages
+    from django.shortcuts import redirect
+
     reference = request.GET.get("transaction_ref", request.GET.get("reference", ""))
     
     # Attempt fallback verification directly from Squad API to credit user immediately
@@ -123,17 +127,15 @@ def payment_callback(request):
                         user_id=user_id,
                         raw_payload=res
                     )
+                    messages.success(request, f"Wallet successfully funded with ₦{amount_naira:,.2f}! ⚡")
+                    return redirect("dashboard")
         except Exception as e:
             logger.error("Direct payment verification failed on callback for ref=%s: %s", reference, str(e))
 
-    is_authenticated = request.user.is_authenticated
-    context = {
-        "reference": reference,
-        "is_authenticated": is_authenticated,
-        "back_url": "/dashboard/" if is_authenticated else "/auth/login/",
-        "redirect_url": "/wallet/" if is_authenticated else "/auth/login/"
-    }
-    return render(request, "wallet/payment_processing.html", context)
+    if request.user.is_authenticated:
+        messages.info(request, "Payment completed! Your wallet balance has been updated.")
+        return redirect("dashboard")
+    return redirect("accounts:login")
 
 
 @method_decorator(csrf_exempt, name="dispatch")

@@ -33,9 +33,9 @@
 </div>
 
 <script>
-    // Automatically redirect after 6 seconds
+    // Replace history entry and redirect to dashboard immediately
     setTimeout(function() {
-        window.location.href = "{{ redirect_url }}";
-    }, 6000);
+        window.location.replace("{% url 'dashboard' %}");
+    }, 1000);
 </script>
 {% endblock %}
