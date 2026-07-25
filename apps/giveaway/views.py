@@ -472,7 +472,7 @@ def giveaway_receipt_card(request, slug):
 
     # 6. Key-Value Rows
     type_label = "Data Top up" if giveaway.giveaway_type == 'DATA' else "Airtime Top up"
-    host_name = giveaway.host.get_full_name() or giveaway.host.username
+    host_name = giveaway.host.full_name or giveaway.host.phone_number or "SubHero Host"
 
     rows = [
         ("Giveaway Type:", type_label),

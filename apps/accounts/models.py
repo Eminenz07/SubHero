@@ -130,3 +130,14 @@ class User(AbstractBaseUser, PermissionsMixin):
     def has_pin(self):
         """Check if user has set their transaction PIN."""
         return bool(self.pin_hash)
+
+    @property
+    def first_name(self):
+        """Extract first name from full_name."""
+        if self.full_name:
+            return self.full_name.strip().split()[0]
+        return ""
+
+    def get_full_name(self):
+        """Return full name or fallback identifier."""
+        return self.full_name or self.phone_number or self.email
