@@ -18,19 +18,19 @@ import requests
 def generate_qr_code_base64(url: str) -> str:
     """
     Generates a branded QRCode Monkey QR code for the given URL
-    with mosaic body, frame13/ball13 eyes, green-to-navy gradient,
+    with circle body, frame5/ball5 eyes, green-to-navy gradient,
     and SH SubHero logo overlay, returning a base64 encoded PNG string.
     """
     img = None
 
-    # 1. Primary: Use QRCode Monkey API for exact mosaic/frame13 design
+    # 1. Primary: Use QRCode Monkey API for exact circle/frame5 design
     qrmonkey_api = "https://api.qrcode-monkey.com/qr/custom"
     payload = {
         "data": url,
         "config": {
-            "body": "mosaic",
-            "eye": "frame13",
-            "eyeBall": "ball13",
+            "body": "circle",
+            "eye": "frame5",
+            "eyeBall": "ball5",
             "bodyColor": "#00B058",
             "bgColor": "#FFFFFF",
             "gradientColor1": "#00B058",
