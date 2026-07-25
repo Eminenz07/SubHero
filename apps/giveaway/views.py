@@ -373,18 +373,29 @@ def giveaway_receipt_card(request, slug):
     draw = ImageDraw.Draw(img)
 
     NAVY = (15, 23, 42)          # #0F172A
-    GREEN = (0, 107, 62)        # #006B3E
+    GREEN = (0, 176, 88)         # #00B058 brand green
+    LABEL_GREEN = (5, 150, 105)   # #059669
     GRAY = (100, 116, 139)       # #64748B
-    LIGHT_GRAY = (203, 213, 225) # #CBD5E1
+    LIGHT_GRAY = (226, 232, 240) # #E2E8F0
 
-    def get_font(size):
-        font_paths = [
-            os.path.join(settings.BASE_DIR, 'static', 'fonts', 'Inter.ttf'),
-            "C:\\Windows\\Fonts\\arialbd.ttf",
-            "C:\\Windows\\Fonts\\arial.ttf",
-            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-            "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
-        ]
+    def get_font(size, bold=False):
+        if bold:
+            font_paths = [
+                "C:\\Windows\\Fonts\\segoeuib.ttf",
+                "C:\\Windows\\Fonts\\arialbd.ttf",
+                os.path.join(settings.BASE_DIR, 'static', 'fonts', 'Inter.ttf'),
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+                "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+            ]
+        else:
+            font_paths = [
+                "C:\\Windows\\Fonts\\segoeui.ttf",
+                "C:\\Windows\\Fonts\\arial.ttf",
+                "C:\\Windows\\Fonts\\calibri.ttf",
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+                "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+                os.path.join(settings.BASE_DIR, 'static', 'fonts', 'Inter.ttf'),
+            ]
         for path in font_paths:
             if os.path.exists(path):
                 try:
@@ -393,14 +404,14 @@ def giveaway_receipt_card(request, slug):
                     pass
         return ImageFont.load_default()
 
-    font_hero = get_font(68)
-    font_sub = get_font(34)
-    font_date = get_font(26)
-    font_label = get_font(30)
-    font_val = get_font(30)
-    font_footer = get_font(24)
+    font_hero = get_font(64, bold=True)
+    font_sub = get_font(32, bold=False)
+    font_date = get_font(24, bold=False)
+    font_label = get_font(28, bold=False)
+    font_val = get_font(28, bold=False)
+    font_footer = get_font(22, bold=False)
 
-    # 1. Top Header Logo
+    # 1. Top Left Branded Logo (far left)
     logo_path = os.path.join(settings.BASE_DIR, 'static', 'img', 'sh-logo.png')
     if not os.path.exists(logo_path):
         logo_path = os.path.join(settings.BASE_DIR, 'static', 'favicon.png')
@@ -408,69 +419,67 @@ def giveaway_receipt_card(request, slug):
     if os.path.exists(logo_path):
         try:
             logo = Image.open(logo_path).convert("RGBA")
-            w_percent = (320 / float(logo.width))
+            target_w = 210
+            w_percent = (target_w / float(logo.width))
             h_size = int((float(logo.height) * float(w_percent)))
-            logo = logo.resize((320, h_size), Image.LANCZOS)
-            img.paste(logo, (80, 75), mask=logo)
+            logo = logo.resize((target_w, h_size), Image.LANCZOS)
+            img.paste(logo, (80, 110), mask=logo)
         except Exception:
             pass
 
-    # Right: Small QR Code linking to site URL
+    # 2. Top Right Branded QRCode Monkey QR (leading to homepage)
     try:
         site_url = f"{request.scheme}://{request.get_host()}"
-        qr = qrcode.QRCode(
-            version=1,
-            error_correction=qrcode.constants.ERROR_CORRECT_M,
-            box_size=4,
-            border=1
-        )
-        qr.add_data(site_url)
-        qr.make(fit=True)
-        qr_img = qr.make_image(fill_color="#0F172A", back_color="white").convert("RGB")
-        qr_img = qr_img.resize((130, 130), Image.LANCZOS)
-        img.paste(qr_img, (width - 210, 65))
+        qr_b64 = generate_qr_code_base64(site_url)
+        if qr_b64 and "," in qr_b64:
+            b64_data = qr_b64.split(",")[1]
+            qr_bytes = base64.b64decode(b64_data)
+            qr_img = Image.open(BytesIO(qr_bytes)).convert("RGBA")
+            qr_size = 145
+            qr_img = qr_img.resize((qr_size, qr_size), Image.LANCZOS)
+            img.paste(qr_img, (width - 80 - qr_size, 75), mask=qr_img)
     except Exception:
         pass
 
-    # 2. Hero Amount
+    # 3. Hero Amount
     total_val = giveaway.claimed_slots * giveaway.amount_per_slot if giveaway.claimed_slots > 0 else giveaway.total_locked
     total_val_str = f"₦ {int(total_val):,}.00"
-    draw.text((width // 2, 270), total_val_str, fill=NAVY, font=font_hero, anchor="mm")
+    draw.text((width // 2, 230), total_val_str, fill=NAVY, font=font_hero, anchor="mm")
 
-    # 3. Status Text + Drawn Checkmark Icon
+    # 4. Status Text + Drawn Checkmark Icon
     status_text = "Giveaway Successful"
     bbox = draw.textbbox((0, 0), status_text, font=font_sub)
     text_w = bbox[2] - bbox[0]
 
     center_x = width // 2
-    status_y = 360
+    status_y = 315
 
-    text_x = center_x - 24
+    text_x = center_x - 18
     draw.text((text_x, status_y), status_text, fill=NAVY, font=font_sub, anchor="mm")
 
-    icon_x = text_x + (text_w // 2) + 24
+    icon_x = text_x + (text_w // 2) + 20
     icon_y = status_y
-    r = 18
+    r = 16
     draw.ellipse([icon_x - r, icon_y - r, icon_x + r, icon_y + r], fill=GREEN)
-    draw.line([(icon_x - 8, icon_y), (icon_x - 2, icon_y + 6)], fill=(255, 255, 255), width=4)
-    draw.line([(icon_x - 2, icon_y + 6), (icon_x + 8, icon_y - 6)], fill=(255, 255, 255), width=4)
+    draw.line([(icon_x - 7, icon_y), (icon_x - 2, icon_y + 5)], fill=(255, 255, 255), width=3)
+    draw.line([(icon_x - 2, icon_y + 5), (icon_x + 7, icon_y - 5)], fill=(255, 255, 255), width=3)
 
-    # 4. Date
+    # 5. Date
     date_str = giveaway.created_at.strftime("%B %d, %Y %I:%M:%S %p")
-    draw.text((width // 2, 420), date_str, fill=GREEN, font=font_date, anchor="mm")
+    draw.text((width // 2, 375), date_str, fill=LABEL_GREEN, font=font_date, anchor="mm")
 
-    # 5. Top Dashed Line
+    # 6. Top Dashed Line
     def draw_dashed_line(y):
         dash_len = 16
         gap_len = 10
         x = 80
         while x < width - 80:
-            draw.line([(x, y), (min(x + dash_len, width - 80), y)], fill=LIGHT_GRAY, width=3)
+            draw.line([(x, y), (min(x + dash_len, width - 80), y)], fill=LIGHT_GRAY, width=2)
             x += dash_len + gap_len
 
-    draw_dashed_line(490)
+    draw_dashed_line(440)
 
-    # 6. Key-Value Rows
+    # 7. Key-Value Rows
     type_label = "Data Top up" if giveaway.giveaway_type == 'DATA' else "Airtime Top up"
     host_name = giveaway.host.full_name or giveaway.host.phone_number or "SubHero Host"
 
@@ -483,20 +492,20 @@ def giveaway_receipt_card(request, slug):
         ("Host Name:", host_name),
     ]
 
-    start_y = 560
-    row_height = 95
+    start_y = 510
+    row_height = 90
 
     for i, (label, val) in enumerate(rows):
         y = start_y + (i * row_height)
-        draw.text((80, y), label, fill=GREEN, font=font_label, anchor="lm")
+        draw.text((80, y), label, fill=LABEL_GREEN, font=font_label, anchor="lm")
         draw.text((width - 80, y), val, fill=NAVY, font=font_val, anchor="rm")
 
-    # 7. Bottom Dashed Line
-    draw_dashed_line(start_y + (len(rows) * row_height) + 20)
+    # 8. Bottom Dashed Line
+    draw_dashed_line(start_y + (len(rows) * row_height) + 10)
 
-    # 8. Footer
+    # 9. Footer
     footer_text = "Enjoy cheap subscriptions to all networks endlessly"
-    draw.text((width // 2, 1340), footer_text, fill=GRAY, font=font_footer, anchor="mm")
+    draw.text((width // 2, 1310), footer_text, fill=GRAY, font=font_footer, anchor="mm")
 
     response = HttpResponse(content_type="image/png")
     response['Content-Disposition'] = f'attachment; filename="giveaway_receipt_{giveaway.slug}.png"'
