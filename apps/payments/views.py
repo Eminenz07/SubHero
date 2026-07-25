@@ -117,9 +117,15 @@ def payment_callback(request):
                             except Exception as email_err:
                                 logger.error("Email lookup failed on callback for email=%s: %s", email, str(email_err))
                     
-                    if not user_id and request.user.is_authenticated:
-                        user_id = str(request.user.id)
-                    
+                    # Restore session if dropped during payment redirect
+                    if user_id and not request.user.is_authenticated:
+                        try:
+                            user_obj = get_user_model().objects.get(id=user_id)
+                            from django.contrib.auth import login
+                            login(request, user_obj, backend='django.contrib.auth.backends.ModelBackend')
+                        except Exception as auth_err:
+                            logger.error("Session restore failed on callback: %s", str(auth_err))
+
                     # Credit wallet immediately (task has internal db lock idempotency check)
                     credit_wallet(
                         transaction_ref=reference,

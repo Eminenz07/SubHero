@@ -290,16 +290,7 @@ function payWithCard() {
     })
     .then(data => {
         if (data.checkout_url) {
-            // For PWA standalone mode on iOS/Android, we must open in the system browser (_blank)
-            // to prevent session cookie / routing restrictions inside the standalone webview scope
-            const isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-            if (isPWA) {
-                window.open(data.checkout_url, '_blank');
-                // Redirect main PWA window to callback processing view
-                window.location.href = "{% url 'payments:payment_callback' %}?reference=" + data.reference;
-            } else {
-                window.location.href = data.checkout_url;
-            }
+            window.location.href = data.checkout_url;
         } else {
             throw new Error("No checkout URL was provided by the payment gateway.");
         }
