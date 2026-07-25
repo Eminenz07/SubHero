@@ -420,7 +420,10 @@ def giveaway_receipt_card(request, slug):
     font_val = get_font(28, bold=False)
     font_footer = get_font(22, bold=False)
 
-    # 1. Top Left Branded Logo (far left)
+    top_y = 70
+    qr_size = 145
+
+    # 1. Top Left Branded Logo (far left, aligned with QR code)
     logo_path = os.path.join(settings.BASE_DIR, 'static', 'img', 'sh-logo.png')
     if not os.path.exists(logo_path):
         logo_path = os.path.join(settings.BASE_DIR, 'static', 'favicon.png')
@@ -432,11 +435,12 @@ def giveaway_receipt_card(request, slug):
             w_percent = (target_w / float(logo.width))
             h_size = int((float(logo.height) * float(w_percent)))
             logo = logo.resize((target_w, h_size), Image.LANCZOS)
-            img.paste(logo, (80, 110), mask=logo)
+            logo_y = top_y + (qr_size - h_size) // 2
+            img.paste(logo, (80, logo_y), mask=logo)
         except Exception:
             pass
 
-    # 2. Top Right Branded QRCode Monkey QR (leading to homepage)
+    # 2. Top Right Branded QRCode Monkey QR (leading to homepage, aligned at top_y)
     try:
         site_url = f"{request.scheme}://{request.get_host()}"
         qr_b64 = generate_qr_code_base64(site_url) or giveaway.qr_code_base64
@@ -444,9 +448,8 @@ def giveaway_receipt_card(request, slug):
             b64_data = qr_b64.split(",")[1]
             qr_bytes = base64.b64decode(b64_data)
             qr_img = Image.open(BytesIO(qr_bytes)).convert("RGBA")
-            qr_size = 145
             qr_img = qr_img.resize((qr_size, qr_size), Image.LANCZOS)
-            img.paste(qr_img, (width - 80 - qr_size, 75), mask=qr_img)
+            img.paste(qr_img, (width - 80 - qr_size, top_y), mask=qr_img)
     except Exception as err:
         logger.error(f"Failed to generate receipt QR code: {err}")
 
