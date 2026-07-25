@@ -26,8 +26,27 @@
     
     <!-- Preconnect to Termii / Paystack domains later if needed -->
 
-    <meta name="description" content="Nigerian VTU and SMM Services">
+    <meta name="description" content="SubHero — Nigerian VTU, cheap data, airtime, giveaways, and social media growth.">
     <meta name="theme-color" content="#006B3E">
+
+    <!-- Open Graph / WhatsApp / Facebook Preview Tags -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="SubHero">
+    <meta property="og:title" content="{% block og_title %}SubHero — Instant VTU & Giveaways{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}Instant VTU, cheap data, airtime, and automated social media growth with seamless payments on SubHero.{% endblock %}">
+    <meta property="og:url" content="{% block og_url %}{{ request.scheme }}://{{ request.get_host }}{{ request.path }}{% endblock %}">
+    <meta property="og:image" content="{% block og_image %}{{ request.scheme }}://{{ request.get_host }}{% static 'img/subhero-og.jpg' %}{% endblock %}">
+    <meta property="og:image:type" content="image/jpeg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+
+    <!-- Twitter Card Preview Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{% block twitter_title %}SubHero — Instant VTU & Giveaways{% endblock %}">
+    <meta name="twitter:description" content="{% block twitter_description %}Instant VTU, cheap data, airtime, and automated social media growth with seamless payments on SubHero.{% endblock %}">
+    <meta name="twitter:image" content="{% block twitter_image %}{{ request.scheme }}://{{ request.get_host }}{% static 'img/subhero-og.jpg' %}{% endblock %}">
+
+    {% block extra_head %}{% endblock %}
 
     <!-- Tailwind CSS -->
     <link rel="stylesheet" href="{% static 'css/app.css' %}?v={% now 'U' %}">

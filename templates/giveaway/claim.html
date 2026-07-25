@@ -2,15 +2,14 @@
 {% load static %}
 {% block title %}Claim Giveaway — SubHero{% endblock %}
 
-{% block extra_head %}
-<meta property="og:title" content="🎁 {{ giveaway.title }} — Claim Free {{ giveaway.get_giveaway_type_display }}">
-<meta property="og:description" content="{{ giveaway.remaining_slots }} of {{ giveaway.total_slots }} slots remaining. No account needed — claim instantly.">
-<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'img/giveaway-og.png' %}">
-<meta property="og:url" content="{{ request.scheme }}://{{ request.get_host }}/g/{{ giveaway.slug }}">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="🎁 {{ giveaway.title }}">
-<meta name="twitter:description" content="{{ giveaway.remaining_slots }} free slots left on SubHero">
-{% endblock %}
+{% block og_title %}🎁 {{ giveaway.title }} — Claim Free {{ giveaway.get_giveaway_type_display }}{% endblock %}
+{% block og_description %}{{ giveaway.remaining_slots }} of {{ giveaway.total_slots }} slots remaining. No account needed — claim instantly.{% endblock %}
+{% block og_image %}{{ request.scheme }}://{{ request.get_host }}{% static 'img/subhero-og.jpg' %}{% endblock %}
+{% block og_url %}{{ request.scheme }}://{{ request.get_host }}/g/{{ giveaway.slug }}{% endblock %}
+
+{% block twitter_title %}🎁 {{ giveaway.title }}{% endblock %}
+{% block twitter_description %}{{ giveaway.remaining_slots }} free slots left on SubHero{% endblock %}
+{% block twitter_image %}{{ request.scheme }}://{{ request.get_host }}{% static 'img/subhero-og.jpg' %}{% endblock %}
 
 {% block content %}
 <div class="px-4 pt-10 pb-10 max-w-sm mx-auto text-center h-screen flex flex-col justify-center relative">
