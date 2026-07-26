@@ -42,6 +42,21 @@
     <input type="hidden" name="quantity" id="id_quantity" value="{{ form_data.quantity|default:'1' }}">
     <input type="hidden" name="pin" id="id_hidden_pin">
 
+    {% if show_duplicate_confirm %}
+    <input type="hidden" name="confirm_duplicate" value="1">
+    <div class="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-left">
+      <div class="text-xs font-bold text-amber-900 dark:text-amber-300 mb-1 flex items-center gap-1.5">
+        <i data-feather="alert-triangle" class="w-4 h-4 text-amber-600"></i> Duplicate Order Notice
+      </div>
+      <div class="text-[11px] text-amber-800 dark:text-amber-400 mb-3 leading-relaxed">
+        An identical exam PIN purchase was placed less than a minute ago. Tap below to confirm and process this second top-up.
+      </div>
+      <button type="submit" class="w-full py-3 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs active:scale-95 transition-all outline-none border-none cursor-pointer">
+        Confirm & Process Duplicate Order
+      </button>
+    </div>
+    {% endif %}
+
     <!-- Exam Type -->
     <div>
       <span class="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">Select Exam Type</span>

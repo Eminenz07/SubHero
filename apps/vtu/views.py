@@ -140,8 +140,9 @@ class BuyDataView(LoginRequiredMixin, PinRequiredMixin, View):
             return render(request, self.template_name, context)
 
         idempotency_key = f"vtu_idempotency:{request.user.id}:{plan_id}:{normalized_phone}"
-        if cache.get(idempotency_key):
-            messages.error(request, "Duplicate order detected. Please wait 5 minutes before retrying.")
+        if cache.get(idempotency_key) and request.POST.get("confirm_duplicate") != "1":
+            messages.warning(request, "Duplicate Order Notice: An identical data order to this recipient was placed less than a minute ago. Tap 'Confirm & Process Duplicate' below if you intend to send another top-up.")
+            context["show_duplicate_confirm"] = True
             return render(request, self.template_name, context)
 
         reference = generate_reference("VTU")
@@ -160,7 +161,7 @@ class BuyDataView(LoginRequiredMixin, PinRequiredMixin, View):
                     reference=reference, status=VTUOrder.Status.PROCESSING,
                 )
 
-            cache.set(idempotency_key, order.id, 300)
+            cache.set(idempotency_key, order.id, 60)
             # Run task synchronously for immediate real-time feedback
             from apps.vtu.tasks import process_vtu_order
             process_vtu_order(order.id)
@@ -246,8 +247,9 @@ class BuyAirtimeView(LoginRequiredMixin, PinRequiredMixin, View):
             return pin_response
 
         idempotency_key = f"airtime_idem:{request.user.id}:{normalized_phone}:{amount}"
-        if cache.get(idempotency_key):
-            messages.error(request, "Duplicate order detected. Please wait 5 minutes before retrying.")
+        if cache.get(idempotency_key) and request.POST.get("confirm_duplicate") != "1":
+            messages.warning(request, "Duplicate Order Notice: An identical airtime top-up to this recipient was placed less than a minute ago. Tap 'Confirm & Process Duplicate' below if you intend to send another top-up.")
+            context["show_duplicate_confirm"] = True
             return render(request, self.template_name, context)
 
         reference = generate_reference("AIR")
@@ -264,7 +266,7 @@ class BuyAirtimeView(LoginRequiredMixin, PinRequiredMixin, View):
                     amount=amount, api_cost=amount, reference=reference, status=AirtimeOrder.Status.PROCESSING,
                 )
 
-            cache.set(idempotency_key, order.id, 300)
+            cache.set(idempotency_key, order.id, 60)
             # Run task synchronously for immediate real-time feedback
             from apps.vtu.tasks import process_airtime_order
             process_airtime_order(str(order.id))
@@ -349,8 +351,9 @@ class BuyCableView(LoginRequiredMixin, PinRequiredMixin, View):
             return pin_response
 
         idempotency_key = f"cable_idem:{request.user.id}:{plan_id}:{card_number}"
-        if cache.get(idempotency_key):
-            messages.error(request, "Duplicate order detected. Please wait 5 minutes before retrying.")
+        if cache.get(idempotency_key) and request.POST.get("confirm_duplicate") != "1":
+            messages.warning(request, "Duplicate Order Notice: An identical cable subscription was placed less than a minute ago. Tap 'Confirm & Process Duplicate' below if you intend to send another top-up.")
+            context["show_duplicate_confirm"] = True
             return render(request, self.template_name, context)
 
         reference = generate_reference("CBL")
@@ -368,7 +371,7 @@ class BuyCableView(LoginRequiredMixin, PinRequiredMixin, View):
                     amount=plan.subhero_price, api_cost=plan.amount, reference=reference, status=CableOrder.Status.PROCESSING,
                 )
 
-            cache.set(idempotency_key, order.id, 300)
+            cache.set(idempotency_key, order.id, 60)
             # Run task synchronously for immediate real-time feedback
             from apps.vtu.tasks import process_cable_order
             process_cable_order(str(order.id))
@@ -472,8 +475,9 @@ class BuyElectricityView(LoginRequiredMixin, PinRequiredMixin, View):
             return pin_response
 
         idempotency_key = f"elec_idem:{request.user.id}:{meter_number}:{amount}"
-        if cache.get(idempotency_key):
-            messages.error(request, "Duplicate order detected. Please wait 5 minutes before retrying.")
+        if cache.get(idempotency_key) and request.POST.get("confirm_duplicate") != "1":
+            messages.warning(request, "Duplicate Order Notice: An identical electricity bill payment was placed less than a minute ago. Tap 'Confirm & Process Duplicate' below if you intend to send another top-up.")
+            context["show_duplicate_confirm"] = True
             return render(request, self.template_name, context)
 
         reference = generate_reference("ELEC")
@@ -492,7 +496,7 @@ class BuyElectricityView(LoginRequiredMixin, PinRequiredMixin, View):
                     status=ElectricityOrder.Status.PROCESSING,
                 )
 
-            cache.set(idempotency_key, order.id, 300)
+            cache.set(idempotency_key, order.id, 60)
             # Run task synchronously for immediate real-time feedback
             from apps.vtu.tasks import process_electricity_order
             process_electricity_order(str(order.id))
@@ -576,8 +580,9 @@ class BuyExamPinView(LoginRequiredMixin, PinRequiredMixin, View):
             return pin_response
 
         idempotency_key = f"exam_idem:{request.user.id}:{product_id}:{quantity}"
-        if cache.get(idempotency_key):
-            messages.error(request, "Duplicate order detected. Please wait 5 minutes before retrying.")
+        if cache.get(idempotency_key) and request.POST.get("confirm_duplicate") != "1":
+            messages.warning(request, "Duplicate Order Notice: An identical exam PIN order was placed less than a minute ago. Tap 'Confirm & Process Duplicate' below if you intend to send another top-up.")
+            context["show_duplicate_confirm"] = True
             return render(request, self.template_name, context)
 
         reference = generate_reference("EXAM")
@@ -595,7 +600,7 @@ class BuyExamPinView(LoginRequiredMixin, PinRequiredMixin, View):
                     status=ExamPinOrder.Status.PROCESSING,
                 )
 
-            cache.set(idempotency_key, order.id, 300)
+            cache.set(idempotency_key, order.id, 60)
             # Run task synchronously for immediate real-time feedback
             from apps.vtu.tasks import process_exam_pin_order
             process_exam_pin_order(str(order.id))

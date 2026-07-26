@@ -189,6 +189,13 @@ class SmmIndexView(LoginRequiredMixin, PinRequiredMixin, View):
         smm_margin = smm_margin_pct / Decimal("100")
         api_cost = (amount / (Decimal("1") + smm_margin)).quantize(Decimal("0.01"))
 
+        # Idempotency / Duplicate order check
+        idempotency_key = f"smm_idem:{request.user.id}:{service.id}:{url}:{quantity}"
+        if cache.get(idempotency_key) and request.POST.get("confirm_duplicate") != "1":
+            messages.warning(request, "Duplicate Order Notice: An identical social boost order to this link was placed less than a minute ago. Tap 'Confirm & Process Duplicate' below if you intend to place another order.")
+            context["show_duplicate_confirm"] = True
+            return render(request, self.template_name, context)
+
         # 7. Execute atomic wallet debit and dispatch process task
         reference = generate_reference("SMM")
         try:
@@ -230,6 +237,8 @@ class SmmIndexView(LoginRequiredMixin, PinRequiredMixin, View):
                     reference=reference,
                     status=SMMOrder.Status.PROCESSING
                 )
+
+            cache.set(idempotency_key, order.id, 60)
 
             # Dispatch Celery background execution task
             process_smm_order.delay(order.id)

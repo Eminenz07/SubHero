@@ -138,13 +138,36 @@
 <div class="px-4 py-4 space-y-3">
   <!-- Messages Alert -->
   {% if messages %}
-  <div class="space-y-2 mb-4">
+  <div class="space-y-2 mb-5">
     {% for message in messages %}
     <div class="alert{% if message.tags == 'error' %}-error{% elif message.tags == 'success' %}-success{% else %}-info{% endif %}">
       {{ message }}
     </div>
     {% endfor %}
   </div>
+  {% endif %}
+
+  {% if show_duplicate_confirm %}
+  <form method="post" class="mb-5">
+    {% csrf_token %}
+    <input type="hidden" name="platform" value="{{ form_data.platform }}">
+    <input type="hidden" name="service_name" value="{{ form_data.service_name }}">
+    <input type="hidden" name="url" value="{{ form_data.url }}">
+    <input type="hidden" name="quantity" value="{{ form_data.quantity }}">
+    <input type="hidden" name="pin" value="{{ request.POST.pin }}">
+    <input type="hidden" name="confirm_duplicate" value="1">
+    <div class="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-left">
+      <div class="text-xs font-bold text-amber-900 dark:text-amber-300 mb-1 flex items-center gap-1.5">
+        <i data-feather="alert-triangle" class="w-4 h-4 text-amber-600"></i> Duplicate Order Notice
+      </div>
+      <div class="text-[11px] text-amber-800 dark:text-amber-400 mb-3 leading-relaxed">
+        An identical social boost order was placed less than a minute ago. Tap below to confirm and process this second order.
+      </div>
+      <button type="submit" class="w-full py-3 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs active:scale-95 transition-all outline-none border-none cursor-pointer">
+        Confirm & Process Duplicate Order
+      </button>
+    </div>
+  </form>
   {% endif %}
 
   <!-- Balance Header -->
