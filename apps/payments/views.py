@@ -97,8 +97,12 @@ class VerifyManualPaymentView(View):
             return JsonResponse({"error": "Session expired. Please log in again to continue."}, status=401)
 
         reference = request.POST.get("reference", "").strip()
-        if not reference:
-            return JsonResponse({"error": "Transaction reference is required."}, status=400)
+        if WalletTransaction.objects.filter(reference=reference).exists():
+            request.session.pop("pending_squad_ref", None)
+            return JsonResponse({
+                "success": True,
+                "message": "This transaction reference has already been verified and credited to your wallet balance."
+            })
 
         from apps.payments.services import verify_transaction
         try:
