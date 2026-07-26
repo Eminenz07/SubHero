@@ -141,6 +141,34 @@
                 </div>
                 <span class="text-brand-accent text-xs font-bold px-2.5 py-1.5 rounded-pill bg-brand-accent/10">ON</span>
             </div>
+
+            <!-- Privacy Policy -->
+            <a href="{% url 'privacy' %}" class="w-full bg-white flex items-center justify-between p-4 rounded-card border border-surface-border/50 hover:bg-slate-50 transition-all group text-left no-underline">
+                <div class="flex items-center gap-3.5">
+                    <div class="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center text-brand-primary">
+                        <i data-feather="file-text" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <span class="block text-[14px] font-bold text-text-primary">Privacy Policy</span>
+                        <span class="block text-[11px] text-text-secondary">Read NDPR data protection rules</span>
+                    </div>
+                </div>
+                <i data-feather="chevron-right" class="w-4 h-4 text-text-muted group-hover:translate-x-1 transition-transform"></i>
+            </a>
+
+            <!-- Terms of Service -->
+            <a href="{% url 'terms' %}" class="w-full bg-white flex items-center justify-between p-4 rounded-card border border-surface-border/50 hover:bg-slate-50 transition-all group text-left no-underline">
+                <div class="flex items-center gap-3.5">
+                    <div class="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center text-brand-primary">
+                        <i data-feather="check-square" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <span class="block text-[14px] font-bold text-text-primary">Terms of Service</span>
+                        <span class="block text-[11px] text-text-secondary">Platform usage terms & conditions</span>
+                    </div>
+                </div>
+                <i data-feather="chevron-right" class="w-4 h-4 text-text-muted group-hover:translate-x-1 transition-transform"></i>
+            </a>
         </div>
     </section>
 

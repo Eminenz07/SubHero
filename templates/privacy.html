@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Privacy Policy — SubHero{% endblock %}
+
+{% block og_title %}SubHero — Privacy Policy{% endblock %}
+{% block og_description %}Read SubHero's Privacy Policy to understand how we collect, protect, and handle your data securely.{% endblock %}
+
+{% block top_bar %}
+{% include 'partials/_top_bar.html' with title="Privacy Policy" show_back=True %}
+{% endblock %}
+
+{% block content %}
+<div class="px-4 py-8 max-w-2xl mx-auto text-left space-y-6">
+    <div class="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-3xl border border-surface-border dark:border-white/[0.08] shadow-sm">
+        
+        <div class="border-b border-surface-border dark:border-white/[0.08] pb-4 mb-6">
+            <h1 class="text-2xl font-bold text-text-primary dark:text-white">Privacy Policy</h1>
+            <p class="text-xs text-text-muted mt-1">Last Updated: July 26, 2026 • NDPR & NITDA Compliant</p>
+        </div>
+
+        <div class="prose prose-slate dark:prose-invert max-w-none text-sm leading-relaxed space-y-5 text-text-secondary dark:text-slate-300">
+            <p>
+                At <strong>SubHero</strong> ("we", "us", or "our"), accessible from <strong>subhero.ng</strong>, protecting your personal data and privacy is our highest priority. This Privacy Policy explains how we collect, use, disclose, and safeguard your information in compliance with the <strong>Nigeria Data Protection Regulation (NDPR)</strong> and applicable financial laws.
+            </p>
+
+            <h2 class="text-base font-bold text-text-primary dark:text-white pt-2">1. Information We Collect</h2>
+            <p>When you register, fund your wallet, or use SubHero services, we may collect the following data:</p>
+            <ul class="list-disc pl-5 space-y-1">
+                <td><strong>Account Information:</strong> Full Name, Email Address, Phone Number, and Password.</td>
+                <td><strong>KYC & Identity Verification:</strong> Bank Verification Number (BVN), Date of Birth, Gender, and Residential Address (required for generating dedicated virtual bank accounts per CBN/GTBank Squad regulations).</td>
+                <td><strong>Transaction Data:</strong> Deposit history, VTU airtime/data top-up destinations, SMM order details, and wallet balance records.</td>
+                <td><strong>Technical Data:</strong> IP address, device type, browser information, and session logs for security and fraud prevention.</td>
+            </ul>
+
+            <h2 class="text-base font-bold text-text-primary dark:text-white pt-2">2. How We Use Your Information</h2>
+            <p>We use your information strictly for legitimate business operations, including:</p>
+            <ul class="list-disc pl-5 space-y-1">
+                <td>Processing VTU purchases (Airtime, Data, Cable TV, Electricity) and SMM service orders.</td>
+                <td>Creating and managing your dedicated wallet funding virtual account via Squad / GTBank.</td>
+                <td>Verifying your identity to prevent money laundering, unauthorized access, and financial fraud.</td>
+                <td>Sending automated transaction receipts, security alerts, and customer support communications.</td>
+            </ul>
+
+            <h2 class="text-base font-bold text-text-primary dark:text-white pt-2">3. Data Security & Storage</h2>
+            <p>
+                We employ industry-standard <strong>SSL/TLS 256-bit encryption</strong> for data in transit and bank-grade row locking for database transactions. Your passwords are hashed using PBKDF2 with SHA-256. We never store raw credit card numbers or banking PINs.
+            </p>
+
+            <h2 class="text-base font-bold text-text-primary dark:text-white pt-2">4. Disclosure of Information</h2>
+            <p>We do not sell, rent, or trade your personal data. We only share data with authorized partners to fulfill services:</p>
+            <ul class="list-disc pl-5 space-y-1">
+                <td><strong>Licensed Payment Providers:</strong> Squad (HabariPay/GTCO) for processing wallet deposits and virtual accounts.</td>
+                <td><strong>Telecommunication Vendors:</strong> MTN, Airtel, Glo, and 9mobile API gateways to dispatch airtime and data bundles.</td>
+                <td><strong>Legal & Regulatory Authorities:</strong> When mandated by Nigerian courts, Central Bank of Nigeria (CBN), or law enforcement agencies.</td>
+            </ul>
+
+            <h2 class="text-base font-bold text-text-primary dark:text-white pt-2">5. Your Data Protection Rights (NDPR)</h2>
+            <p>Under the Nigeria Data Protection Regulation, you have the right to:</p>
+            <ul class="list-disc pl-5 space-y-1">
+                <td>Access, review, or request a copy of your personal data stored on SubHero.</td>
+                <td>Request correction of inaccurate or incomplete personal details.</td>
+                <td>Request account closure and data erasure, subject to financial record retention laws.</td>
+            </ul>
+
+            <h2 class="text-base font-bold text-text-primary dark:text-white pt-2">6. Contact Us</h2>
+            <p>
+                If you have questions or wish to exercise your data privacy rights, please contact our Data Protection Officer at:
+            </p>
+            <div class="bg-surface-page dark:bg-slate-800 p-4 rounded-xl border border-surface-border dark:border-white/[0.08] text-xs font-mono">
+                Email: support@subhero.ng<br>
+                Website: https://subhero.ng<br>
+                Location: Lagos, Nigeria
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block bottom_nav %}
+{% include 'partials/_bottom_nav.html' %}
+{% endblock %}
