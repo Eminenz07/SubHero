@@ -39,6 +39,12 @@ def fund_wallet_page(request):
     """
     wallet = get_object_or_404(Wallet, user=request.user)
     pending_ref = request.session.get("pending_squad_ref", "")
+    
+    # Auto-clear pending_ref if it was already credited in DB
+    if pending_ref and WalletTransaction.objects.filter(reference=pending_ref, status=WalletTransaction.Status.SUCCESS).exists():
+        request.session.pop("pending_squad_ref", None)
+        pending_ref = ""
+
     context = {
         "wallet": wallet,
         "squad_public_key": settings.SQUAD_PUBLIC_KEY,
@@ -97,10 +103,14 @@ class VerifyManualPaymentView(View):
             return JsonResponse({"error": "Session expired. Please log in again to continue."}, status=401)
 
         reference = request.POST.get("reference", "").strip()
-        if WalletTransaction.objects.filter(reference=reference).exists():
+        if not reference:
+            return JsonResponse({"error": "Transaction reference is required."}, status=400)
+
+        if WalletTransaction.objects.filter(reference=reference, status=WalletTransaction.Status.SUCCESS).exists():
             request.session.pop("pending_squad_ref", None)
             return JsonResponse({
                 "success": True,
+                "already_credited": True,
                 "message": "This transaction reference has already been verified and credited to your wallet balance."
             })
 

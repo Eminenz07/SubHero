@@ -399,6 +399,7 @@ function verifyDetectedRef() {
     var ref = activePendingRef || localStorage.getItem('pending_squad_ref');
     var btn = document.getElementById('verify-detected-btn');
     var msg = document.getElementById('detected-msg');
+    var banner = document.getElementById('pending-ref-banner');
     if (!ref) return;
 
     btn.disabled = true;
@@ -413,7 +414,13 @@ function verifyDetectedRef() {
         },
         body: "reference=" + encodeURIComponent(ref)
     })
-    .then(res => res.json())
+    .then(async res => {
+        const contentType = res.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+            return res.json();
+        }
+        throw new Error("Unable to verify reference. Please try refreshing the page.");
+    })
     .then(data => {
         btn.disabled = false;
         btn.innerHTML = '<i data-feather="check-circle" class="w-4 h-4"></i> Complete & Credit Wallet Now';
@@ -423,7 +430,11 @@ function verifyDetectedRef() {
             msg.className = "mt-2 text-xs font-bold text-green-700 dark:text-green-400";
             msg.innerText = data.message;
             msg.classList.remove('hidden');
-            setTimeout(() => { window.location.href = "{% url 'dashboard' %}"; }, 1500);
+            if (data.already_credited) {
+                setTimeout(() => { if (banner) banner.classList.add('hidden'); }, 2000);
+            } else {
+                setTimeout(() => { window.location.href = "{% url 'dashboard' %}"; }, 1500);
+            }
         } else {
             msg.className = "mt-2 text-xs font-bold text-amber-800 dark:text-amber-300";
             msg.innerText = data.error || "Verification pending. If you transferred, wait 30s and click again.";
@@ -435,7 +446,7 @@ function verifyDetectedRef() {
         btn.innerHTML = '<i data-feather="check-circle" class="w-4 h-4"></i> Complete & Credit Wallet Now';
         if (window.feather) feather.replace();
         msg.className = "mt-2 text-xs font-bold text-red-600";
-        msg.innerText = "Connection error. Please try again.";
+        msg.innerText = err.message || "Connection error. Please try again.";
         msg.classList.remove('hidden');
     });
 }
