@@ -38,12 +38,14 @@ def fund_wallet_page(request):
     Supplies the Squad public key to the frontend context for Inline checkout.
     """
     wallet = get_object_or_404(Wallet, user=request.user)
+    pending_ref = request.session.get("pending_squad_ref", "")
     context = {
         "wallet": wallet,
         "squad_public_key": settings.SQUAD_PUBLIC_KEY,
         "min_amount": settings.FUND_MIN_AMOUNT,
         "max_amount": settings.FUND_MAX_AMOUNT,
         "daily_limit": settings.FUND_DAILY_LIMIT,
+        "pending_squad_ref": pending_ref,
     }
     return render(request, "wallet/fund.html", context)
 
@@ -76,6 +78,7 @@ class InitiateCardPaymentView(View):
         result = initialize_card_payment(amount, request.user.email, request.user.id, site_url=site_url)
         
         if result.get("success"):
+            request.session["pending_squad_ref"] = result["reference"]
             return JsonResponse({
                 "checkout_url": result["checkout_url"],
                 "reference": result["reference"]
@@ -115,6 +118,7 @@ class VerifyManualPaymentView(View):
                         user_id=user_id,
                         raw_payload=res
                     )
+                    request.session.pop("pending_squad_ref", None)
                     return JsonResponse({
                         "success": True,
                         "message": f"Payment verified! Your wallet has been credited with ₦{amount_naira:,.2f}."

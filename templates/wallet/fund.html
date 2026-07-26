@@ -16,6 +16,23 @@
         </div>
     </div>
 
+    <!-- Auto-Detected Pending Payment Banner -->
+    <div id="pending-ref-banner" class="hidden mb-6 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-left shadow-sm">
+        <div class="flex items-start gap-3">
+            <div class="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 mt-0.5">
+                <i data-feather="clock" class="w-5 h-5"></i>
+            </div>
+            <div class="flex-1">
+                <div class="text-xs font-bold text-amber-900 dark:text-amber-300">Pending Payment Attempt Detected ⚡</div>
+                <div class="text-[11px] text-amber-800 dark:text-amber-400 mt-0.5">Did you make a bank transfer for reference <span id="detected-ref-code" class="font-mono font-bold"></span>?</div>
+                <button onclick="verifyDetectedRef()" id="verify-detected-btn" class="mt-2.5 px-3.5 py-2 rounded-xl bg-brand-primary text-white text-xs font-bold flex items-center gap-1.5 active:scale-95 transition-all shadow-md shadow-brand-primary/20 outline-none">
+                    <i data-feather="check-circle" class="w-4 h-4"></i> Complete & Credit Wallet Now
+                </button>
+                <div id="detected-msg" class="hidden mt-2 text-xs font-bold"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- CARD 1: Pay with Card -->
     <div class="card card-padding mb-6 border border-surface-border bg-white rounded-2xl shadow-sm">
         <div class="flex items-center gap-3 mb-5">
@@ -376,11 +393,64 @@ function verifyManualRef() {
     });
 }
 
+var activePendingRef = "{{ pending_squad_ref }}";
+
+function verifyDetectedRef() {
+    var ref = activePendingRef || localStorage.getItem('pending_squad_ref');
+    var btn = document.getElementById('verify-detected-btn');
+    var msg = document.getElementById('detected-msg');
+    if (!ref) return;
+
+    btn.disabled = true;
+    btn.innerHTML = '<i data-feather="refresh-cw" class="w-4 h-4 animate-spin"></i> Verifying with Gateway...';
+    if (window.feather) feather.replace();
+
+    fetch("{% url 'payments:verify_manual_payment' %}", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "X-CSRFToken": "{{ csrf_token }}"
+        },
+        body: "reference=" + encodeURIComponent(ref)
+    })
+    .then(res => res.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = '<i data-feather="check-circle" class="w-4 h-4"></i> Complete & Credit Wallet Now';
+        if (window.feather) feather.replace();
+        if (data.success) {
+            localStorage.removeItem('pending_squad_ref');
+            msg.className = "mt-2 text-xs font-bold text-green-700 dark:text-green-400";
+            msg.innerText = data.message;
+            msg.classList.remove('hidden');
+            setTimeout(() => { window.location.href = "{% url 'dashboard' %}"; }, 1500);
+        } else {
+            msg.className = "mt-2 text-xs font-bold text-amber-800 dark:text-amber-300";
+            msg.innerText = data.error || "Verification pending. If you transferred, wait 30s and click again.";
+            msg.classList.remove('hidden');
+        }
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.innerHTML = '<i data-feather="check-circle" class="w-4 h-4"></i> Complete & Credit Wallet Now';
+        if (window.feather) feather.replace();
+        msg.className = "mt-2 text-xs font-bold text-red-600";
+        msg.innerText = "Connection error. Please try again.";
+        msg.classList.remove('hidden');
+    });
+}
+
 document.addEventListener("DOMContentLoaded", function() {
-    var savedRef = localStorage.getItem('pending_squad_ref');
+    var savedRef = activePendingRef || localStorage.getItem('pending_squad_ref');
+    var banner = document.getElementById('pending-ref-banner');
+    var codeEl = document.getElementById('detected-ref-code');
     var input = document.getElementById('manual-ref-input');
-    if (savedRef && input) {
-        input.value = savedRef;
+
+    if (savedRef) {
+        activePendingRef = savedRef;
+        if (codeEl) codeEl.innerText = savedRef;
+        if (input) input.value = savedRef;
+        if (banner) banner.classList.remove('hidden');
     }
 });
 
