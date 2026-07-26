@@ -17,17 +17,25 @@
     </div>
 
     <!-- Auto-Detected Pending Payment Banner -->
-    <div id="pending-ref-banner" class="hidden mb-6 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-left shadow-sm">
-        <div class="flex items-start gap-3">
+    <div id="pending-ref-banner" class="hidden mb-6 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-left shadow-sm relative">
+        <button onclick="dismissPendingBanner()" class="absolute top-3.5 right-3.5 text-amber-800 dark:text-amber-300 hover:text-amber-950 p-1 rounded-lg transition-colors outline-none" title="Dismiss">
+            <i data-feather="x" class="w-4 h-4"></i>
+        </button>
+        <div class="flex items-start gap-3 pr-6">
             <div class="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 mt-0.5">
                 <i data-feather="clock" class="w-5 h-5"></i>
             </div>
             <div class="flex-1">
                 <div class="text-xs font-bold text-amber-900 dark:text-amber-300">Pending Payment Attempt Detected ⚡</div>
                 <div class="text-[11px] text-amber-800 dark:text-amber-400 mt-0.5">Did you make a bank transfer for reference <span id="detected-ref-code" class="font-mono font-bold"></span>?</div>
-                <button onclick="verifyDetectedRef()" id="verify-detected-btn" class="mt-2.5 px-3.5 py-2 rounded-xl bg-brand-primary text-white text-xs font-bold flex items-center gap-1.5 active:scale-95 transition-all shadow-md shadow-brand-primary/20 outline-none">
-                    <i data-feather="check-circle" class="w-4 h-4"></i> Complete & Credit Wallet Now
-                </button>
+                <div class="flex items-center gap-2 mt-2.5">
+                    <button onclick="verifyDetectedRef()" id="verify-detected-btn" class="px-3.5 py-2 rounded-xl bg-brand-primary text-white text-xs font-bold flex items-center gap-1.5 active:scale-95 transition-all shadow-md shadow-brand-primary/20 outline-none">
+                        <i data-feather="check-circle" class="w-4 h-4"></i> Complete & Credit Wallet Now
+                    </button>
+                    <button onclick="dismissPendingBanner()" class="px-3 py-2 rounded-xl bg-surface-border/40 text-text-secondary text-xs font-bold hover:bg-surface-border/60 transition-all outline-none">
+                        Dismiss
+                    </button>
+                </div>
                 <div id="detected-msg" class="hidden mt-2 text-xs font-bold"></div>
             </div>
         </div>
@@ -343,6 +351,21 @@ function payWithCard() {
     });
 }
 
+function dismissPendingBanner() {
+    localStorage.removeItem('pending_squad_ref');
+    var banner = document.getElementById('pending-ref-banner');
+    if (banner) banner.classList.add('hidden');
+    
+    fetch("{% url 'payments:verify_manual_payment' %}", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "X-CSRFToken": "{{ csrf_token }}"
+        },
+        body: "action=dismiss"
+    }).catch(function(){});
+}
+
 function verifyManualRef() {
     var input = document.getElementById('manual-ref-input');
     var ref = input ? input.value.trim() : '';
@@ -368,27 +391,35 @@ function verifyManualRef() {
         },
         body: "reference=" + encodeURIComponent(ref)
     })
-    .then(res => res.json())
-    .then(data => {
+    .then(function(res) {
+        return res.json().then(function(data) { return { ok: res.ok, status: res.status, data: data }; });
+    })
+    .then(function(resObj) {
         btn.disabled = false;
         btn.innerText = "Verify";
+        var data = resObj.data || {};
         if (data.success) {
             localStorage.removeItem('pending_squad_ref');
             msg.className = "mt-2 p-2.5 rounded-xl text-xs font-semibold bg-green-50 text-green-700";
             msg.innerText = data.message;
             msg.classList.remove('hidden');
-            setTimeout(() => { window.location.href = "{% url 'dashboard' %}"; }, 1500);
+            if (data.already_credited) {
+                var banner = document.getElementById('pending-ref-banner');
+                if (banner) banner.classList.add('hidden');
+            } else {
+                setTimeout(function() { window.location.href = "{% url 'dashboard' %}"; }, 1500);
+            }
         } else {
             msg.className = "mt-2 p-2.5 rounded-xl text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200";
-            msg.innerText = data.error || "Verification failed.";
+            msg.innerText = data.error || "Verification failed. Please try again.";
             msg.classList.remove('hidden');
         }
     })
-    .catch(err => {
+    .catch(function(err) {
         btn.disabled = false;
         btn.innerText = "Verify";
         msg.className = "mt-2 p-2.5 rounded-xl text-xs font-semibold bg-red-50 text-red-600";
-        msg.innerText = "Connection error. Please try again.";
+        msg.innerText = err.message || "Connection error. Please try again.";
         msg.classList.remove('hidden');
     });
 }
@@ -414,26 +445,23 @@ function verifyDetectedRef() {
         },
         body: "reference=" + encodeURIComponent(ref)
     })
-    .then(async res => {
-        const contentType = res.headers.get("content-type");
-        if (contentType && contentType.includes("application/json")) {
-            return res.json();
-        }
-        throw new Error("Unable to verify reference. Please try refreshing the page.");
+    .then(function(res) {
+        return res.json().then(function(data) { return { ok: res.ok, status: res.status, data: data }; });
     })
-    .then(data => {
+    .then(function(resObj) {
         btn.disabled = false;
         btn.innerHTML = '<i data-feather="check-circle" class="w-4 h-4"></i> Complete & Credit Wallet Now';
         if (window.feather) feather.replace();
+        var data = resObj.data || {};
         if (data.success) {
             localStorage.removeItem('pending_squad_ref');
             msg.className = "mt-2 text-xs font-bold text-green-700 dark:text-green-400";
             msg.innerText = data.message;
             msg.classList.remove('hidden');
             if (data.already_credited) {
-                setTimeout(() => { if (banner) banner.classList.add('hidden'); }, 2000);
+                setTimeout(function() { if (banner) banner.classList.add('hidden'); }, 1500);
             } else {
-                setTimeout(() => { window.location.href = "{% url 'dashboard' %}"; }, 1500);
+                setTimeout(function() { window.location.href = "{% url 'dashboard' %}"; }, 1500);
             }
         } else {
             msg.className = "mt-2 text-xs font-bold text-amber-800 dark:text-amber-300";
@@ -441,7 +469,7 @@ function verifyDetectedRef() {
             msg.classList.remove('hidden');
         }
     })
-    .catch(err => {
+    .catch(function(err) {
         btn.disabled = false;
         btn.innerHTML = '<i data-feather="check-circle" class="w-4 h-4"></i> Complete & Credit Wallet Now';
         if (window.feather) feather.replace();

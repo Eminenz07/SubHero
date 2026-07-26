@@ -102,6 +102,11 @@ class VerifyManualPaymentView(View):
         if not request.user.is_authenticated:
             return JsonResponse({"error": "Session expired. Please log in again to continue."}, status=401)
 
+        action = request.POST.get("action", "").strip()
+        if action == "dismiss":
+            request.session.pop("pending_squad_ref", None)
+            return JsonResponse({"success": True})
+
         reference = request.POST.get("reference", "").strip()
         if not reference:
             return JsonResponse({"error": "Transaction reference is required."}, status=400)
