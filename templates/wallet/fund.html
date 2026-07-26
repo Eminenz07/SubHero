@@ -63,6 +63,24 @@
         </div>
     </div>
 
+    <!-- CARD: Verify Interrupted / Pending Payment -->
+    <div class="card card-padding mb-6 border border-surface-border bg-white rounded-2xl shadow-sm text-left">
+        <div class="flex items-center gap-3 mb-3">
+            <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                <i data-feather="refresh-cw" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <div class="text-xs font-bold text-text-primary">Already Paid / Switched Apps?</div>
+                <div class="text-[11px] text-text-muted">Verify any pending Squad reference to credit your wallet instantly</div>
+            </div>
+        </div>
+        <div class="flex gap-2">
+            <input type="text" id="manual-ref-input" placeholder="e.g. SH-FUND-XXXX..." class="w-full px-3 py-2.5 rounded-xl border border-surface-border font-mono text-xs font-semibold text-text-primary focus:outline-none focus:border-brand-primary" />
+            <button onclick="verifyManualRef()" id="verify-ref-btn" class="px-4 py-2.5 rounded-xl bg-brand-primary text-white font-bold text-xs shrink-0 active:scale-95 transition-all outline-none">Verify</button>
+        </div>
+        <div id="verify-msg" class="hidden mt-2 p-2.5 rounded-xl text-xs font-semibold"></div>
+    </div>
+
     {% comment %}
     <!-- CARD 2: Bank Transfer (With HTMX dynamic polling if acct number is not ready) -->
     <div id="acct-card" 
@@ -290,6 +308,9 @@ function payWithCard() {
     })
     .then(data => {
         if (data.checkout_url) {
+            if (data.reference) {
+                localStorage.setItem('pending_squad_ref', data.reference);
+            }
             window.location.href = data.checkout_url;
         } else {
             throw new Error("No checkout URL was provided by the payment gateway.");
@@ -304,6 +325,64 @@ function payWithCard() {
         btnText.textContent = "Pay with Card / Transfer / USSD";
     });
 }
+
+function verifyManualRef() {
+    var input = document.getElementById('manual-ref-input');
+    var ref = input ? input.value.trim() : '';
+    var btn = document.getElementById('verify-ref-btn');
+    var msg = document.getElementById('verify-msg');
+
+    if (!ref) {
+        msg.className = "mt-2 p-2.5 rounded-xl text-xs font-semibold bg-red-50 text-red-600";
+        msg.innerText = "Please enter your transaction reference (e.g. SH-FUND-XXXXXXXX).";
+        msg.classList.remove('hidden');
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerText = "Verifying...";
+    msg.classList.add('hidden');
+
+    fetch("{% url 'payments:verify_manual_payment' %}", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "X-CSRFToken": "{{ csrf_token }}"
+        },
+        body: "reference=" + encodeURIComponent(ref)
+    })
+    .then(res => res.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerText = "Verify";
+        if (data.success) {
+            localStorage.removeItem('pending_squad_ref');
+            msg.className = "mt-2 p-2.5 rounded-xl text-xs font-semibold bg-green-50 text-green-700";
+            msg.innerText = data.message;
+            msg.classList.remove('hidden');
+            setTimeout(() => { window.location.href = "{% url 'dashboard' %}"; }, 1500);
+        } else {
+            msg.className = "mt-2 p-2.5 rounded-xl text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200";
+            msg.innerText = data.error || "Verification failed.";
+            msg.classList.remove('hidden');
+        }
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.innerText = "Verify";
+        msg.className = "mt-2 p-2.5 rounded-xl text-xs font-semibold bg-red-50 text-red-600";
+        msg.innerText = "Connection error. Please try again.";
+        msg.classList.remove('hidden');
+    });
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+    var savedRef = localStorage.getItem('pending_squad_ref');
+    var input = document.getElementById('manual-ref-input');
+    if (savedRef && input) {
+        input.value = savedRef;
+    }
+});
 
 function submitKYC() {
     const firstNameInput = document.getElementById('first-name-input');

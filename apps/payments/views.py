@@ -71,7 +71,7 @@ class InitiateCardPaymentView(View):
             return JsonResponse({"error": "Invalid amount format. Please enter a valid decimal number."}, status=400)
 
         # Call Squad API service with dynamic site_url
-        scheme = "https" if request.is_secure() else "http"
+        scheme = "https" if (request.is_secure() or not settings.DEBUG) else "http"
         site_url = f"{scheme}://{request.get_host()}"
         result = initialize_card_payment(amount, request.user.email, request.user.id, site_url=site_url)
         
@@ -82,6 +82,52 @@ class InitiateCardPaymentView(View):
             })
         else:
             return JsonResponse({"error": result.get("message", "Could not initialize payment with gateway.")}, status=400)
+
+
+class VerifyManualPaymentView(View):
+    """
+    Allows a user to manually verify a pending Squad transaction reference
+    if they switched apps or refreshed their browser mid-payment.
+    """
+    def post(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return JsonResponse({"error": "Session expired. Please log in again to continue."}, status=401)
+
+        reference = request.POST.get("reference", "").strip()
+        if not reference:
+            return JsonResponse({"error": "Transaction reference is required."}, status=400)
+
+        from apps.payments.services import verify_transaction
+        try:
+            res = verify_transaction(reference)
+            if res and res.get("status") == 200:
+                data = res.get("data", {})
+                status = data.get("transaction_status") or data.get("status", "")
+                if str(status).lower() == "success":
+                    amount_kobo = data.get("amount") or data.get("transaction_amount", 0)
+                    amount_naira = Decimal(str(amount_kobo)) / Decimal("100.00")
+                    metadata = data.get("metadata") or data.get("meta") or {}
+                    user_id = metadata.get("user_id") or str(request.user.id)
+
+                    credit_wallet(
+                        transaction_ref=reference,
+                        amount_naira=str(amount_naira),
+                        user_id=user_id,
+                        raw_payload=res
+                    )
+                    return JsonResponse({
+                        "success": True,
+                        "message": f"Payment verified! Your wallet has been credited with ₦{amount_naira:,.2f}."
+                    })
+                else:
+                    return JsonResponse({
+                        "error": f"Transaction status: {str(status).upper() if status else 'PENDING'}. If you made the transfer, please wait 30 seconds and try verifying again."
+                    }, status=400)
+            else:
+                return JsonResponse({"error": "Transaction reference not found on payment gateway."}, status=404)
+        except Exception as e:
+            logger.error("Manual payment verification error for ref=%s: %s", reference, str(e))
+            return JsonResponse({"error": "Could not verify transaction at this time. Please try again."}, status=500)
 
 
 def payment_callback(request):
