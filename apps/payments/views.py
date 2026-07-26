@@ -93,6 +93,7 @@ class InitiateCardPaymentView(View):
             return JsonResponse({"error": result.get("message", "Could not initialize payment with gateway.")}, status=400)
 
 
+@method_decorator(csrf_exempt, name="dispatch")
 class VerifyManualPaymentView(View):
     """
     Allows a user to manually verify a pending Squad transaction reference

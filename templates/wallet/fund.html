@@ -391,8 +391,15 @@ function verifyManualRef() {
         },
         body: "reference=" + encodeURIComponent(ref)
     })
-    .then(function(res) {
-        return res.json().then(function(data) { return { ok: res.ok, status: res.status, data: data }; });
+    .then(async function(res) {
+        var text = await res.text();
+        var data = {};
+        try {
+            data = JSON.parse(text);
+        } catch(e) {
+            data = { error: "Unable to verify reference. Please refresh your page and try again." };
+        }
+        return { ok: res.ok, status: res.status, data: data };
     })
     .then(function(resObj) {
         btn.disabled = false;
@@ -445,8 +452,15 @@ function verifyDetectedRef() {
         },
         body: "reference=" + encodeURIComponent(ref)
     })
-    .then(function(res) {
-        return res.json().then(function(data) { return { ok: res.ok, status: res.status, data: data }; });
+    .then(async function(res) {
+        var text = await res.text();
+        var data = {};
+        try {
+            data = JSON.parse(text);
+        } catch(e) {
+            data = { error: "Unable to verify reference. Please refresh your page and try again." };
+        }
+        return { ok: res.ok, status: res.status, data: data };
     })
     .then(function(resObj) {
         btn.disabled = false;
