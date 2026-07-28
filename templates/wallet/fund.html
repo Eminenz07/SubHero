@@ -504,6 +504,19 @@ document.addEventListener("DOMContentLoaded", function() {
         if (codeEl) codeEl.innerText = savedRef;
         if (input) input.value = savedRef;
         if (banner) banner.classList.remove('hidden');
+
+        // Automatically check Squad in the background on page load
+        setTimeout(function() {
+            verifyDetectedRef();
+        }, 1200);
+    }
+});
+
+// Auto-check when switching back to this tab
+window.addEventListener("focus", function() {
+    var savedRef = activePendingRef || localStorage.getItem('pending_squad_ref');
+    if (savedRef) {
+        verifyDetectedRef();
     }
 });
 
