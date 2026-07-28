@@ -52,7 +52,7 @@ def initialize_card_payment(amount_naira, email, user_id, site_url=None):
     url = f"{settings.SQUAD_BASE_URL}/transaction/initiate"
     
     if not site_url:
-        site_url = "https://subhero-p3zo.onrender.com"
+        site_url = getattr(settings, "SITE_URL", "https://subhero.ng")
         
     callback_url = f"{site_url}/payments/callback/"
     
@@ -60,9 +60,10 @@ def initialize_card_payment(amount_naira, email, user_id, site_url=None):
         "amount": int(float(amount_naira) * 100),  # Convert to KOBO
         "email": email,
         "currency": "NGN",
-        "initiate_type": "inline",
+        "initiate_type": "api",
         "transaction_ref": transaction_ref,
         "callback_url": callback_url,
+        "pass_charge": False,
         "metadata": {
             "user_id": str(user_id),
             "type": "wallet_funding"

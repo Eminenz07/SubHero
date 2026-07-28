@@ -78,9 +78,10 @@ class InitiateCardPaymentView(View):
         except (InvalidOperation, ValueError):
             return JsonResponse({"error": "Invalid amount format. Please enter a valid decimal number."}, status=400)
 
-        # Call Squad API service with dynamic site_url
-        scheme = "https" if (request.is_secure() or not settings.DEBUG) else "http"
-        site_url = f"{scheme}://{request.get_host()}"
+        # Call Squad API service with dynamic site_url (always use https for production hosts)
+        host = request.get_host()
+        scheme = "https" if ("localhost" not in host and "127.0.0.1" not in host) else "http"
+        site_url = f"{scheme}://{host}"
         result = initialize_card_payment(amount, request.user.email, request.user.id, site_url=site_url)
         
         if result.get("success"):
