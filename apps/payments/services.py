@@ -60,7 +60,7 @@ def initialize_card_payment(amount_naira, email, user_id, site_url=None):
         "amount": int(float(amount_naira) * 100),  # Convert to KOBO
         "email": email,
         "currency": "NGN",
-        "initiate_type": "api",
+        "initiate_type": "inline",
         "transaction_ref": transaction_ref,
         "callback_url": callback_url,
         "pass_charge": False,
