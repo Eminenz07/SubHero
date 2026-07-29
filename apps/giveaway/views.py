@@ -516,8 +516,20 @@ def giveaway_receipt_card(request, slug):
     draw_dashed_line(start_y + (len(rows) * row_height) + 10)
 
     # 9. Footer
-    footer_text = "Enjoy cheap subscriptions to all networks endlessly"
-    draw.text((width // 2, 1310), footer_text, fill=GRAY, font=font_footer, anchor="mm")
+    footer_prefix = "Host your own giveaway at "
+    footer_link = "subhero.ng"
+    try:
+        bbox_pref = draw.textbbox((0, 0), footer_prefix, font=font_footer)
+        bbox_link = draw.textbbox((0, 0), footer_link, font=font_footer)
+        w_pref = bbox_pref[2] - bbox_pref[0]
+        w_link = bbox_link[2] - bbox_link[0]
+        total_w = w_pref + w_link
+        start_x = (width - total_w) // 2
+        footer_y = 1310
+        draw.text((start_x, footer_y), footer_prefix, fill=GRAY, font=font_footer, anchor="lm")
+        draw.text((start_x + w_pref, footer_y), footer_link, fill=GREEN, font=font_footer, anchor="lm")
+    except Exception:
+        draw.text((width // 2, 1310), "Host your own giveaway at subhero.ng", fill=GREEN, font=font_footer, anchor="mm")
 
     response = HttpResponse(content_type="image/png")
     response['Content-Disposition'] = f'attachment; filename="giveaway_receipt_{giveaway.slug}.png"'
