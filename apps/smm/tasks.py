@@ -155,25 +155,23 @@ def refund_smm_order(order_id):
                 description=f"Refund · {order.service.name} (SMM)"
             )
 
-            # Warning Notification
+            # Warning Notification & Push Alert
             try:
-                from apps.notifications.models import Notification
+                from apps.notifications.services import send_push_notification
                 reason = "Gateway processing error"
                 if order.provider_order_id and order.provider_order_id.startswith("Failed:"):
                     raw_reason = order.provider_order_id.replace("Failed: ", "")
-                    # Sanitize any internal provider names from customer-facing messages
-                    raw_reason = (
+                    reason = (
                         raw_reason
                         .replace("JustAnotherPanel", "our booster gateway")
                         .replace("JAP", "our booster gateway")
-                        .replace("just-another-panel", "our booster gateway")
                     )
-                    reason = raw_reason
-                
-                Notification.add(
+
+                send_push_notification(
                     user=order.user,
-                    title="SMM Order Failed - Refunded",
-                    description=f"Your SMM booster request for {order.service.name} failed (Reason: {reason}). ₦{order.amount:,.2f} has been fully refunded.",
+                    title="🔄 SMM Order Refunded",
+                    body=f"Your SMM request for {order.service.name} failed ({reason}). ₦{order.amount:,.2f} refunded.",
+                    action_url="/smm/",
                     level="warning"
                 )
             except Exception as e:
@@ -232,13 +230,14 @@ def poll_smm_orders():
                 order.save(update_fields=["status"])
                 WalletTransaction.objects.filter(reference=order.reference).update(status=WalletTransaction.Status.SUCCESS)
                 
-                # In-app Success Alert
+                # In-app & Web Push Success Alert
                 try:
-                    from apps.notifications.models import Notification
-                    Notification.add(
+                    from apps.notifications.services import send_push_notification
+                    send_push_notification(
                         user=order.user,
-                        title="SMM Order Completed",
-                        description=f"Your SMM request for {order.service.name} has been successfully delivered.",
+                        title="🚀 SMM Order Completed!",
+                        body=f"Your {order.service.name} booster request has been successfully delivered.",
+                        action_url="/smm/",
                         level="financial"
                     )
                     if order.user.email:

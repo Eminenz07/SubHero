@@ -7,4 +7,8 @@ urlpatterns = [
     path("", views.NotificationListView.as_view(), name="list"),
     path("mark-all-read/", views.MarkAllReadView.as_view(), name="mark_all_read"),
     path("<int:pk>/read/", views.MarkReadView.as_view(), name="mark_read"),
+    path("push/vapid-key/", views.VapidKeyView.as_view(), name="push_vapid_key"),
+    path("push/subscribe/", views.PushSubscribeView.as_view(), name="push_subscribe"),
+    path("push/unsubscribe/", views.PushUnsubscribeView.as_view(), name="push_unsubscribe"),
+    path("push/test/", views.SendTestPushView.as_view(), name="push_test"),
 ]

@@ -24,6 +24,34 @@
 
 {% block content %}
 <div class="py-6 px-4 space-y-6">
+    {% csrf_token %}
+
+    <!-- Push Notifications Control Card -->
+    <div class="bg-surface-card p-4 rounded-2xl border border-surface-border shadow-sm space-y-3">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-brand-primary/10 text-brand-primary flex items-center justify-center">
+                    <i data-feather="bell" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="text-xs font-bold text-text-primary flex items-center gap-1.5">
+                        PWA Push Alerts
+                        <span id="push-status-badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500">Disabled</span>
+                    </h3>
+                    <p class="text-[11px] text-text-secondary">Get lock screen alerts for deposits & SMM orders</p>
+                </div>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 pt-1">
+            <button id="push-enable-btn" onclick="window.SubHeroPushManager && window.SubHeroPushManager.subscribe()" class="px-3.5 py-2 rounded-xl bg-brand-primary text-white text-xs font-bold flex items-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer">
+                <i data-feather="bell" class="w-4 h-4"></i> Enable Push Alerts
+            </button>
+            <button id="push-test-btn" onclick="window.SubHeroPushManager && window.SubHeroPushManager.sendTestPush()" style="display: none;" class="px-3 py-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer">
+                <i data-feather="send" class="w-3.5 h-3.5"></i> Send Test Push
+            </button>
+        </div>
+    </div>
+
     {% if has_notifications %}
         
         <!-- Categorized: Today -->

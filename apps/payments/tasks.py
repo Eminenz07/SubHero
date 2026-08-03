@@ -83,11 +83,23 @@ def credit_wallet(self, transaction_ref, amount_naira,
                 ip_address=None  # Webhooks do not convey user client IP
             )
 
-        # STEP 3 — Outside atomic block (SMS & Logging)
+        # STEP 3 — Outside atomic block (Push, SMS & Logging)
         logger.info(
             "SUCCESS: Funded User %s with ₦%s (Fee: ₦%s). Ref=%s",
             wallet.user.phone_number, net_amount, deposit_fee, transaction_ref
         )
+
+        try:
+            from apps.notifications.services import send_push_notification
+            send_push_notification(
+                user=wallet.user,
+                title=f"💰 Wallet Credited — ₦{net_amount:,.2f}",
+                body=f"Received via Bank Transfer. New Balance: ₦{wallet.balance:,.2f}. Tap to view receipt.",
+                action_url="/vtu/",
+                level="financial"
+            )
+        except Exception as push_err:
+            logger.error("Error sending push notification on wallet credit: %s", str(push_err))
 
         try:
             send_transaction_sms.delay(

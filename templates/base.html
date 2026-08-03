@@ -331,12 +331,165 @@
                 navigator.serviceWorker.register('/sw.js')
                     .then(function(registration) {
                         console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                        if (window.SubHeroPushManager) {
+                            window.SubHeroPushManager.init();
+                        }
                     })
                     .catch(function(err) {
                         console.log('ServiceWorker registration failed: ', err);
                     });
             });
         }
+
+        // SubHero Web Push Notification Manager
+        window.SubHeroPushManager = {
+            async init() {
+                if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+                    console.log('Web Push not supported on this browser');
+                    return;
+                }
+                try {
+                    const reg = await navigator.serviceWorker.ready;
+                    const sub = await reg.pushManager.getSubscription();
+                    this.updateUI(sub !== null);
+                } catch (e) {
+                    console.log('Error initializing push manager:', e);
+                }
+            },
+
+            urlBase64ToUint8Array(base64String) {
+                const padding = '='.repeat((4 - base64String.length % 4) % 4);
+                const base64 = (base64String + padding)
+                    .replace(/\-/g, '+')
+                    .replace(/_/g, '/');
+                const rawData = window.atob(base64);
+                const outputArray = new Uint8Array(rawData.length);
+                for (let i = 0; i < rawData.length; ++i) {
+                    outputArray[i] = rawData.charCodeAt(i);
+                }
+                return outputArray;
+            },
+
+            async subscribe() {
+                try {
+                    const permission = await Notification.requestPermission();
+                    if (permission !== 'granted') {
+                        alert('Push Notification permission was denied. Please enable notification permissions in your browser settings.');
+                        return false;
+                    }
+
+                    const keyRes = await fetch('/notifications/push/vapid-key/');
+                    const keyData = await keyRes.json();
+                    const applicationServerKey = this.urlBase64ToUint8Array(keyData.public_key);
+
+                    const reg = await navigator.serviceWorker.ready;
+                    const sub = await reg.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: applicationServerKey
+                    });
+
+                    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+
+                    const res = await fetch('/notifications/push/subscribe/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: JSON.stringify(sub)
+                    });
+
+                    const data = await res.json();
+                    if (data.success) {
+                        this.updateUI(true);
+                        return true;
+                    } else {
+                        alert('Subscription error: ' + (data.error || 'Unknown error'));
+                        return false;
+                    }
+                } catch (err) {
+                    console.error('Error subscribing to push:', err);
+                    alert('Push subscription error: ' + err.message);
+                    return false;
+                }
+            },
+
+            async unsubscribe() {
+                try {
+                    const reg = await navigator.serviceWorker.ready;
+                    const sub = await reg.pushManager.getSubscription();
+                    if (sub) {
+                        const endpoint = sub.endpoint;
+                        await sub.unsubscribe();
+
+                        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+                        await fetch('/notifications/push/unsubscribe/', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': csrfToken
+                            },
+                            body: JSON.stringify({ endpoint: endpoint })
+                        });
+                    }
+                    this.updateUI(false);
+                } catch (err) {
+                    console.error('Error unsubscribing:', err);
+                }
+            },
+
+            async sendTestPush() {
+                try {
+                    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+                    const res = await fetch('/notifications/push/test/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        }
+                    });
+                    const data = await res.json();
+                    if (data.sent_count > 0) {
+                        alert('🚀 Test push notification sent! Check your phone lock screen / notification bar.');
+                    } else {
+                        alert('No active push subscriptions found. Please click "Enable Push Alerts" first!');
+                    }
+                } catch (err) {
+                    alert('Failed to send test push: ' + err.message);
+                }
+            },
+
+            updateUI(isSubscribed) {
+                const btnEnable = document.getElementById('push-enable-btn');
+                const btnTest = document.getElementById('push-test-btn');
+                const statusBadge = document.getElementById('push-status-badge');
+
+                if (btnEnable) {
+                    if (isSubscribed) {
+                        btnEnable.innerHTML = '<i data-feather="check-circle" class="w-4 h-4 text-emerald-500"></i> Enabled';
+                        btnEnable.className = "px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 text-xs font-bold flex items-center gap-1.5 border border-emerald-200 cursor-pointer";
+                        btnEnable.onclick = () => this.unsubscribe();
+                    } else {
+                        btnEnable.innerHTML = '<i data-feather="bell" class="w-4 h-4"></i> Enable Push Alerts';
+                        btnEnable.className = "px-3.5 py-2 rounded-xl bg-brand-primary text-white text-xs font-bold flex items-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer";
+                        btnEnable.onclick = () => this.subscribe();
+                    }
+                }
+
+                if (btnTest) {
+                    btnTest.style.display = isSubscribed ? 'inline-flex' : 'none';
+                }
+
+                if (statusBadge) {
+                    statusBadge.textContent = isSubscribed ? 'Active' : 'Disabled';
+                    statusBadge.className = isSubscribed 
+                        ? 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700' 
+                        : 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500';
+                }
+
+                if (typeof feather !== 'undefined') feather.replace();
+            }
+        };
 
         // PWA Custom Install Banner Logic
         document.addEventListener('DOMContentLoaded', function() {

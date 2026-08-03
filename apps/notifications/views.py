@@ -73,3 +73,73 @@ class MarkReadView(LoginRequiredMixin, View):
         if request.headers.get("HX-Request"):
             return HttpResponse("", status=200)
         return redirect("notifications:list")
+
+
+class VapidKeyView(View):
+    """Returns the public VAPID key for frontend WebPush registration."""
+    def get(self, request):
+        return JsonResponse({"public_key": settings.VAPID_PUBLIC_KEY})
+
+
+class PushSubscribeView(LoginRequiredMixin, View):
+    """Saves or updates a WebPush subscription endpoint for the user."""
+    def post(self, request):
+        try:
+            data = json.loads(request.body.decode("utf-8"))
+            endpoint = data.get("endpoint")
+            keys = data.get("keys", {})
+            p256dh = keys.get("p256dh")
+            auth = keys.get("auth")
+            user_agent = request.META.get("HTTP_USER_AGENT", "")[:255]
+
+            if not endpoint or not p256dh or not auth:
+                return JsonResponse({"error": "Missing subscription keys"}, status=400)
+
+            sub, created = PushSubscription.objects.update_or_create(
+                endpoint=endpoint,
+                defaults={
+                    "user": request.user,
+                    "p256dh": p256dh,
+                    "auth": auth,
+                    "user_agent": user_agent,
+                }
+            )
+
+            # Send a quick welcome push
+            send_push_notification(
+                user=request.user,
+                title="🔔 Push Notifications Active!",
+                body="You will now receive real-time alerts for deposits, SMM orders, and giveaways on SubHero.",
+                action_url="/dashboard/",
+                level="success"
+            )
+
+            return JsonResponse({"success": True, "created": created})
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+
+class PushUnsubscribeView(LoginRequiredMixin, View):
+    """Deletes a WebPush subscription endpoint."""
+    def post(self, request):
+        try:
+            data = json.loads(request.body.decode("utf-8"))
+            endpoint = data.get("endpoint")
+            if endpoint:
+                PushSubscription.objects.filter(user=request.user, endpoint=endpoint).delete()
+            return JsonResponse({"success": True})
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+
+class SendTestPushView(LoginRequiredMixin, View):
+    """Triggers a test push notification to the logged-in user."""
+    def post(self, request):
+        sent = send_push_notification(
+            user=request.user,
+            title="💰 Wallet Credited — ₦5,000",
+            body="Received via Bank Transfer. New Balance: ₦14,250. Tap to view receipt.",
+            action_url="/vtu/",
+            level="financial"
+        )
+        return JsonResponse({"success": True, "sent_count": sent})

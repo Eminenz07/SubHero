@@ -1,3 +1,4 @@
+import uuid
 from django.db import models
 from django.conf import settings
 
@@ -73,3 +74,27 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"{self.title} - {self.user.phone_number}"
+
+
+class PushSubscription(models.Model):
+    """
+    Stores Web Push subscription endpoints and VAPID keys per user device.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="push_subscriptions",
+    )
+    endpoint = models.TextField(unique=True, help_text="Browser WebPush endpoint URL")
+    p256dh = models.TextField(help_text="Browser p256dh public key")
+    auth = models.TextField(help_text="Browser auth secret")
+    user_agent = models.CharField(max_length=255, blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "notifications_push_subscription"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"PushSub {self.user.phone_number} - {self.endpoint[:30]}..."

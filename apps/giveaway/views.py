@@ -279,6 +279,20 @@ def claim_page(request, slug):
                 
             # Dispatch Celery Task
             process_giveaway_claim.delay(claim.id)
+
+            # Trigger Web Push notification to giveaway host
+            try:
+                from apps.notifications.services import send_push_notification
+                send_push_notification(
+                    user=giveaway.host,
+                    title="🎉 Giveaway Slot Claimed!",
+                    body=f"{giveaway_locked.claimed_slots} of {giveaway_locked.total_slots} slots claimed in your {giveaway_locked.get_giveaway_type_display()} Giveaway.",
+                    action_url=f"/giveaway/{giveaway_locked.slug}/",
+                    level="info"
+                )
+            except Exception:
+                pass
+
             return redirect('giveaway:claim_status', slug=giveaway.slug, claim_id=claim.id)
             
         except Exception as e:

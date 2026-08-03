@@ -441,3 +441,16 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': crontab(minute=0),  # every hour
     },
 }
+
+# =============================================================
+# WEB PUSH NOTIFICATIONS — VAPID KEYS
+# =============================================================
+VAPID_PUBLIC_KEY = config(
+    "VAPID_PUBLIC_KEY",
+    default="BO6S_h3T2gOpAiJThrfvRhdjdPPgcWGRtmwrQBwSucvaSdVrLO-Vn6_qFynzXRC7BDzyZz7cNtHNQLPySxTpSW8"
+)
+VAPID_PRIVATE_KEY = config(
+    "VAPID_PRIVATE_KEY",
+    default="-----BEGIN PRIVATE KEY-----\nREDACTED_VAPID_KEY_L1\nREDACTED_VAPID_KEY_L2\nREDACTED_VAPID_KEY_L3\n-----END PRIVATE KEY-----"
+)
+VAPID_ADMIN_EMAIL = config("VAPID_ADMIN_EMAIL", default="mailto:admin@subhero.ng")
