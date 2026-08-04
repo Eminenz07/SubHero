@@ -326,8 +326,8 @@
         });
 
         // Register service worker for PWA
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
+        function initSubHeroServiceWorker() {
+            if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('/sw.js')
                     .then(function(registration) {
                         console.log('ServiceWorker registration successful with scope: ', registration.scope);
@@ -338,7 +338,13 @@
                     .catch(function(err) {
                         console.log('ServiceWorker registration failed: ', err);
                     });
-            });
+            }
+        }
+
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            initSubHeroServiceWorker();
+        } else {
+            window.addEventListener('load', initSubHeroServiceWorker);
         }
 
         // SubHero Web Push Notification Manager
@@ -392,11 +398,21 @@
                     }
                     const applicationServerKey = this.urlBase64ToUint8Array(keyData.public_key);
 
-                    const reg = await navigator.serviceWorker.ready;
+                    let reg = await navigator.serviceWorker.getRegistration();
+                    if (!reg) {
+                        reg = await navigator.serviceWorker.register('/sw.js');
+                    }
+                    await navigator.serviceWorker.ready;
+
                     const sub = await reg.pushManager.subscribe({
                         userVisibleOnly: true,
                         applicationServerKey: applicationServerKey
                     });
+
+                    // Explicitly serialize PushSubscription to JSON object (fixes Safari / Mobile WebKit empty payload issue)
+                    const subPayload = sub.toJSON ? sub.toJSON() : {
+                        endpoint: sub.endpoint
+                    };
 
                     const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
 
@@ -406,10 +422,11 @@
                             'Content-Type': 'application/json',
                             'X-CSRFToken': csrfToken
                         },
-                        body: JSON.stringify(sub)
+                        body: JSON.stringify(subPayload)
                     });
 
                     if (!res.ok) {
+                        const errText = await res.text();
                         throw new Error(`Server returned HTTP ${res.status}`);
                     }
                     const resContentType = res.headers.get('content-type') || '';
@@ -419,6 +436,7 @@
                     const data = await res.json();
                     if (data.success) {
                         this.updateUI(true);
+                        alert('🚀 Push Notifications enabled successfully!');
                         return true;
                     } else {
                         alert('Subscription error: ' + (data.error || 'Unknown error'));
