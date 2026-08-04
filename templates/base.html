@@ -379,7 +379,17 @@
                     }
 
                     const keyRes = await fetch('/notifications/push/vapid-key/');
+                    if (!keyRes.ok) {
+                        throw new Error(`Server returned HTTP ${keyRes.status}`);
+                    }
+                    const contentType = keyRes.headers.get('content-type') || '';
+                    if (!contentType.includes('application/json')) {
+                        throw new Error('Please log in to your account first.');
+                    }
                     const keyData = await keyRes.json();
+                    if (!keyData.public_key) {
+                        throw new Error('VAPID public key not configured');
+                    }
                     const applicationServerKey = this.urlBase64ToUint8Array(keyData.public_key);
 
                     const reg = await navigator.serviceWorker.ready;
@@ -399,6 +409,13 @@
                         body: JSON.stringify(sub)
                     });
 
+                    if (!res.ok) {
+                        throw new Error(`Server returned HTTP ${res.status}`);
+                    }
+                    const resContentType = res.headers.get('content-type') || '';
+                    if (!resContentType.includes('application/json')) {
+                        throw new Error('Session expired. Please log in again.');
+                    }
                     const data = await res.json();
                     if (data.success) {
                         this.updateUI(true);
@@ -448,6 +465,13 @@
                             'X-CSRFToken': csrfToken
                         }
                     });
+                    if (!res.ok) {
+                        throw new Error(`Server returned HTTP ${res.status}`);
+                    }
+                    const resContentType = res.headers.get('content-type') || '';
+                    if (!resContentType.includes('application/json')) {
+                        throw new Error('Session expired. Please log in again.');
+                    }
                     const data = await res.json();
                     if (data.sent_count > 0) {
                         alert('🚀 Test push notification sent! Check your phone lock screen / notification bar.');
