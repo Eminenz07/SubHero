@@ -447,7 +447,7 @@ CELERY_BEAT_SCHEDULE = {
 # =============================================================
 VAPID_PUBLIC_KEY = config(
     "VAPID_PUBLIC_KEY",
-    default="BO6S_h3T2gOpAiJThrfvRhdjdPPgcWGRtmwrQBwSucvaSdVrLO-Vn6_qFynzXRC7BDzyZz7cNtHNQLPySxTpSW8"
+    default="REDACTED_VAPID_PUBLIC_KEY"
 )
 VAPID_PRIVATE_KEY = config(
     "VAPID_PRIVATE_KEY",

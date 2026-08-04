@@ -85,8 +85,8 @@ def send_push_notification(user, title, body, action_url="/dashboard/", icon="/s
             logger.info(f"Successfully sent Web Push to user {user.phone_number} on endpoint {sub.endpoint[:30]}...")
         except WebPushException as ex:
             logger.warning(f"WebPushException for {user.phone_number}: {ex}")
-            # If endpoint is 404 or 410 (unregistered/expired), mark for deletion
-            if ex.response is not None and ex.response.status_code in [404, 410]:
+            # If endpoint is invalid, forbidden, unregistered or expired (400, 403, 404, 410), mark for deletion
+            if ex.response is not None and ex.response.status_code in [400, 403, 404, 410]:
                 expired_ids.append(sub.id)
         except Exception as ex:
             logger.error(f"Unexpected error sending push notification to {user.phone_number}: {ex}")
