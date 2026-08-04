@@ -333,6 +333,31 @@ def poll_smm_orders():
             logger.error("Failed to poll status for SMM Order %s: %s", order.provider_order_id, str(e))
 
 
+def fetch_smm_service_description(provider_service_id):
+    """
+    Fetches detailed service instructions, start time, min/max rules, and link examples
+    directly from Ogaviral's AJAX description endpoint and rebrands provider text to SubHero.
+    """
+    url = f"https://ogaviral.com/services/get-service-description/{provider_service_id}"
+    headers = {
+        "X-Requested-With": "XMLHttpRequest",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    }
+    try:
+        res = requests.get(url, headers=headers, timeout=10)
+        if res.status_code == 200:
+            data = res.json()
+            desc = data.get("description", "")
+            if desc:
+                # Rebrand provider references to SubHero
+                for old_brand in ["OgaViral", "Oga Viral", "Oga_Viral", "ogaviral", "oga viral", "OGAVIRAL", "OGA VIRAL"]:
+                    desc = desc.replace(old_brand, "SubHero")
+                return desc.strip()
+    except Exception as e:
+        logger.warning("Could not fetch description for SMM service %s: %s", provider_service_id, e)
+    return ""
+
+
 @shared_task
 def sync_smm_catalogue():
     """

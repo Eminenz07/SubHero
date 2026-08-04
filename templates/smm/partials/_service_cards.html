@@ -22,6 +22,14 @@
     <div class="smm-desc">
       Min limit: {{ service.provider_min }} | Max: {{ service.provider_max }}
     </div>
+    {% if service.description %}
+    <button type="button" class="mt-1.5 text-[11px] font-semibold text-brand-primary flex items-center gap-1 hover:underline cursor-pointer" onclick="event.stopPropagation(); const el = document.getElementById('desc-{{ service.id }}'); el.classList.toggle('hidden'); if (typeof feather !== 'undefined') feather.replace();">
+      <i data-feather="info" class="w-3.5 h-3.5"></i> View Details & Rules
+    </button>
+    <div id="desc-{{ service.id }}" class="hidden mt-2 p-3 bg-slate-900 text-slate-100 rounded-xl text-[11px] leading-relaxed whitespace-pre-line font-mono border-l-2 border-brand-primary shadow-inner">
+{{ service.description }}
+    </div>
+    {% endif %}
   </div>
   <div class="smm-price">₦{{ service.subhero_price_per_1k }}/1k</div>
 </div>

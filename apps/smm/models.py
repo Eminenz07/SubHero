@@ -26,6 +26,7 @@ class SMMService(models.Model):
         decimal_places=2,
         default=0.00
     )
+    description = models.TextField(blank=True, default="", help_text="Full service details, rules, and start time fetched from gateway")
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

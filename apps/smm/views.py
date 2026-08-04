@@ -315,9 +315,18 @@ class SmmServicesAjaxView(LoginRequiredMixin, View):
             is_active=True
         ).order_by("subhero_price_per_1k")
 
-        # Inject unit price into each service object for easy template consumption
+        # Inject unit price and fetch service description if missing
+        from apps.smm.tasks import fetch_smm_service_description
         for s in services:
             s.unit_price = s.subhero_price_per_1k / Decimal("1000.00")
+            if not s.description:
+                try:
+                    desc = fetch_smm_service_description(s.provider_service_id)
+                    if desc:
+                        s.description = desc
+                        s.save(update_fields=["description"])
+                except Exception:
+                    pass
 
         return render(request, self.template_name, {"services": services})
 
