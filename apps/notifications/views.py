@@ -1,3 +1,4 @@
+import logging
 import datetime
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views import View
@@ -5,6 +6,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.utils import timezone
 from django.http import HttpResponse, JsonResponse
 from .models import Notification
+
+logger = logging.getLogger(__name__)
 
 class NotificationListView(LoginRequiredMixin, View):
     """

@@ -7,6 +7,26 @@ from .models import PushSubscription, Notification
 logger = logging.getLogger(__name__)
 
 
+def get_vapid_object():
+    """
+    Parses VAPID_PRIVATE_KEY setting into a valid py_vapid Vapid object.
+    Supports PEM strings, raw base64, or file paths.
+    """
+    from py_vapid import Vapid
+    key_str = str(getattr(settings, "VAPID_PRIVATE_KEY", "")).strip()
+
+    if "\\n" in key_str:
+        key_str = key_str.replace("\\n", "\n")
+
+    if "BEGIN PRIVATE KEY" in key_str:
+        return Vapid.from_pem(key_str.encode("utf-8"))
+    
+    try:
+        return Vapid.from_string(private_key=key_str)
+    except Exception:
+        return Vapid.from_file(key_str)
+
+
 def send_push_notification(user, title, body, action_url="/dashboard/", icon="/static/img/icon-192.png", level="info"):
     """
     Sends a Web Push notification to all active devices/subscriptions of a user.
@@ -31,7 +51,12 @@ def send_push_notification(user, title, body, action_url="/dashboard/", icon="/s
         "url": action_url,
     })
 
-    vapid_private_key = settings.VAPID_PRIVATE_KEY
+    try:
+        vapid_key_obj = get_vapid_object()
+    except Exception as e:
+        logger.error(f"Failed to load VAPID private key: {e}")
+        return 0
+
     vapid_claims = {
         "sub": settings.VAPID_ADMIN_EMAIL,
     }
@@ -52,7 +77,7 @@ def send_push_notification(user, title, body, action_url="/dashboard/", icon="/s
             webpush(
                 subscription_info=subscription_info,
                 data=payload,
-                vapid_private_key=vapid_private_key,
+                vapid_private_key=vapid_key_obj,
                 vapid_claims=vapid_claims,
                 ttl=86400,  # 24 hours delivery TTL
             )
