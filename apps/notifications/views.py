@@ -1,3 +1,4 @@
+import json
 import logging
 import datetime
 from django.conf import settings
@@ -6,7 +7,8 @@ from django.views import View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.utils import timezone
 from django.http import HttpResponse, JsonResponse
-from .models import Notification
+from .models import Notification, PushSubscription
+from .services import send_push_notification
 
 logger = logging.getLogger(__name__)
 
