@@ -698,7 +698,140 @@
         max-width: 1080px;
     }
 
+    /* =============================================================
+       MOVING CHAIN OF SMM SERVICES (INFINITE MARQUEE)
+       ============================================================= */
+    .smm-chain-wrapper {
+        position: relative;
+        overflow: hidden;
+        padding: 3rem 0;
+        background: rgba(13, 19, 33, 0.4);
+        border-top: 1px solid var(--landing-border);
+        border-bottom: 1px solid var(--landing-border);
+        margin: 0 0 1rem;
+    }
 
+    .smm-chain-wrapper::before,
+    .smm-chain-wrapper::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 120px;
+        z-index: 5;
+        pointer-events: none;
+    }
+
+    .smm-chain-wrapper::before {
+        left: 0;
+        background: linear-gradient(to right, #060B14 20%, transparent);
+    }
+
+    .smm-chain-wrapper::after {
+        right: 0;
+        background: linear-gradient(to left, #060B14 20%, transparent);
+    }
+
+    .marquee-container {
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+    }
+
+    .marquee-row {
+        display: flex;
+        overflow: hidden;
+        user-select: none;
+        width: 100%;
+    }
+
+    .marquee-track {
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+        flex-shrink: 0;
+        will-change: transform;
+    }
+
+    .marquee-track--left {
+        animation: marquee-scroll-left 45s linear infinite;
+    }
+
+    .marquee-track--right {
+        animation: marquee-scroll-right 45s linear infinite;
+    }
+
+    .marquee-row:hover .marquee-track {
+        animation-play-state: paused;
+    }
+
+    @keyframes marquee-scroll-left {
+        0% { transform: translateX(0%); }
+        100% { transform: translateX(-50%); }
+    }
+
+    @keyframes marquee-scroll-right {
+        0% { transform: translateX(-50%); }
+        100% { transform: translateX(0%); }
+    }
+
+    .smm-service-card {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.85rem;
+        padding: 0.75rem 1.35rem;
+        background: var(--landing-surface);
+        border: 1px solid var(--landing-border);
+        border-radius: 100px;
+        white-space: nowrap;
+        text-decoration: none;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+    }
+
+    .smm-service-card:hover {
+        background: var(--landing-surface-hover);
+        border-color: var(--card-brand-color, var(--landing-accent));
+        transform: translateY(-3px) scale(1.03);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 0 20px var(--card-brand-glow, rgba(0, 196, 106, 0.25));
+    }
+
+    .smm-service-card__icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #FFFFFF;
+        flex-shrink: 0;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    .smm-service-card__icon svg,
+    .smm-service-card__icon i {
+        width: 18px;
+        height: 18px;
+    }
+
+    .smm-service-card__name {
+        font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--landing-text);
+        letter-spacing: -0.2px;
+    }
+
+    .smm-service-card__badge {
+        font-size: 10px;
+        font-weight: 700;
+        padding: 0.2rem 0.6rem;
+        border-radius: 100px;
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--landing-text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
 </style>
 
 <!-- ============================================================= -->
@@ -773,6 +906,453 @@
         </div>
     </div>
 </section>
+
+<!-- ============================================================= -->
+<!-- MOVING CHAIN OF SMM SERVICES (INFINITE MARQUEE)               -->
+<!-- ============================================================= -->
+<div class="smm-chain-wrapper" id="smm-chain">
+    <div class="text-center mb-6 px-4">
+        <div class="section-label justify-center" style="margin-bottom: 0.35rem;">
+            <i data-feather="trending-up" style="width:14px;height:14px;"></i>
+            SMM Growth Ecosystem
+        </div>
+        <h3 class="text-xs font-bold uppercase tracking-[2.5px] text-slate-400">
+            26+ Global Platforms Supported for Instant Boost
+        </h3>
+    </div>
+
+    <div class="marquee-container">
+        <!-- Row 1: Leftward Infinite Chain -->
+        <div class="marquee-row">
+            <div class="marquee-track marquee-track--left">
+                <!-- Track 1 Items -->
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #E1306C; --card-brand-glow: rgba(225, 48, 108, 0.25);">
+                    <div class="smm-service-card__icon" style="background: linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);">
+                        <i data-feather="instagram"></i>
+                    </div>
+                    <span class="smm-service-card__name">Instagram</span>
+                    <span class="smm-service-card__badge">Followers & Likes</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #00F2FE; --card-brand-glow: rgba(0, 242, 254, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #000000; border: 1px solid #00F2FE;">
+                        <i data-feather="video"></i>
+                    </div>
+                    <span class="smm-service-card__name">TikTok</span>
+                    <span class="smm-service-card__badge">Views & Fans</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #FF0000; --card-brand-glow: rgba(255, 0, 0, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #FF0000;">
+                        <i data-feather="youtube"></i>
+                    </div>
+                    <span class="smm-service-card__name">YouTube</span>
+                    <span class="smm-service-card__badge">Subs & Watchtime</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #1DA1F2; --card-brand-glow: rgba(29, 161, 242, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #1DA1F2;">
+                        <i data-feather="twitter"></i>
+                    </div>
+                    <span class="smm-service-card__name">Twitter / X</span>
+                    <span class="smm-service-card__badge">Retweets & Likes</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #0088cc; --card-brand-glow: rgba(0, 136, 204, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #0088cc;">
+                        <i data-feather="send"></i>
+                    </div>
+                    <span class="smm-service-card__name">Telegram</span>
+                    <span class="smm-service-card__badge">Members & Views</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #1DB954; --card-brand-glow: rgba(29, 185, 84, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #1DB954;">
+                        <i data-feather="music"></i>
+                    </div>
+                    <span class="smm-service-card__name">Spotify</span>
+                    <span class="smm-service-card__badge">Streams & Playlist</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #1877F2; --card-brand-glow: rgba(24, 119, 242, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #1877F2;">
+                        <i data-feather="facebook"></i>
+                    </div>
+                    <span class="smm-service-card__name">Facebook</span>
+                    <span class="smm-service-card__badge">Page Likes & Followers</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #25D366; --card-brand-glow: rgba(37, 211, 102, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #25D366;">
+                        <i data-feather="message-circle"></i>
+                    </div>
+                    <span class="smm-service-card__name">WhatsApp</span>
+                    <span class="smm-service-card__badge">Channel Members</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #FFFFFF; --card-brand-glow: rgba(255, 255, 255, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #000000; border: 1px solid rgba(255,255,255,0.2);">
+                        <i data-feather="at-sign"></i>
+                    </div>
+                    <span class="smm-service-card__name">Threads</span>
+                    <span class="smm-service-card__badge">Followers & Likes</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #FF4500; --card-brand-glow: rgba(255, 69, 0, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #FF4500;">
+                        <i data-feather="disc"></i>
+                    </div>
+                    <span class="smm-service-card__name">Reddit</span>
+                    <span class="smm-service-card__badge">Upvotes & Karma</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #0A66C2; --card-brand-glow: rgba(10, 102, 194, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #0A66C2;">
+                        <i data-feather="linkedin"></i>
+                    </div>
+                    <span class="smm-service-card__name">LinkedIn</span>
+                    <span class="smm-service-card__badge">Connections & Post Likes</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #00C3FF; --card-brand-glow: rgba(0, 195, 255, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #00C3FF;">
+                        <i data-feather="headphones"></i>
+                    </div>
+                    <span class="smm-service-card__name">Boomplay</span>
+                    <span class="smm-service-card__badge">Streams & Favorites</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #FFA200; --card-brand-glow: rgba(255, 162, 0, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #FFA200;">
+                        <i data-feather="radio"></i>
+                    </div>
+                    <span class="smm-service-card__name">Audiomack</span>
+                    <span class="smm-service-card__badge">Plays & Reposts</span>
+                </a>
+
+                <!-- Duplicate for Seamless Infinite Loop -->
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #E1306C; --card-brand-glow: rgba(225, 48, 108, 0.25);">
+                    <div class="smm-service-card__icon" style="background: linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);">
+                        <i data-feather="instagram"></i>
+                    </div>
+                    <span class="smm-service-card__name">Instagram</span>
+                    <span class="smm-service-card__badge">Followers & Likes</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #00F2FE; --card-brand-glow: rgba(0, 242, 254, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #000000; border: 1px solid #00F2FE;">
+                        <i data-feather="video"></i>
+                    </div>
+                    <span class="smm-service-card__name">TikTok</span>
+                    <span class="smm-service-card__badge">Views & Fans</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #FF0000; --card-brand-glow: rgba(255, 0, 0, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #FF0000;">
+                        <i data-feather="youtube"></i>
+                    </div>
+                    <span class="smm-service-card__name">YouTube</span>
+                    <span class="smm-service-card__badge">Subs & Watchtime</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #1DA1F2; --card-brand-glow: rgba(29, 161, 242, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #1DA1F2;">
+                        <i data-feather="twitter"></i>
+                    </div>
+                    <span class="smm-service-card__name">Twitter / X</span>
+                    <span class="smm-service-card__badge">Retweets & Likes</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #0088cc; --card-brand-glow: rgba(0, 136, 204, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #0088cc;">
+                        <i data-feather="send"></i>
+                    </div>
+                    <span class="smm-service-card__name">Telegram</span>
+                    <span class="smm-service-card__badge">Members & Views</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #1DB954; --card-brand-glow: rgba(29, 185, 84, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #1DB954;">
+                        <i data-feather="music"></i>
+                    </div>
+                    <span class="smm-service-card__name">Spotify</span>
+                    <span class="smm-service-card__badge">Streams & Playlist</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #1877F2; --card-brand-glow: rgba(24, 119, 242, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #1877F2;">
+                        <i data-feather="facebook"></i>
+                    </div>
+                    <span class="smm-service-card__name">Facebook</span>
+                    <span class="smm-service-card__badge">Page Likes & Followers</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #25D366; --card-brand-glow: rgba(37, 211, 102, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #25D366;">
+                        <i data-feather="message-circle"></i>
+                    </div>
+                    <span class="smm-service-card__name">WhatsApp</span>
+                    <span class="smm-service-card__badge">Channel Members</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #FFFFFF; --card-brand-glow: rgba(255, 255, 255, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #000000; border: 1px solid rgba(255,255,255,0.2);">
+                        <i data-feather="at-sign"></i>
+                    </div>
+                    <span class="smm-service-card__name">Threads</span>
+                    <span class="smm-service-card__badge">Followers & Likes</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #FF4500; --card-brand-glow: rgba(255, 69, 0, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #FF4500;">
+                        <i data-feather="disc"></i>
+                    </div>
+                    <span class="smm-service-card__name">Reddit</span>
+                    <span class="smm-service-card__badge">Upvotes & Karma</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #0A66C2; --card-brand-glow: rgba(10, 102, 194, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #0A66C2;">
+                        <i data-feather="linkedin"></i>
+                    </div>
+                    <span class="smm-service-card__name">LinkedIn</span>
+                    <span class="smm-service-card__badge">Connections & Post Likes</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #00C3FF; --card-brand-glow: rgba(0, 195, 255, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #00C3FF;">
+                        <i data-feather="headphones"></i>
+                    </div>
+                    <span class="smm-service-card__name">Boomplay</span>
+                    <span class="smm-service-card__badge">Streams & Favorites</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #FFA200; --card-brand-glow: rgba(255, 162, 0, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #FFA200;">
+                        <i data-feather="radio"></i>
+                    </div>
+                    <span class="smm-service-card__name">Audiomack</span>
+                    <span class="smm-service-card__badge">Plays & Reposts</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Row 2: Rightward Infinite Chain -->
+        <div class="marquee-row">
+            <div class="marquee-track marquee-track--right">
+                <!-- Track 2 Items -->
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #FA243C; --card-brand-glow: rgba(250, 36, 60, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #FA243C;">
+                        <i data-feather="music"></i>
+                    </div>
+                    <span class="smm-service-card__name">Apple Music</span>
+                    <span class="smm-service-card__badge">Streams & Library</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #5865F2; --card-brand-glow: rgba(88, 101, 242, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #5865F2;">
+                        <i data-feather="message-square"></i>
+                    </div>
+                    <span class="smm-service-card__name">Discord</span>
+                    <span class="smm-service-card__badge">Server Members & Boosts</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #A238FF; --card-brand-glow: rgba(162, 56, 255, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #A238FF;">
+                        <i data-feather="volume-2"></i>
+                    </div>
+                    <span class="smm-service-card__name">Deezer</span>
+                    <span class="smm-service-card__badge">Fans & Streams</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #9146FF; --card-brand-glow: rgba(145, 70, 255, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #9146FF;">
+                        <i data-feather="tv"></i>
+                    </div>
+                    <span class="smm-service-card__name">Twitch</span>
+                    <span class="smm-service-card__badge">Live Viewers & Followers</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #B92B27; --card-brand-glow: rgba(185, 43, 39, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #B92B27;">
+                        <i data-feather="help-circle"></i>
+                    </div>
+                    <span class="smm-service-card__name">Quora</span>
+                    <span class="smm-service-card__badge">Answers & Upvotes</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #F0F6FC; --card-brand-glow: rgba(240, 246, 252, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #24292E;">
+                        <i data-feather="github"></i>
+                    </div>
+                    <span class="smm-service-card__name">GitHub</span>
+                    <span class="smm-service-card__badge">Stars & Forks</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #53FC18; --card-brand-glow: rgba(83, 252, 24, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #000000; border: 1px solid #53FC18; color: #53FC18;">
+                        <i data-feather="play-circle"></i>
+                    </div>
+                    <span class="smm-service-card__name">Kick.com</span>
+                    <span class="smm-service-card__badge">Live Viewers & Chatters</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #5000FF; --card-brand-glow: rgba(80, 0, 255, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #5000FF;">
+                        <i data-feather="cloud"></i>
+                    </div>
+                    <span class="smm-service-card__name">Mixcloud</span>
+                    <span class="smm-service-card__badge">Listeners & Plays</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #FF6600; --card-brand-glow: rgba(255, 102, 0, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #FF6600;">
+                        <i data-feather="download"></i>
+                    </div>
+                    <span class="smm-service-card__name">Turbobit</span>
+                    <span class="smm-service-card__badge">File Downloads</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #00C46A; --card-brand-glow: rgba(0, 196, 106, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #00C46A;">
+                        <i data-feather="globe"></i>
+                    </div>
+                    <span class="smm-service-card__name">Website Traffic</span>
+                    <span class="smm-service-card__badge">Real Web Visits</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #0088FF; --card-brand-glow: rgba(0, 136, 255, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #0088FF;">
+                        <i data-feather="zap"></i>
+                    </div>
+                    <span class="smm-service-card__name">Shazam</span>
+                    <span class="smm-service-card__badge">Track Tags & Streams</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #E0E0E0; --card-brand-glow: rgba(224, 224, 224, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #000000; border: 1px solid #E0E0E0;">
+                        <i data-feather="box"></i>
+                    </div>
+                    <span class="smm-service-card__name">Roblox</span>
+                    <span class="smm-service-card__badge">Game Visits & Favorites</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #66C0F4; --card-brand-glow: rgba(102, 192, 244, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #171A21;">
+                        <i data-feather="gamepad"></i>
+                    </div>
+                    <span class="smm-service-card__name">Steam</span>
+                    <span class="smm-service-card__badge">Wishlists & Reviews</span>
+                </a>
+
+                <!-- Duplicate for Seamless Infinite Loop -->
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #FA243C; --card-brand-glow: rgba(250, 36, 60, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #FA243C;">
+                        <i data-feather="music"></i>
+                    </div>
+                    <span class="smm-service-card__name">Apple Music</span>
+                    <span class="smm-service-card__badge">Streams & Library</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #5865F2; --card-brand-glow: rgba(88, 101, 242, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #5865F2;">
+                        <i data-feather="message-square"></i>
+                    </div>
+                    <span class="smm-service-card__name">Discord</span>
+                    <span class="smm-service-card__badge">Server Members & Boosts</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #A238FF; --card-brand-glow: rgba(162, 56, 255, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #A238FF;">
+                        <i data-feather="volume-2"></i>
+                    </div>
+                    <span class="smm-service-card__name">Deezer</span>
+                    <span class="smm-service-card__badge">Fans & Streams</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #9146FF; --card-brand-glow: rgba(145, 70, 255, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #9146FF;">
+                        <i data-feather="tv"></i>
+                    </div>
+                    <span class="smm-service-card__name">Twitch</span>
+                    <span class="smm-service-card__badge">Live Viewers & Followers</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #B92B27; --card-brand-glow: rgba(185, 43, 39, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #B92B27;">
+                        <i data-feather="help-circle"></i>
+                    </div>
+                    <span class="smm-service-card__name">Quora</span>
+                    <span class="smm-service-card__badge">Answers & Upvotes</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #F0F6FC; --card-brand-glow: rgba(240, 246, 252, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #24292E;">
+                        <i data-feather="github"></i>
+                    </div>
+                    <span class="smm-service-card__name">GitHub</span>
+                    <span class="smm-service-card__badge">Stars & Forks</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #53FC18; --card-brand-glow: rgba(83, 252, 24, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #000000; border: 1px solid #53FC18; color: #53FC18;">
+                        <i data-feather="play-circle"></i>
+                    </div>
+                    <span class="smm-service-card__name">Kick.com</span>
+                    <span class="smm-service-card__badge">Live Viewers & Chatters</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #5000FF; --card-brand-glow: rgba(80, 0, 255, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #5000FF;">
+                        <i data-feather="cloud"></i>
+                    </div>
+                    <span class="smm-service-card__name">Mixcloud</span>
+                    <span class="smm-service-card__badge">Listeners & Plays</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #FF6600; --card-brand-glow: rgba(255, 102, 0, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #FF6600;">
+                        <i data-feather="download"></i>
+                    </div>
+                    <span class="smm-service-card__name">Turbobit</span>
+                    <span class="smm-service-card__badge">File Downloads</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #00C46A; --card-brand-glow: rgba(0, 196, 106, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #00C46A;">
+                        <i data-feather="globe"></i>
+                    </div>
+                    <span class="smm-service-card__name">Website Traffic</span>
+                    <span class="smm-service-card__badge">Real Web Visits</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #0088FF; --card-brand-glow: rgba(0, 136, 255, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #0088FF;">
+                        <i data-feather="zap"></i>
+                    </div>
+                    <span class="smm-service-card__name">Shazam</span>
+                    <span class="smm-service-card__badge">Track Tags & Streams</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #E0E0E0; --card-brand-glow: rgba(224, 224, 224, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #000000; border: 1px solid #E0E0E0;">
+                        <i data-feather="box"></i>
+                    </div>
+                    <span class="smm-service-card__name">Roblox</span>
+                    <span class="smm-service-card__badge">Game Visits & Favorites</span>
+                </a>
+
+                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #66C0F4; --card-brand-glow: rgba(102, 192, 244, 0.25);">
+                    <div class="smm-service-card__icon" style="background: #171A21;">
+                        <i data-feather="gamepad"></i>
+                    </div>
+                    <span class="smm-service-card__name">Steam</span>
+                    <span class="smm-service-card__badge">Wishlists & Reviews</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
 
 <hr class="section-divider">
 
