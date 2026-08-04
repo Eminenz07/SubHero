@@ -32,7 +32,14 @@ class NotificationListView(LoginRequiredMixin, View):
         }
         
         for n in notifications:
-            created_date = timezone.localtime(n.created_at).date()
+            if not n.created_at:
+                categorized["earlier"].append(n)
+                continue
+            try:
+                created_date = timezone.localtime(n.created_at).date()
+            except Exception:
+                created_date = n.created_at.date() if hasattr(n.created_at, "date") else today
+
             if created_date == today:
                 categorized["today"].append(n)
             elif created_date == yesterday:

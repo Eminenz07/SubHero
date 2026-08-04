@@ -19,7 +19,7 @@ class PinSetupMiddleware:
         "/auth/",
         "/static/",
         "/media/",
-        "/notifications/push/",
+        "/notifications/",
     ]
 
     def __init__(self, get_response):
