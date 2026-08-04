@@ -268,11 +268,11 @@ if REDIS_URL.startswith("rediss://"):
 # =============================================================
 # TERMII — SMS / OTP (PRD Section 10)
 # =============================================================
-TERMII_API_KEY = config("TERMII_API_KEY", default="")
+TERMII_API_KEY = config("TERMII_API_KEY", default="REDACTED_TERMII_KEY")
 TERMII_SECRET_KEY = config("TERMII_SECRET_KEY", default="")
 TERMII_SENDER_ID = config("TERMII_SENDER_ID", default="SubHero")
-TERMII_MOCK = config("TERMII_MOCK", default=True, cast=bool)
-TERMII_BASE_URL = "https://api.ng.termii.com/api"
+TERMII_MOCK = config("TERMII_MOCK", default=False, cast=bool)
+TERMII_BASE_URL = config("TERMII_BASE_URL", default="https://v4.api.termii.com/api")
 
 # OTP settings
 OTP_LENGTH = 6

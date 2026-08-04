@@ -77,11 +77,16 @@ def send_otp(phone_number):
         print(f"{'='*50}\n")
         return True
 
+    # Standardize phone number for Termii (e.g. +2349073601282 or 09073601282 -> 2349073601282)
+    formatted_phone = phone_number.strip().replace("+", "")
+    if formatted_phone.startswith("0"):
+        formatted_phone = "234" + formatted_phone[1:]
+
     # Real Termii API call
     try:
         payload = {
-            "to": phone_number,
-            "from": settings.TERMII_SENDER_ID,
+            "to": formatted_phone,
+            "from": settings.TERMII_SENDER_ID or "SubHero",
             "sms": f"Your SubHero verification code is: {otp}. Valid for {settings.OTP_EXPIRY_SECONDS // 60} minutes.",
             "type": "plain",
             "channel": "generic",

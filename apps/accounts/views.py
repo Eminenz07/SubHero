@@ -83,39 +83,20 @@ class RegisterView(View):
                 email=form.cleaned_data["email"],
                 password=form.cleaned_data["password"],
                 full_name=form.cleaned_data["full_name"],
-                is_verified=True,  # OTP temporarily suspended for testing
+                is_verified=False,  # Requires OTP verification via Termii SMS
                 is_active=True,
             )
 
-            # Auto-login after verification
-            login(request, user, backend="apps.accounts.backends.PhoneAuthBackend")
-            request.session.cycle_key()
+            # Send SMS OTP via Termii
+            from apps.core.utils import send_otp
+            send_otp(user.phone_number)
 
-            # Auto-create wallet + virtual account (PRD Section 6.1.1)
-            try:
-                from apps.wallet.services import create_wallet
-                create_wallet(user)
-            except Exception as e:
-                logger.error(
-                    "Wallet creation failed during registration: user=%s, error=%s",
-                    user.id, str(e),
-                )
+            request.session["otp_phone"] = user.phone_number
+            request.session["otp_purpose"] = "registration"
 
-            # Welcome notification
-            try:
-                from apps.notifications.models import Notification
-                Notification.add(
-                    user,
-                    "Welcome to SubHero!",
-                    f"Hi {user.full_name}, your account has been successfully verified. Fund your wallet to start purchasing VTU and SMM services!",
-                    level="success"
-                )
-            except Exception as ex:
-                logger.error("Welcome notification creation failed: %s", str(ex))
-
-            logger.info("Registration auto-verified (OTP suspended): phone=%s", user.phone_number)
-            messages.success(request, "Registration successful! Please set your transaction PIN.")
-            return redirect("accounts:set_pin")
+            logger.info("Registration initiated, OTP sent via Termii SMS: phone=%s", user.phone_number)
+            messages.success(request, "Account created! We've sent a 6-digit OTP code to your phone number via SMS.")
+            return redirect("accounts:verify_otp")
 
         return render(request, self.template_name, {"form": form})
 
@@ -197,15 +178,14 @@ class LoginView(View):
             messages.error(request, "Invalid credentials. Please try again.")
             return render(request, self.template_name, {"form": form})
 
-        # Auto-verify existing accounts temporarily for developer testing
+        # Require OTP verification if account is unverified
         if not user.is_verified:
-            user.is_verified = True
-            user.save(update_fields=["is_verified"])
-            try:
-                from apps.wallet.services import create_wallet
-                create_wallet(user)
-            except Exception as e:
-                logger.error("Wallet auto-creation failed for login: %s", str(e))
+            from apps.core.utils import send_otp
+            send_otp(user.phone_number)
+            request.session["otp_phone"] = user.phone_number
+            request.session["otp_purpose"] = "registration"
+            messages.info(request, "Your account is not yet verified. We've sent a 6-digit OTP code to your phone via SMS.")
+            return redirect("accounts:verify_otp")
 
         # Successful login
         # Reset failed attempts
