@@ -22,7 +22,7 @@ def send_transaction_sms(self, phone_number, message):
     if formatted_phone.startswith("0"):
         formatted_phone = "234" + formatted_phone[1:]
 
-    url = f"{settings.TERMII_BASE_URL}/sms/send"
+    url = f"{settings.TERMII_BASE_URL}/sms/send?api_key={settings.TERMII_API_KEY}"
     payload = {
         "api_key": settings.TERMII_API_KEY,
         "to": formatted_phone,

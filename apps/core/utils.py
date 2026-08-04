@@ -84,6 +84,7 @@ def send_otp(phone_number):
 
     # Real Termii API call
     try:
+        url = f"{settings.TERMII_BASE_URL}/sms/send?api_key={settings.TERMII_API_KEY}"
         payload = {
             "to": formatted_phone,
             "from": settings.TERMII_SENDER_ID or "SubHero",
@@ -92,11 +93,7 @@ def send_otp(phone_number):
             "channel": "generic",
             "api_key": settings.TERMII_API_KEY,
         }
-        response = requests.post(
-            f"{settings.TERMII_BASE_URL}/sms/send",
-            json=payload,
-            timeout=10,
-        )
+        response = requests.post(url, json=payload, timeout=10)
         if response.status_code == 200:
             logger.info("OTP sent to %s via Termii", phone_number)
             return True
