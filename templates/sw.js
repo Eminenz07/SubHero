@@ -32,8 +32,8 @@ self.addEventListener('push', (event) => {
     const title = data.title || 'SubHero Notification';
     const options = {
         body: data.body || '',
-        icon: data.icon || '/static/images/icon-192.png',
-        badge: '/static/images/icon-192.png',
+        icon: data.icon || '/static/img/sh-logo.png',
+        badge: '/static/img/sh-logo.png',
         vibrate: [100, 50, 100],
         data: {
             url: data.url || '/dashboard/'
