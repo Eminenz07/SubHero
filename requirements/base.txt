@@ -14,4 +14,4 @@ dj-database-url>=2.1,<3.0
 qrcode[pil]
 pywebpush>=2.0.0
 http-ece>=1.1.0
-py-vapid>=2.0.0
+py-vapid>=1.9.0
