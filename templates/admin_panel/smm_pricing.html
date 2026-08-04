@@ -12,6 +12,24 @@
 {% block admin_content %}
 <div class="flex flex-col gap-8">
     
+    <!-- Description Sync Banner -->
+    <div id="desc-sync-result"></div>
+    <div class="flex items-center justify-between bg-slate-900/60 p-4 rounded-xl border border-white/[0.06]">
+        <div>
+            <h4 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                <span>Service Descriptions Auto-Sync</span>
+                <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-950/60 text-emerald-400 font-mono">AUTOMATED</span>
+            </h4>
+            <p class="text-[11px] text-slate-400">Fetch detailed rules, start times, drop rates, and link examples from Ogaviral gateway.</p>
+        </div>
+        <form hx-post="{% url 'admin_panel:sync_smm_descriptions_admin' %}" hx-target="#desc-sync-result">
+            {% csrf_token %}
+            <button type="submit" class="px-4 py-2 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition-colors flex items-center gap-1.5 cursor-pointer">
+                <i data-feather="refresh-cw" class="w-3.5 h-3.5"></i> Sync Descriptions Now
+            </button>
+        </form>
+    </div>
+
     <!-- SMM Categories Accordion / Filter System -->
     <div class="space-y-6">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">

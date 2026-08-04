@@ -724,6 +724,21 @@ def update_exchange_rate(request):
     return HttpResponse("Invalid request", status=400)
 
 
+@admin_required
+def sync_smm_descriptions_admin(request):
+    """
+    Admin tool to trigger multithreaded sync of all SMM service descriptions.
+    """
+    if request.method == "POST":
+        from apps.smm.tasks import sync_all_smm_descriptions
+        try:
+            count = sync_all_smm_descriptions(force_refresh=False)
+            return HttpResponse(f'<div class="bg-emerald-950/40 text-emerald-400 border border-emerald-900/30 p-3 rounded-lg text-xs font-semibold">Description sync complete! Verified/updated service descriptions in database.</div>')
+        except Exception as e:
+            return HttpResponse(f'<div class="bg-red-950/40 text-red-400 border border-red-900/30 p-3 rounded-lg text-xs font-semibold">Description sync failed: {str(e)}</div>')
+    return HttpResponse("Invalid request", status=400)
+
+
 # ─────────────────────────────────────────────────────────────
 # ORDER MANAGEMENT VIEWS
 # ─────────────────────────────────────────────────────────────

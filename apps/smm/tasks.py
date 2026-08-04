@@ -359,6 +359,47 @@ def fetch_smm_service_description(provider_service_id):
 
 
 @shared_task
+def sync_all_smm_descriptions(force_refresh=False):
+    """
+    Multithreaded fetch of detailed service descriptions from Ogaviral.
+    Populates the 'description' field for all active SMMService records.
+    """
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    logger.info("Starting multithreaded SMM service descriptions sync...")
+    if force_refresh:
+        qs = SMMService.objects.filter(is_active=True)
+    else:
+        qs = SMMService.objects.filter(is_active=True, description="")
+
+    services = list(qs)
+    if not services:
+        logger.info("No SMM services require description fetching.")
+        return 0
+
+    updated_count = 0
+
+    def _fetch_and_update(service):
+        desc = fetch_smm_service_description(service.provider_service_id)
+        if desc:
+            service.description = desc
+            service.save(update_fields=["description"])
+            return True
+        return False
+
+    with ThreadPoolExecutor(max_workers=15) as executor:
+        futures = {executor.submit(_fetch_and_update, s): s for s in services}
+        for future in as_completed(futures):
+            try:
+                if future.result():
+                    updated_count += 1
+            except Exception as e:
+                logger.warning("Error in description worker: %s", e)
+
+    logger.info("Successfully synced %d SMM service descriptions.", updated_count)
+    return updated_count
+
+
+@shared_task
 def sync_smm_catalogue():
     """
     Synchronizes active social booster services. Applied daily at 3:00 AM (Celery Beat).
@@ -474,5 +515,7 @@ def sync_smm_catalogue():
             )
             count += 1
         logger.info("SMM catalogue synced successfully via Ogaviral booster gateway. Mapped and updated %d services.", count)
+        # Automatically trigger multithreaded description fetching for any missing descriptions
+        sync_all_smm_descriptions.delay()
     except Exception as e:
         logger.error("Failed to sync SMM catalogue from booster gateway: %s", str(e))
