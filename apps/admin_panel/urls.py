@@ -43,6 +43,7 @@ urlpatterns = [
     # API Wallet Monitor
     path("api-wallets/", views.api_wallets, name="api_wallets"),
     path("api-wallets/test-alert/", views.test_alert_email, name="test_alert_email"),
+    path("api-wallets/dispatch-push/", views.dispatch_admin_push, name="dispatch_admin_push"),
 
     # Live Logs
     path("logs/", views.logs_console, name="logs"),

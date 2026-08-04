@@ -1041,6 +1041,40 @@ def test_alert_email(request):
     return HttpResponse("Invalid request", status=400)
 
 
+@admin_required
+def dispatch_admin_push(request):
+    """
+    Admin tool to dispatch PWA push notifications to all users (broadcast) or a targeted phone number.
+    """
+    if request.method == "POST":
+        target = request.POST.get("target", "all").strip()
+        phone = request.POST.get("phone_number", "").strip()
+        title = request.POST.get("title", "🚀 SubHero Update").strip()
+        body = request.POST.get("body", "").strip()
+        action_url = request.POST.get("action_url", "/dashboard/").strip()
+
+        if not body:
+            return HttpResponse('<div class="bg-red-950/40 text-red-400 border border-red-900/30 p-3 rounded-lg text-xs font-semibold">Message body cannot be empty.</div>')
+
+        from apps.notifications.services import send_push_notification, broadcast_push_notification
+        from apps.accounts.models import User
+
+        try:
+            if target == "specific" and phone:
+                user = User.objects.filter(phone_number__icontains=phone).first()
+                if not user:
+                    return HttpResponse(f'<div class="bg-red-950/40 text-red-400 border border-red-900/30 p-3 rounded-lg text-xs font-semibold">User with phone matching "{phone}" not found.</div>')
+                sent = send_push_notification(user, title, body, action_url=action_url, level="info")
+                return HttpResponse(f'<div class="bg-emerald-950/40 text-emerald-400 border border-emerald-900/30 p-3 rounded-lg text-xs font-semibold">Targeted push sent to {user.phone_number}! Delivered to {sent} active device subscription(s).</div>')
+            else:
+                sent = broadcast_push_notification(title, body, action_url=action_url)
+                return HttpResponse(f'<div class="bg-emerald-950/40 text-emerald-400 border border-emerald-900/30 p-3 rounded-lg text-xs font-semibold">Broadcast push dispatched to all users! Delivered to {sent} active device subscription(s).</div>')
+        except Exception as e:
+            return HttpResponse(f'<div class="bg-red-950/40 text-red-400 border border-red-900/30 p-3 rounded-lg text-xs font-semibold">Push dispatch failed: {str(e)}</div>')
+
+    return HttpResponse("Invalid request", status=400)
+
+
 # ─────────────────────────────────────────────────────────────
 # LIVE SYSTEM LOGS
 # ─────────────────────────────────────────────────────────────

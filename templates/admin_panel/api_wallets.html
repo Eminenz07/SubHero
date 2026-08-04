@@ -67,7 +67,7 @@
             </form>
         </div>
 
-        <!-- Dispatch Test Alert -->
+        <!-- Dispatch Test Alert Email -->
         <div class="admin-card p-6">
             <h3 class="text-md font-bold text-white mb-4 uppercase tracking-wider border-b border-white/[0.06] pb-2">Operational Diagnostics</h3>
             <p class="text-xs text-slate-400 mb-4">Validate system outbound notification pipeline by sending a test alert to the email configured above.</p>
@@ -79,6 +79,52 @@
                 </button>
             </form>
             <div id="test-alert-result" class="mt-4"></div>
+        </div>
+
+        <!-- Dispatch Admin PWA Push Notification -->
+        <div class="admin-card p-6">
+            <h3 class="text-md font-bold text-white mb-4 uppercase tracking-wider border-b border-white/[0.06] pb-2 flex items-center justify-between">
+                <span>PWA Push Dispatcher</span>
+                <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-950/60 text-emerald-400 font-mono border border-emerald-800/40">HQ TOOL</span>
+            </h3>
+            <p class="text-xs text-slate-400 mb-4">Send instant mobile PWA push notifications to all users or a targeted user account.</p>
+            
+            <form hx-post="{% url 'admin_panel:dispatch_admin_push' %}" hx-target="#admin-push-result" class="space-y-4 text-xs font-semibold">
+                {% csrf_token %}
+                
+                <div>
+                    <label class="block text-slate-400 uppercase mb-1.5">Target Audience</label>
+                    <select name="target" onchange="document.getElementById('target-phone-wrapper').style.display = this.value === 'specific' ? 'block' : 'none';" class="w-full px-3 py-2 bg-slate-900 border border-white/[0.06] rounded-lg text-white font-medium">
+                        <option value="all">📢 All Users (Broadcast)</option>
+                        <option value="specific">📱 Specific Account (Search Phone)</option>
+                    </select>
+                </div>
+
+                <div id="target-phone-wrapper" style="display: none;">
+                    <label class="block text-slate-400 uppercase mb-1.5">Target Phone Number</label>
+                    <input type="text" name="phone_number" placeholder="e.g. 08012345678" class="w-full px-3 py-2 bg-slate-900 border border-white/[0.06] rounded-lg text-white font-mono">
+                </div>
+
+                <div>
+                    <label class="block text-slate-400 uppercase mb-1.5">Push Title</label>
+                    <input type="text" name="title" value="🚀 SubHero Update" required class="w-full px-3 py-2 bg-slate-900 border border-white/[0.06] rounded-lg text-white font-medium">
+                </div>
+
+                <div>
+                    <label class="block text-slate-400 uppercase mb-1.5">Push Message Body</label>
+                    <textarea name="body" rows="2" placeholder="Enter notification message text..." required class="w-full px-3 py-2 bg-slate-900 border border-white/[0.06] rounded-lg text-white font-medium"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-slate-400 uppercase mb-1.5">Action URL</label>
+                    <input type="text" name="action_url" value="/dashboard/" class="w-full px-3 py-2 bg-slate-900 border border-white/[0.06] rounded-lg text-white font-mono">
+                </div>
+
+                <button type="submit" class="w-full py-2.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors flex items-center justify-center gap-2">
+                    <i data-feather="send" class="w-3.5 h-3.5"></i> Dispatch PWA Push Notification
+                </button>
+            </form>
+            <div id="admin-push-result" class="mt-4"></div>
         </div>
 
     </div>
