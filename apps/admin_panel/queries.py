@@ -521,9 +521,16 @@ class AnalyticsQueries:
     """Wrapper class supporting the legacy dashboard view imports."""
     
     @staticmethod
-    def get_dashboard_stats(days=30) -> AnalyticsData:
-        start_date = now().date() - timedelta(days=days)
+    def get_dashboard_stats(days=None) -> AnalyticsData:
         end_date = now().date()
+        if days is None or days == 0:
+            start_date = CUTOFF_DATE.date()
+            chart_days = 30
+            chart_start = end_date - timedelta(days=chart_days)
+        else:
+            start_date = end_date - timedelta(days=days)
+            chart_days = days
+            chart_start = start_date
         
         user_stats = get_user_stats(start_date, end_date)
         wallet_bal = get_total_wallet_balance()
@@ -532,17 +539,15 @@ class AnalyticsQueries:
         giveaway = get_giveaway_stats(start_date, end_date)
         txn = get_transaction_stats(start_date, end_date)
 
-        # Legacy timeseries chart format
-        # Legacy dashboard code expects list of Dicts with {'x': label, 'y': value}
-        rev_chart_data = get_revenue_chart_data(start_date, end_date)
+        # Timeseries chart format for chart_days
+        rev_chart_data = get_revenue_chart_data(chart_start, end_date)
         revenue_chart = []
         profit_chart = []
         deposits_chart = []
 
-        # Populate legacy list mapping
-        for i in range(days):
-            day_start = start_date + timedelta(days=i)
-            # Find in rev_chart_data
+        # Populate chart list mapping
+        for i in range(chart_days):
+            day_start = chart_start + timedelta(days=i)
             matching = next((item for item in rev_chart_data if item["day"] == day_start), None)
             label = day_start.strftime("%b %d")
             
@@ -553,7 +558,6 @@ class AnalyticsQueries:
                 revenue_chart.append({"x": label, "y": 0.0})
                 profit_chart.append({"x": label, "y": 0.0})
             
-            # Simple daily deposits calculation for legacy chart
             s_dt = datetime.combine(day_start, datetime.min.time(), tzinfo=timezone.utc)
             e_dt = datetime.combine(day_start, datetime.max.time(), tzinfo=timezone.utc)
             dep_vol = WalletTransaction.objects.filter(

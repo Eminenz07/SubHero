@@ -126,9 +126,9 @@ def fetch_ogaviral_balance():
 def dashboard(request):
     User = get_user_model()
     
-    # Use cached analytics structure (could cache the output in Redis here if traffic is high)
+    # Use cached analytics structure (All-Time cumulative totals for revenue & profit)
     from apps.admin_panel.queries import AnalyticsQueries
-    stats = AnalyticsQueries.get_dashboard_stats(days=30)
+    stats = AnalyticsQueries.get_dashboard_stats(days=None)
     
     new_users_today = User.objects.filter(date_joined__date=timezone.now().date()).count()
     
@@ -230,8 +230,14 @@ def dashboard(request):
 
 @admin_required
 def revenue_chart_api(request):
-    days = int(request.GET.get("days", 30))
-    chart_data = []
+    days_param = request.GET.get("days", "30")
+    if days_param in ["all", "0"]:
+        days = None
+    else:
+        try:
+            days = int(days_param)
+        except ValueError:
+            days = 30
     
     from apps.admin_panel.queries import AnalyticsQueries
     stats = AnalyticsQueries.get_dashboard_stats(days=days)
