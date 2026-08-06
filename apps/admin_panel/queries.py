@@ -28,7 +28,7 @@ def get_total_wallet_balance() -> Decimal:
     )
 
 def get_gross_revenue(start: date, end: date) -> Dict[str, Decimal]:
-    """Total naira from all SUCCESS purchases in range. Includes Data + Airtime + Cable + Electricity + Exam + SMM + Giveaway."""
+    """Total naira from all SUCCESS product purchases in range. Includes Data + Airtime + SMM sales."""
     key = f"analytics:gross_revenue:{start}:{end}"
     
     def run_query():
@@ -39,30 +39,22 @@ def get_gross_revenue(start: date, end: date) -> Dict[str, Decimal]:
         # Apply cutoff
         s_dt = max(s_dt, CUTOFF_DATE)
         if e_dt < CUTOFF_DATE:
-            return {'vtu': Decimal('0.00'), 'smm': Decimal('0.00'), 'giveaway': Decimal('0.00'), 'total': Decimal('0.00')}
+            return {'vtu': Decimal('0.00'), 'smm': Decimal('0.00'), 'total': Decimal('0.00')}
             
         data_rev = VTUOrder.objects.filter(status='SUCCESS', created_at__range=(s_dt, e_dt)).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
         airtime_rev = AirtimeOrder.objects.filter(status='SUCCESS', created_at__range=(s_dt, e_dt)).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-        cable_rev = CableOrder.objects.filter(status='SUCCESS', created_at__range=(s_dt, e_dt)).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-        elec_rev = ElectricityOrder.objects.filter(status='SUCCESS', created_at__range=(s_dt, e_dt)).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-        exam_rev = ExamPinOrder.objects.filter(status='SUCCESS', created_at__range=(s_dt, e_dt)).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
         
-        vtu = data_rev + airtime_rev + cable_rev + elec_rev + exam_rev
+        vtu = data_rev + airtime_rev
 
         smm = SMMOrder.objects.filter(
             status__in=['SUCCESS', 'PARTIAL'],
             created_at__range=(s_dt, e_dt)
         ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
 
-        giveaway = Giveaway.objects.filter(
-            created_at__range=(s_dt, e_dt)
-        ).aggregate(total=Sum('total_locked'))['total'] or Decimal('0.00')
-
         return {
             'vtu': vtu,
             'smm': smm,
-            'giveaway': giveaway,
-            'total': vtu + smm + giveaway
+            'total': vtu + smm
         }
         
     return cache.get_or_set(key, run_query, timeout=300)
