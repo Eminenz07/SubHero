@@ -9,7 +9,7 @@ from datetime import datetime, date, timedelta, timezone
 import logging
 
 from apps.wallet.models import WalletTransaction, Wallet
-from apps.vtu.models import VTUOrder
+from apps.vtu.models import VTUOrder, AirtimeOrder, CableOrder, ElectricityOrder, ExamPinOrder
 from apps.smm.models import SMMOrder
 from apps.giveaway.models import Giveaway, GiveawayClaim
 from django.contrib.auth import get_user_model
@@ -28,7 +28,7 @@ def get_total_wallet_balance() -> Decimal:
     )
 
 def get_gross_revenue(start: date, end: date) -> Dict[str, Decimal]:
-    """Total naira from all SUCCESS purchases in range. Includes VTU + SMM + Giveaway."""
+    """Total naira from all SUCCESS purchases in range. Includes Data + Airtime + Cable + Electricity + Exam + SMM + Giveaway."""
     key = f"analytics:gross_revenue:{start}:{end}"
     
     def run_query():
@@ -41,10 +41,13 @@ def get_gross_revenue(start: date, end: date) -> Dict[str, Decimal]:
         if e_dt < CUTOFF_DATE:
             return {'vtu': Decimal('0.00'), 'smm': Decimal('0.00'), 'giveaway': Decimal('0.00'), 'total': Decimal('0.00')}
             
-        vtu = VTUOrder.objects.filter(
-            status='SUCCESS',
-            created_at__range=(s_dt, e_dt)
-        ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+        data_rev = VTUOrder.objects.filter(status='SUCCESS', created_at__range=(s_dt, e_dt)).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+        airtime_rev = AirtimeOrder.objects.filter(status='SUCCESS', created_at__range=(s_dt, e_dt)).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+        cable_rev = CableOrder.objects.filter(status='SUCCESS', created_at__range=(s_dt, e_dt)).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+        elec_rev = ElectricityOrder.objects.filter(status='SUCCESS', created_at__range=(s_dt, e_dt)).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+        exam_rev = ExamPinOrder.objects.filter(status='SUCCESS', created_at__range=(s_dt, e_dt)).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+        
+        vtu = data_rev + airtime_rev + cable_rev + elec_rev + exam_rev
 
         smm = SMMOrder.objects.filter(
             status__in=['SUCCESS', 'PARTIAL'],
@@ -65,7 +68,7 @@ def get_gross_revenue(start: date, end: date) -> Dict[str, Decimal]:
     return cache.get_or_set(key, run_query, timeout=300)
 
 def get_net_profit(start: date, end: date) -> Dict[str, Decimal]:
-    """Actual profit: VTU profit + SMM profit + Deposit fees."""
+    """Actual profit: VTU (Data + Airtime + Cable + Electricity + Exam) profit + SMM profit + Deposit fees."""
     key = f"analytics:net_profit:{start}:{end}"
     
     def run_query():
@@ -76,12 +79,13 @@ def get_net_profit(start: date, end: date) -> Dict[str, Decimal]:
         if e_dt < CUTOFF_DATE:
             return {'vtu': Decimal('0.00'), 'smm': Decimal('0.00'), 'fees': Decimal('0.00'), 'total': Decimal('0.00')}
             
-        vtu = VTUOrder.objects.filter(
-            status='SUCCESS',
-            created_at__range=(s_dt, e_dt)
-        ).aggregate(
-            profit=Sum(F('amount') - F('api_cost'))
-        )['profit'] or Decimal('0.00')
+        data_prof = VTUOrder.objects.filter(status='SUCCESS', created_at__range=(s_dt, e_dt)).aggregate(profit=Sum(F('amount') - F('api_cost')))['profit'] or Decimal('0.00')
+        airtime_prof = AirtimeOrder.objects.filter(status='SUCCESS', created_at__range=(s_dt, e_dt)).aggregate(profit=Sum(F('amount') - F('api_cost')))['profit'] or Decimal('0.00')
+        cable_prof = CableOrder.objects.filter(status='SUCCESS', created_at__range=(s_dt, e_dt)).aggregate(profit=Sum(F('amount') - F('api_cost')))['profit'] or Decimal('0.00')
+        elec_prof = ElectricityOrder.objects.filter(status='SUCCESS', created_at__range=(s_dt, e_dt)).aggregate(profit=Sum(F('amount') - F('api_cost')))['profit'] or Decimal('0.00')
+        exam_prof = ExamPinOrder.objects.filter(status='SUCCESS', created_at__range=(s_dt, e_dt)).aggregate(profit=Sum(F('amount') - F('api_cost')))['profit'] or Decimal('0.00')
+
+        vtu = data_prof + airtime_prof + cable_prof + elec_prof + exam_prof
 
         smm = SMMOrder.objects.filter(
             status__in=['SUCCESS', 'PARTIAL'],

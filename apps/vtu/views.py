@@ -261,9 +261,10 @@ class BuyAirtimeView(LoginRequiredMixin, PinRequiredMixin, View):
                     f"Airtime · {network.upper()} ₦{amount:,.0f} → {phone_number}",
                     get_client_ip(request),
                 )
+                api_cost = (amount * Decimal("0.98")).quantize(Decimal("0.01"))
                 order = AirtimeOrder.objects.create(
                     user=request.user, network=network, recipient=normalized_phone,
-                    amount=amount, api_cost=amount, reference=reference, status=AirtimeOrder.Status.PROCESSING,
+                    amount=amount, api_cost=api_cost, reference=reference, status=AirtimeOrder.Status.PROCESSING,
                 )
 
             cache.set(idempotency_key, order.id, 60)

@@ -31,6 +31,18 @@
                     <input type="email" name="alert_email" value="{{ alert_config.alert_email }}" required class="w-full px-3 py-2 text-xs bg-slate-900 border border-white/[0.06] rounded-lg text-white">
                 </div>
 
+                <!-- Sabuss Warning Threshold -->
+                <div>
+                    <label class="block text-slate-400 uppercase mb-2">Sabuss VTU Warning (₦)</label>
+                    <input type="number" name="sabuss_warning_threshold" value="{{ alert_config.sabuss_warning_threshold }}" required class="w-full px-3 py-2 text-xs bg-slate-900 border border-white/[0.06] rounded-lg text-white font-mono">
+                </div>
+
+                <!-- Sabuss Critical Threshold -->
+                <div>
+                    <label class="block text-slate-400 uppercase mb-2">Sabuss VTU Critical (₦)</label>
+                    <input type="number" name="sabuss_critical_threshold" value="{{ alert_config.sabuss_critical_threshold }}" required class="w-full px-3 py-2 text-xs bg-slate-900 border border-white/[0.06] rounded-lg text-white font-mono">
+                </div>
+
                 <!-- CheapDataHub Warning Threshold -->
                 <div>
                     <label class="block text-slate-400 uppercase mb-2">CheapDataHub Warning (₦)</label>
@@ -43,22 +55,16 @@
                     <input type="number" name="cdh_critical_threshold" value="{{ alert_config.cdh_critical_threshold }}" required class="w-full px-3 py-2 text-xs bg-slate-900 border border-white/[0.06] rounded-lg text-white font-mono">
                 </div>
 
-                <!-- JAP Warning Threshold -->
+                <!-- Ogaviral Warning Threshold -->
                 <div>
-                    <label class="block text-slate-400 uppercase mb-2">JAP Warning ($)</label>
-                    <input type="number" step="0.01" name="jap_warning_threshold" value="{{ alert_config.jap_warning_threshold }}" required class="w-full px-3 py-2 text-xs bg-slate-900 border border-white/[0.06] rounded-lg text-white font-mono">
+                    <label class="block text-slate-400 uppercase mb-2">Ogaviral SMM Warning (₦)</label>
+                    <input type="number" name="ogaviral_warning_threshold" value="{{ alert_config.ogaviral_warning_threshold }}" required class="w-full px-3 py-2 text-xs bg-slate-900 border border-white/[0.06] rounded-lg text-white font-mono">
                 </div>
 
-                <!-- JAP Critical Threshold -->
+                <!-- Ogaviral Critical Threshold -->
                 <div>
-                    <label class="block text-slate-400 uppercase mb-2">JAP Critical ($)</label>
-                    <input type="number" step="0.01" name="jap_critical_threshold" value="{{ alert_config.jap_critical_threshold }}" required class="w-full px-3 py-2 text-xs bg-slate-900 border border-white/[0.06] rounded-lg text-white font-mono">
-                </div>
-
-                <!-- USD Rate -->
-                <div>
-                    <label class="block text-slate-400 uppercase mb-2">USD/NGN Exchange Rate (₦)</label>
-                    <input type="number" step="0.01" name="usd_ngn_rate" value="{{ alert_config.usd_ngn_rate }}" required class="w-full px-3 py-2 text-xs bg-slate-900 border border-white/[0.06] rounded-lg text-white font-mono">
+                    <label class="block text-slate-400 uppercase mb-2">Ogaviral SMM Critical (₦)</label>
+                    <input type="number" name="ogaviral_critical_threshold" value="{{ alert_config.ogaviral_critical_threshold }}" required class="w-full px-3 py-2 text-xs bg-slate-900 border border-white/[0.06] rounded-lg text-white font-mono">
                 </div>
 
                 <button type="submit" class="w-full py-2.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors">
@@ -139,7 +145,7 @@
                 <div class="text-[11px] uppercase tracking-wider font-semibold text-slate-400 mb-2">Sabuss Live Balance</div>
                 <div class="text-3xl font-extrabold text-white font-mono">₦{{ sabuss_balance|floatformat:2 }}</div>
                 <div class="mt-4 flex justify-between items-center text-xs">
-                    <span class="text-slate-500 font-medium">Critical: ₦{{ alert_config.cdh_critical_threshold }}</span>
+                    <span class="text-slate-500 font-medium">Critical: ₦{{ alert_config.sabuss_critical_threshold }}</span>
                     <a href="https://sabuss.com" target="_blank" class="text-emerald-400 hover:underline font-bold flex items-center gap-1">
                         Fund Now
                         <i data-feather="external-link" class="w-3.5 h-3.5"></i>
@@ -165,7 +171,7 @@
                 <div class="text-[11px] uppercase tracking-wider font-semibold text-slate-400 mb-2">Ogaviral Live Balance</div>
                 <div class="text-3xl font-extrabold text-white font-mono">₦{{ ogaviral_balance|floatformat:2 }}</div>
                 <div class="mt-4 flex justify-between items-center text-xs">
-                    <span class="text-slate-500 font-medium">Critical: ₦{{ alert_config.jap_critical_threshold }}</span>
+                    <span class="text-slate-500 font-medium">Critical: ₦{{ alert_config.ogaviral_critical_threshold }}</span>
                     <a href="https://ogaviral.com" target="_blank" class="text-emerald-400 hover:underline font-bold flex items-center gap-1">
                         Fund Now
                         <i data-feather="external-link" class="w-3.5 h-3.5"></i>

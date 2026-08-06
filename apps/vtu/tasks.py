@@ -550,8 +550,9 @@ def process_airtime_order(self, order_id):
             if code in ["200", "400"]:
                 order.status = AirtimeOrder.Status.SUCCESS
                 order.provider_ref = data.get("reference", data.get("id", order.reference))
+                order.api_cost = (order.amount * Decimal("0.98")).quantize(Decimal("0.01"))
                 order.delivered_at = timezone.now()
-                order.save(update_fields=["status", "provider_ref", "delivered_at"])
+                order.save(update_fields=["status", "provider_ref", "api_cost", "delivered_at"])
 
                 # Update corresponding WalletTransaction to SUCCESS
                 WalletTransaction.objects.filter(reference=order.reference).update(status=WalletTransaction.Status.SUCCESS)
