@@ -307,6 +307,25 @@
         </div>
     </div>
 
+    {% if user.is_authenticated %}
+    <!-- Web Push Subscription Prompt Banner -->
+    <div id="push-subscribe-banner" class="pwa-banner">
+        <div class="pwa-banner__header">
+            <div class="pwa-banner__icon" style="background: rgba(0, 196, 106, 0.1); border-color: rgba(0, 196, 106, 0.25);">
+                <img src="/static/favicon.svg" alt="SubHero Icon">
+            </div>
+            <div class="pwa-banner__info">
+                <h4 class="pwa-banner__title">Enable Push Notifications 🔔</h4>
+                <p class="pwa-banner__desc">Get instant alerts for data delivery, giveaways, wallet credits & order updates.</p>
+            </div>
+        </div>
+        <div class="pwa-banner__actions">
+            <button class="pwa-btn pwa-btn--cancel" id="push-prompt-cancel">Not Now</button>
+            <button class="pwa-btn pwa-btn--install" id="push-prompt-enable" style="background: #00C46A;">Enable Alerts</button>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- PWA Top Loader -->
     <div id="pwa-global-loader" class="pwa-top-loader"></div>
 
@@ -358,8 +377,34 @@
                     const reg = await navigator.serviceWorker.ready;
                     const sub = await reg.pushManager.getSubscription();
                     this.updateUI(sub !== null);
+                    if (sub === null) {
+                        this.checkAndShowPushPrompt();
+                    }
                 } catch (e) {
                     console.log('Error initializing push manager:', e);
+                }
+            },
+
+            async checkAndShowPushPrompt() {
+                if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+                if (typeof Notification === 'undefined' || Notification.permission === 'denied' || Notification.permission === 'granted') return;
+
+                const dismissedTime = localStorage.getItem('push-prompt-dismissed');
+                if (dismissedTime && (Date.now() - parseInt(dismissedTime, 10) < 24 * 60 * 60 * 1000)) return;
+
+                try {
+                    const reg = await navigator.serviceWorker.ready;
+                    const sub = await reg.pushManager.getSubscription();
+                    if (!sub) {
+                        const pushBanner = document.getElementById('push-subscribe-banner');
+                        if (pushBanner) {
+                            setTimeout(() => {
+                                pushBanner.classList.add('show');
+                            }, 2500);
+                        }
+                    }
+                } catch (e) {
+                    console.log('Push prompt check error:', e);
                 }
             },
 
@@ -576,6 +621,27 @@
                 pwaCancelBtn.addEventListener('click', () => {
                     if (pwaBanner) pwaBanner.classList.remove('show');
                     localStorage.setItem('pwa-install-dismissed', Date.now());
+                });
+            }
+
+            // Web Push Prompt Banner Handlers
+            const pushPromptBanner = document.getElementById('push-subscribe-banner');
+            const pushPromptEnableBtn = document.getElementById('push-prompt-enable');
+            const pushPromptCancelBtn = document.getElementById('push-prompt-cancel');
+
+            if (pushPromptEnableBtn) {
+                pushPromptEnableBtn.addEventListener('click', async () => {
+                    if (pushPromptBanner) pushPromptBanner.classList.remove('show');
+                    if (window.SubHeroPushManager) {
+                        await window.SubHeroPushManager.subscribe();
+                    }
+                });
+            }
+
+            if (pushPromptCancelBtn) {
+                pushPromptCancelBtn.addEventListener('click', () => {
+                    if (pushPromptBanner) pushPromptBanner.classList.remove('show');
+                    localStorage.setItem('push-prompt-dismissed', Date.now());
                 });
             }
 
