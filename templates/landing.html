@@ -1662,36 +1662,38 @@
         // ── Typewriter Animation for "Socials" ──
         const typedTextElement = document.getElementById("typed-text");
         if (typedTextElement) {
-            const words = ["Socials", "Followers", "Audience", "Presence", "Socials"];
+            const words = ["Socials", "Followers", "Audience", "Presence"];
             let wordIdx = 0;
-            let charIdx = words[0].length;
+            let charIdx = 0;
             let isDeleting = false;
+
+            typedTextElement.textContent = "";
 
             function typeEffect() {
                 const currentWord = words[wordIdx];
                 if (isDeleting) {
-                    typedTextElement.textContent = currentWord.substring(0, charIdx - 1);
                     charIdx--;
+                    typedTextElement.textContent = currentWord.substring(0, charIdx);
                 } else {
-                    typedTextElement.textContent = currentWord.substring(0, charIdx + 1);
                     charIdx++;
+                    typedTextElement.textContent = currentWord.substring(0, charIdx);
                 }
 
-                let speed = isDeleting ? 50 : 100;
+                let speed = isDeleting ? 40 : 90;
 
                 if (!isDeleting && charIdx === currentWord.length) {
-                    speed = 2500; // Pause on full word
+                    speed = 2000; // Pause on full word
                     isDeleting = true;
                 } else if (isDeleting && charIdx === 0) {
                     isDeleting = false;
                     wordIdx = (wordIdx + 1) % words.length;
-                    speed = 350; // Brief pause before typing next word
+                    speed = 300; // Pause before typing next word
                 }
 
                 setTimeout(typeEffect, speed);
             }
 
-            setTimeout(typeEffect, 2000);
+            setTimeout(typeEffect, 300);
         }
 
     });
