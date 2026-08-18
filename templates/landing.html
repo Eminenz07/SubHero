@@ -226,6 +226,22 @@
     .landing-hero__title .accent {
         color: var(--landing-accent);
         position: relative;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .typing-cursor {
+        display: inline-block;
+        color: var(--landing-accent);
+        font-weight: 700;
+        margin-left: 2px;
+        animation: cursor-blink 0.8s infinite;
+        text-shadow: 0 0 10px rgba(0, 196, 106, 0.6);
+    }
+
+    @keyframes cursor-blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0; }
     }
 
     .landing-hero__subtitle {
@@ -866,7 +882,7 @@
 
         <h1 class="landing-hero__title">
             Pay Bills, Buy Data,<br>
-            Grow Your <span class="accent">Socials</span>
+            Grow Your <span class="accent"><span id="typed-text">Socials</span><span class="typing-cursor">|</span></span>
         </h1>
 
         <p class="landing-hero__subtitle">
@@ -1642,6 +1658,41 @@
         document.addEventListener('touchstart', (e) => {
             startY = e.touches[0].clientY;
         }, { passive: true });
+
+        // ── Typewriter Animation for "Socials" ──
+        const typedTextElement = document.getElementById("typed-text");
+        if (typedTextElement) {
+            const words = ["Socials", "Followers", "Audience", "Presence", "Socials"];
+            let wordIdx = 0;
+            let charIdx = words[0].length;
+            let isDeleting = false;
+
+            function typeEffect() {
+                const currentWord = words[wordIdx];
+                if (isDeleting) {
+                    typedTextElement.textContent = currentWord.substring(0, charIdx - 1);
+                    charIdx--;
+                } else {
+                    typedTextElement.textContent = currentWord.substring(0, charIdx + 1);
+                    charIdx++;
+                }
+
+                let speed = isDeleting ? 50 : 100;
+
+                if (!isDeleting && charIdx === currentWord.length) {
+                    speed = 2500; // Pause on full word
+                    isDeleting = true;
+                } else if (isDeleting && charIdx === 0) {
+                    isDeleting = false;
+                    wordIdx = (wordIdx + 1) % words.length;
+                    speed = 350; // Brief pause before typing next word
+                }
+
+                setTimeout(typeEffect, speed);
+            }
+
+            setTimeout(typeEffect, 2000);
+        }
 
     });
 </script>
