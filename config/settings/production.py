@@ -16,16 +16,17 @@ DEBUG = False
 # =============================================================
 # ALLOWED HOSTS & SECURITY — PRD Section 7.1
 # =============================================================
-ALLOWED_HOSTS = config(
-    "ALLOWED_HOSTS",
-    default="subhero.fly.dev,subhero-smm.onrender.com,.onrender.com,localhost,127.0.0.1",
-    cast=Csv(),
-)
-CSRF_TRUSTED_ORIGINS = config(
-    "CSRF_TRUSTED_ORIGINS",
-    default="https://subhero.fly.dev,https://subhero-smm.onrender.com,https://*.onrender.com",
-    cast=Csv(),
-)
+_raw_hosts = config("ALLOWED_HOSTS", default="*", cast=Csv())
+ALLOWED_HOSTS = list(_raw_hosts)
+for h in ["subhero-smm.onrender.com", ".onrender.com", "subhero.fly.dev", "localhost", "127.0.0.1", "*"]:
+    if h not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(h)
+
+_raw_csrf = config("CSRF_TRUSTED_ORIGINS", default="https://subhero.fly.dev,https://subhero-smm.onrender.com,https://*.onrender.com", cast=Csv())
+CSRF_TRUSTED_ORIGINS = list(_raw_csrf)
+for c in ["https://subhero-smm.onrender.com", "https://*.onrender.com", "https://subhero.fly.dev"]:
+    if c not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(c)
 
 # =============================================================
 # DATABASE — PostgreSQL (PRD Section 3.1)
@@ -42,6 +43,8 @@ DATABASES["default"]["DISABLE_SERVER_SIDE_CURSORS"] = True
 # CACHE & SESSIONS — Resilient Production Fallbacks
 # =============================================================
 REDIS_URL = config("REDIS_URL", default="")
+if "upstash.io" in REDIS_URL and REDIS_URL.startswith("redis://"):
+    REDIS_URL = "rediss://" + REDIS_URL[len("redis://"):]
 
 if REDIS_URL:
     CACHES = {

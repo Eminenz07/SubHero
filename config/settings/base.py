@@ -21,7 +21,16 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 # =============================================================
 SECRET_KEY = config("SECRET_KEY", default="django-insecure-fallback-key-for-migrations-only-12345")
 
-ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1,subhero-smm.onrender.com,.onrender.com", cast=Csv())
+_raw_hosts = config("ALLOWED_HOSTS", default="*", cast=Csv())
+ALLOWED_HOSTS = list(_raw_hosts)
+for h in ["subhero-smm.onrender.com", ".onrender.com", "subhero.fly.dev", "localhost", "127.0.0.1", "*"]:
+    if h not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(h)
+
+# Redis / Celery Connection URL with Upstash SSL auto-upgrade
+REDIS_URL = config("REDIS_URL", default="")
+if "upstash.io" in REDIS_URL and REDIS_URL.startswith("redis://"):
+    REDIS_URL = "rediss://" + REDIS_URL[len("redis://"):]
 
 # Site URL for absolute links (Giveaways, emails, etc.)
 SITE_URL = config("SITE_URL", default="http://localhost:8000")
