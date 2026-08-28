@@ -18,12 +18,12 @@ DEBUG = False
 # =============================================================
 ALLOWED_HOSTS = config(
     "ALLOWED_HOSTS",
-    default="subhero.fly.dev,localhost,127.0.0.1",
+    default="subhero.fly.dev,subhero-smm.onrender.com,.onrender.com,localhost,127.0.0.1",
     cast=Csv(),
 )
 CSRF_TRUSTED_ORIGINS = config(
     "CSRF_TRUSTED_ORIGINS",
-    default="https://subhero.fly.dev",
+    default="https://subhero.fly.dev,https://subhero-smm.onrender.com,https://*.onrender.com",
     cast=Csv(),
 )
 
@@ -110,6 +110,12 @@ TERMII_MOCK = config("TERMII_MOCK", default=False, cast=bool)
 VTU_MOCK = config("VTU_MOCK", default=False, cast=bool)
 
 # =============================================================
-# CELERY — Real async in production
+# CELERY — Real async in production if REDIS_URL provided, else eager fallback
 # =============================================================
-CELERY_TASK_ALWAYS_EAGER = False
+if REDIS_URL:
+    CELERY_TASK_ALWAYS_EAGER = False
+    CELERY_BROKER_URL = REDIS_URL
+    CELERY_RESULT_BACKEND = REDIS_URL
+else:
+    CELERY_TASK_ALWAYS_EAGER = True
+    CELERY_TASK_EAGER_PROPAGATES = True

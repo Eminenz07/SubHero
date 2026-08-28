@@ -21,7 +21,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 # =============================================================
 SECRET_KEY = config("SECRET_KEY", default="django-insecure-fallback-key-for-migrations-only-12345")
 
-ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1", cast=Csv())
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1,subhero-smm.onrender.com,.onrender.com", cast=Csv())
 
 # Site URL for absolute links (Giveaways, emails, etc.)
 SITE_URL = config("SITE_URL", default="http://localhost:8000")
