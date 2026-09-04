@@ -48,3 +48,6 @@ htmlcov/
 
 # CSV catalogs
 *.csv
+
+# Unused/Archive Assets
+junk_img/
