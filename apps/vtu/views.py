@@ -787,7 +787,7 @@ class VerifyUtilityAjaxView(LoginRequiredMixin, View):
                 
             return JsonResponse({
                 "status": "success",
-                "customer_name": f"Format Valid — Confirmed on delivery ({disco_name} {meter_type.upper()})"
+                "customer_name": f"Format Valid ({disco_name} {meter_type.upper()})"
             })
                 
         elif action == "cable":
@@ -803,7 +803,7 @@ class VerifyUtilityAjaxView(LoginRequiredMixin, View):
                 
             return JsonResponse({
                 "status": "success",
-                "customer_name": f"Format Valid — Confirmed on delivery ({provider.upper()} Decoder)"
+                "customer_name": f"Format Valid ({provider.upper()} Decoder)"
             })
                 
         else:

@@ -93,7 +93,7 @@ def credit_wallet(self, transaction_ref, amount_naira,
             from apps.notifications.services import send_push_notification
             send_push_notification(
                 user=wallet.user,
-                title=f"💰 Wallet Credited — ₦{net_amount:,.2f}",
+                title=f"💰 Wallet Credited: ₦{net_amount:,.2f}",
                 body=f"Received via Bank Transfer. New Balance: ₦{wallet.balance:,.2f}. Tap to view receipt.",
                 action_url="/vtu/",
                 level="financial"

@@ -1,9 +1,9 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}Claim Giveaway — SubHero{% endblock %}
+{% block title %}Claim Giveaway | SubHero{% endblock %}
                                                  
-{% block og_title %}🎁 {{ giveaway.title }} — Claim Free {{ giveaway.get_giveaway_type_display }}{% endblock %}
-{% block og_description %}{{ giveaway.remaining_slots }} of {{ giveaway.total_slots }} slots remaining. No account needed — claim instantly.{% endblock %}
+{% block og_title %}🎁 {{ giveaway.title }} | Free {{ giveaway.get_giveaway_type_display }}{% endblock %}
+{% block og_description %}{{ giveaway.remaining_slots }} of {{ giveaway.total_slots }} slots remaining. No account needed, claim instantly.{% endblock %}
 {% block og_image %}{{ request.scheme }}://{{ request.get_host }}{% static 'img/giveaway-og.jpg' %}{% endblock %}
 {% block og_url %}{{ request.scheme }}://{{ request.get_host }}/g/{{ giveaway.slug }}{% endblock %}
 

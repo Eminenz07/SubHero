@@ -150,7 +150,7 @@ class SendTestPushView(LoginRequiredMixin, View):
     def post(self, request):
         sent = send_push_notification(
             user=request.user,
-            title="💰 Wallet Credited — ₦5,000",
+            title="💰 Wallet Credited: ₦5,000",
             body="Received via Bank Transfer. New Balance: ₦14,250. Tap to view receipt.",
             action_url="/vtu/",
             level="financial"

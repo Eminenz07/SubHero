@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Exam PINs — SubHero{% endblock %}
+{% block title %}Exam PINs | SubHero{% endblock %}
 
 {% block top_bar %}
 {% include 'partials/_top_bar.html' with page_title="Exam Scratch Cards" show_back=True %}
@@ -97,7 +97,7 @@
     <div class="card bg-surface-muted rounded-xl p-4">
       <div class="flex justify-between items-center">
         <span class="text-sm text-text-muted font-medium">Total Cost</span>
-        <span class="text-lg font-extrabold text-text-primary font-mono" id="total-display">—</span>
+        <span class="text-lg font-extrabold text-text-primary font-mono" id="total-display">₦0</span>
       </div>
       <div class="text-xs text-text-muted mt-1" id="breakdown-display"></div>
     </div>
@@ -109,7 +109,7 @@
 {% block page_cta %}
 <div class="bg-white border-t border-surface-border p-4 flex-shrink-0">
   <button type="button" class="btn btn-primary btn-block text-base" id="cta-btn" onclick="continueToPin()">
-    Buy Exam PIN — <span id="cta-price-display">Select exam</span>
+    Buy Exam PIN <span id="cta-price-display"></span>
   </button>
 </div>
 {% endblock %}

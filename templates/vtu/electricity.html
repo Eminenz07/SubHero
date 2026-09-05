@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Pay Electricity — SubHero{% endblock %}
+{% block title %}Pay Electricity | SubHero{% endblock %}
 
 {% block top_bar %}
 {% include 'partials/_top_bar.html' with page_title="Electricity Bill" show_back=True %}
@@ -79,7 +79,7 @@
     <!-- Meter Number -->
     <div class="form-group">
       <label class="form-label" for="meter_number">Meter Number</label>
-      <input class="form-input font-mono" type="text" name="meter_number" id="meter_number" placeholder="11–13 digit meter number" inputmode="numeric" required value="{{ form_data.meter_number|default:'' }}">
+      <input class="form-input font-mono" type="text" name="meter_number" id="meter_number" placeholder="11 to 13 digit meter number" inputmode="numeric" required value="{{ form_data.meter_number|default:'' }}">
       <!-- Verification Badge Container -->
       <div id="meter-verification-box" class="hidden mt-2">
         <div class="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold border" id="meter-verification-badge">
@@ -112,7 +112,7 @@
 {% block page_cta %}
 <div class="bg-white border-t border-surface-border p-4 flex-shrink-0">
   <button type="button" class="btn btn-primary btn-block text-base" onclick="continueToPin()">
-    Continue — <span id="cta-price-display">₦{{ form_data.amount|default:'0' }}</span> →
+    Continue <span id="cta-price-display">₦{{ form_data.amount|default:'0' }}</span> →
   </button>
 </div>
 {% endblock %}

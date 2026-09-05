@@ -1054,7 +1054,7 @@ def test_alert_email(request):
             
         try:
             send_mail(
-                subject="SubHero HQ — API Wallet Alert (TEST)",
+                subject="SubHero HQ: API Wallet Alert (TEST)",
                 message=f"This is a test notification from SubHero HQ.\n\n"
                         f"Current Alert Thresholds:\n"
                         f"- Sabuss / CheapDataHub Warning: ₦{alert_config.cdh_warning_threshold:,.2f}\n"

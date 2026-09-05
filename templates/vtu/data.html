@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Buy Data — SubHero{% endblock %}
+{% block title %}Buy Data | SubHero{% endblock %}
 
 {% block top_bar %}
 {% include 'partials/_top_bar.html' with page_title="Buy Data" show_back=True %}
@@ -338,7 +338,7 @@
       card.setAttribute('data-hidden', cat === catName ? 'false' : 'true');
     });
 
-    // Reset selection state — user must explicitly pick a plan
+    // Reset selection state: user must explicitly pick a plan
     document.getElementById('id_plan_id').value = '';
     document.getElementById('cta-price-display').textContent = 'Select a plan';
     activePlanId = '';
