@@ -27,7 +27,7 @@ def get_vapid_object():
         return Vapid.from_file(key_str)
 
 
-def send_push_notification(user, title, body, action_url="/dashboard/", icon="/static/img/sh-logo.png", level="info"):
+def send_push_notification(user, title, body, action_url="/dashboard/", icon="/static/img/notification-icon.png", level="info"):
     """
     Sends a Web Push notification to all active devices/subscriptions of a user.
     Also creates an in-app Notification record so the user sees it in their notification center.
