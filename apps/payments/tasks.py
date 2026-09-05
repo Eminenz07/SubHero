@@ -127,7 +127,7 @@ def credit_wallet(self, transaction_ref, amount_naira,
                 send_mail(
                     subject=subject,
                     message=email_message,
-                    from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@subhero.ng"),
+                    from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@subhero.com.ng"),
                     recipient_list=[wallet.user.email],
                     fail_silently=True
                 )

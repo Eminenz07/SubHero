@@ -114,7 +114,7 @@
 
 ### P2 — Referral Programme
 - [ ] Activate dormant referral_code field on User model
-- [ ] Referral link generation (subhero.ng/r/CODE)
+- [ ] Referral link generation (subhero.com.ng/r/CODE)
 - [ ] Track referral on registration
 - [ ] Reward logic: referrer ₦100, referee ₦50
 - [ ] Monthly cap (50 referrals per user)

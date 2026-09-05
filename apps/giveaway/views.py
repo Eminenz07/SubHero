@@ -531,7 +531,7 @@ def giveaway_receipt_card(request, slug):
 
     # 9. Footer
     footer_prefix = "Host your own giveaway at "
-    footer_link = "subhero.ng"
+    footer_link = "subhero.com.ng"
     try:
         bbox_pref = draw.textbbox((0, 0), footer_prefix, font=font_footer)
         bbox_link = draw.textbbox((0, 0), footer_link, font=font_footer)
@@ -543,7 +543,7 @@ def giveaway_receipt_card(request, slug):
         draw.text((start_x, footer_y), footer_prefix, fill=GRAY, font=font_footer, anchor="lm")
         draw.text((start_x + w_pref, footer_y), footer_link, fill=GREEN, font=font_footer, anchor="lm")
     except Exception:
-        draw.text((width // 2, 1310), "Host your own giveaway at subhero.ng", fill=GREEN, font=font_footer, anchor="mm")
+        draw.text((width // 2, 1310), "Host your own giveaway at subhero.com.ng", fill=GREEN, font=font_footer, anchor="mm")
 
     response = HttpResponse(content_type="image/png")
     response['Content-Disposition'] = f'attachment; filename="giveaway_receipt_{giveaway.slug}.png"'

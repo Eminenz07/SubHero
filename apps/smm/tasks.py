@@ -361,7 +361,7 @@ def poll_smm_orders():
                         send_mail(
                             subject=subject,
                             message=email_message,
-                            from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@subhero.ng"),
+                            from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@subhero.com.ng"),
                             recipient_list=[order.user.email],
                             fail_silently=True
                         )

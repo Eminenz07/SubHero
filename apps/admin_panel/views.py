@@ -152,7 +152,7 @@ def dashboard(request):
     
     alert_config = AlertConfig.objects.first()
     if not alert_config:
-        alert_config = AlertConfig.objects.create(alert_email="admin@subhero.ng")
+        alert_config = AlertConfig.objects.create(alert_email="admin@subhero.com.ng")
         
     # Threshold checks
     if sabuss_balance <= alert_config.cdh_critical_threshold:
@@ -582,7 +582,7 @@ def vtu_airtime_pricing_save(request):
 def smm_pricing_manager(request):
     alert_config = AlertConfig.objects.first()
     if not alert_config:
-        alert_config = AlertConfig.objects.create(alert_email="admin@subhero.ng")
+        alert_config = AlertConfig.objects.create(alert_email="admin@subhero.com.ng")
         
     usd_rate = alert_config.usd_ngn_rate
     categories = list(SMMService.objects.order_by("category").values_list("category", flat=True).distinct())
@@ -705,7 +705,7 @@ def update_exchange_rate(request):
             
         alert_config = AlertConfig.objects.first()
         if not alert_config:
-            alert_config = AlertConfig.objects.create(alert_email="admin@subhero.ng")
+            alert_config = AlertConfig.objects.create(alert_email="admin@subhero.com.ng")
             
         old_rate = alert_config.usd_ngn_rate
         alert_config.usd_ngn_rate = rate
@@ -991,7 +991,7 @@ def api_wallets(request):
     # Form post logic handled here for AlertConfig
     alert_config = AlertConfig.objects.first()
     if not alert_config:
-        alert_config = AlertConfig.objects.create(alert_email="admin@subhero.ng")
+        alert_config = AlertConfig.objects.create(alert_email="admin@subhero.com.ng")
         
     if request.method == "POST":
         alert_config.alert_email = request.POST.get("alert_email", "").strip()
@@ -1061,7 +1061,7 @@ def test_alert_email(request):
                         f"- Sabuss / CheapDataHub Critical: ₦{alert_config.cdh_critical_threshold:,.2f}\n"
                         f"- Ogaviral Warning: ₦{alert_config.jap_warning_threshold:,.2f}\n"
                         f"- Ogaviral Critical: ₦{alert_config.jap_critical_threshold:,.2f}\n",
-                from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@subhero.ng"),
+                from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@subhero.com.ng"),
                 recipient_list=[alert_config.alert_email],
                 fail_silently=False
             )
@@ -1183,7 +1183,7 @@ def log_stream(request):
 def system_settings(request):
     alert_config = AlertConfig.objects.first()
     if not alert_config:
-        alert_config = AlertConfig.objects.create(alert_email="admin@subhero.ng")
+        alert_config = AlertConfig.objects.create(alert_email="admin@subhero.com.ng")
         
     if request.method == "POST":
         keys_to_update = [

@@ -160,7 +160,7 @@ def process_giveaway_claim(claim_id):
                     return phone
                 
                 reward_desc = f"{giveaway.plan_id} data" if giveaway.giveaway_type == 'DATA' else f"₦{int(giveaway.amount_per_slot)} airtime"
-                sms_message = f"You've received {reward_desc} from {giveaway.host.first_name or 'a SubHero user'} via SubHero. Buy your own cheap data at subhero.ng"
+                sms_message = f"You've received {reward_desc} from {giveaway.host.first_name or 'a SubHero user'} via SubHero. Buy your own cheap data at subhero.com.ng"
                 send_transaction_sms.delay(format_termii_phone(claim.phone_number), sms_message)
             except Exception as e:
                 logger.error(f"Failed to send claimant SMS: {e}")
@@ -178,7 +178,7 @@ def process_giveaway_claim(claim_id):
                     send_mail(
                         subject=subject,
                         message=mail_message,
-                        from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@subhero.ng'),
+                        from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@subhero.com.ng'),
                         recipient_list=[giveaway.host.email],
                         fail_silently=True
                     )
@@ -293,7 +293,7 @@ def refund_giveaway_unused_slots(giveaway_id):
                 send_mail(
                     subject=subject,
                     message=mail_message,
-                    from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@subhero.ng'),
+                    from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@subhero.com.ng'),
                     recipient_list=[giveaway.host.email],
                     fail_silently=True
                 )

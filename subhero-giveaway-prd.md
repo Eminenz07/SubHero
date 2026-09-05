@@ -194,7 +194,7 @@ After creation, host sees:
 │                                          │
 │ ████████████░░░░░░░░ 32/50 claimed       │
 │                                          │
-│ Link: subhero.ng/g/HERO2025ABC           │
+│ Link: subhero.com.ng/g/HERO2025ABC       │
 │ [Copy Link] [Share WhatsApp] [Share IG]  │
 │                                          │
 │ [Download QR Code] [View Claims]         │
@@ -207,7 +207,7 @@ After creation, host sees:
 ### 5.3 Claim Flow (Claimant — NO Account Required)
 
 ```
-CLAIMANT OPENS subhero.ng/g/HERO2025ABC
+CLAIMANT OPENS subhero.com.ng/g/HERO2025ABC
          │
          ├── System checks giveaway validity:
          │     Is giveaway ACTIVE? → continue
@@ -322,7 +322,7 @@ class Giveaway(models.Model):
 
     @property
     def claim_url(self):
-        return f'https://subhero.ng/g/{self.slug}'
+        return f'https://subhero.com.ng/g/{self.slug}'
 
     @property
     def is_claimable(self):
@@ -460,7 +460,7 @@ The #1 distribution channel in Nigeria. A single giveaway link dropped in a 500-
 Creators share the QR code as a story. Followers screenshot and scan. SubHero QR code = SubHero logo visible in every screenshot shared across platforms.
 
 **Channel 3 — Twitter/X Posts**
-"First 100 people to claim this link get free 1GB MTN data → subhero.ng/g/HERO2025ABC" — this style of post goes viral regularly on Nigerian Twitter.
+"First 100 people to claim this link get free 1GB MTN data → subhero.com.ng/g/HERO2025ABC" — this style of post goes viral regularly on Nigerian Twitter.
 
 **Channel 4 — University WhatsApp Groups**
 Student associations running giveaways. Nigeria has ~170 federal and state universities with thousands of student WhatsApp groups. One student union giveaway = hundreds of student leads.
@@ -511,10 +511,10 @@ Every giveaway is free SubHero advertising. This section documents exactly where
 
 ```
 TOUCHPOINT 1 — The Shareable Link
-subhero.ng/g/HERO2025ABC
+subhero.com.ng/g/HERO2025ABC
   - SubHero domain in every link
   - Shared on WhatsApp, Instagram, Twitter, Telegram
-  - Every person who sees the link sees "subhero.ng"
+  - Every person who sees the link sees "subhero.com.ng"
   - When WhatsApp generates a link preview:
       Show: SubHero logo + "🎁 Free Data Giveaway"
   - Implement Open Graph meta tags on claim page:
@@ -530,7 +530,7 @@ TOUCHPOINT 2 — The QR Code
   - This is free OOH (out-of-home) advertising
 
 TOUCHPOINT 3 — The Claim Page
-  - URL: subhero.ng/g/{slug}
+  - URL: subhero.com.ng/g/{slug}
   - SubHero logo top left
   - "Powered by SubHero" footer
   - Nigerian green branding throughout
@@ -540,7 +540,7 @@ TOUCHPOINT 3 — The Claim Page
 TOUCHPOINT 4 — The Delivery SMS
   After successful claim, Termii sends:
   "You've received [1GB MTN Data] from [Host Name]
-   via SubHero. Buy your own cheap data at subhero.ng"
+   via SubHero. Buy your own cheap data at subhero.com.ng"
   - Cost: ₦17 per SMS
   - SubHero domain appears in every claimant's SMS inbox
   - This is inbox advertising — highest attention channel
@@ -615,9 +615,9 @@ Every claim page (`/g/{slug}/`) must have these meta tags for rich WhatsApp/Twit
       content="{{ giveaway.remaining_slots }} slots remaining.
                No account needed — just enter your number.">
 <meta property="og:image"
-      content="https://subhero.ng/static/img/giveaway-og.png">
+      content="https://subhero.com.ng/static/img/giveaway-og.png">
 <meta property="og:url"
-      content="https://subhero.ng/g/{{ giveaway.slug }}">
+      content="https://subhero.com.ng/g/{{ giveaway.slug }}">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title"
       content="🎁 {{ giveaway.title }}">
@@ -782,7 +782,7 @@ Within 24 hours of registration send:
 - SMS: "Welcome to SubHero, [Name]! Fund your wallet and buy 1GB MTN data for just ₦350. 3x cheaper than dialling *131#."
 
 Within 7 days if no wallet funding:
-- SMS: "Your SubHero wallet is empty. Top up with as little as ₦100 and buy data instantly. subhero.ng"
+- SMS: "Your SubHero wallet is empty. Top up with as little as ₦100 and buy data instantly. subhero.com.ng"
 
 First purchase prompt:
 - After funding: immediately show VTU quick-buy on dashboard — reduce time-to-first-purchase to under 60 seconds
@@ -800,7 +800,7 @@ Content:
   - "{claimed_slots} people received free {type}"
   - "{total_amount_given} given away"
   - SubHero logo bottom center
-  - "Host your own at subhero.ng"
+  - "Host your own at subhero.com.ng"
 ```
 
 Generated with Pillow (same dependency as QR code).
@@ -1017,7 +1017,7 @@ Logo overlay:
 
 Below QR text (added via Pillow ImageDraw):
   "Scan to claim free data"
-  "Powered by SubHero • subhero.ng"
+  "Powered by SubHero • subhero.com.ng"
   Font: DM Sans or system equivalent
   Color: #006B3E (brand green)
 
@@ -1039,7 +1039,7 @@ The only difference: the `phone` parameter is the claimant's number (not the hos
 **Delivery confirmation to claimant:**
 ```
 "You've received {plan_name} from {host.full_name} via SubHero.
- Buy your own cheap data at subhero.ng"
+ Buy your own cheap data at subhero.com.ng"
 ```
 Sent after SUCCESS status on claim. Cost: ₦17 per SMS.
 
@@ -1115,7 +1115,7 @@ def generate_subhero_qr(claim_url: str, giveaway_id: str) -> str:
               fill=(0, 107, 62),
               anchor='mt')
     draw.text((img_w // 2, img_h + 45),
-              "Powered by SubHero • subhero.ng",
+              "Powered by SubHero • subhero.com.ng",
               fill=(107, 122, 153),
               anchor='mt')
 
@@ -1332,7 +1332,7 @@ Automated generation of a shareable 1080×1080px image after giveaway completion
 - Gold/white typography
 - Stats: slots claimed, total given, type
 - Host name (optional)
-- SubHero logo and "subhero.ng"
+- SubHero logo and "subhero.com.ng"
 - QR code to SubHero landing page
 
 Downloadable from host's giveaway management page. Designed to be shared as an Instagram post or WhatsApp status.

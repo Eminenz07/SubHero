@@ -462,4 +462,4 @@ VAPID_PRIVATE_KEY = config(
     "VAPID_PRIVATE_KEY",
     default="-----BEGIN PRIVATE KEY-----\nREDACTED_VAPID_KEY_L1\nREDACTED_VAPID_KEY_L2\nREDACTED_VAPID_KEY_L3\n-----END PRIVATE KEY-----"
 )
-VAPID_ADMIN_EMAIL = config("VAPID_ADMIN_EMAIL", default="mailto:admin@subhero.ng")
+VAPID_ADMIN_EMAIL = config("VAPID_ADMIN_EMAIL", default="mailto:admin@subhero.com.ng")

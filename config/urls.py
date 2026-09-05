@@ -9,8 +9,13 @@ from django.contrib import admin
 from django.urls import include, path
 from django.views.generic import TemplateView
 from apps.giveaway import views as giveaway_views
+from apps.core import views as core_views
 
 urlpatterns = [
+    # Zero-overhead healthcheck for UptimeRobot / uptime monitors (0 Redis commands)
+    path("healthz/", core_views.healthcheck, name="healthcheck"),
+    path("ping/", core_views.healthcheck, name="ping"),
+
     # PWA files served at root
     path("manifest.json", TemplateView.as_view(template_name="manifest.json", content_type="application/json"), name="manifest_json"),
     path("sw.js", TemplateView.as_view(template_name="sw.js", content_type="application/javascript"), name="service_worker"),

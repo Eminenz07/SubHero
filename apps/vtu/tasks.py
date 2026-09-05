@@ -416,7 +416,7 @@ def check_api_wallet_balance():
             send_mail(
                 subject="SubHero HQ — API Wallet Low Balance Alert",
                 message="\n".join(alert_messages) + "\n\nPlease fund the provider wallets immediately to prevent system downtime.",
-                from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@subhero.ng"),
+                from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@subhero.com.ng"),
                 recipient_list=[alert_config.alert_email],
                 fail_silently=False
             )

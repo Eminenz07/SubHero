@@ -52,7 +52,7 @@ def initialize_card_payment(amount_naira, email, user_id, site_url=None):
     url = f"{settings.SQUAD_BASE_URL}/transaction/initiate"
     
     if not site_url:
-        site_url = getattr(settings, "SITE_URL", "https://subhero.ng")
+        site_url = getattr(settings, "SITE_URL", "https://subhero.com.ng")
         
     callback_url = f"{site_url}/payments/callback/"
     

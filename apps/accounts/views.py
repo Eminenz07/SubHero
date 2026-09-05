@@ -247,7 +247,7 @@ class LoginView(View):
                 _send_async_email(
                     subject=subject,
                     message=email_message,
-                    from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@subhero.ng"),
+                    from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@subhero.com.ng"),
                     recipient_list=[user.email],
                 )
         except Exception as ex:
@@ -366,7 +366,7 @@ class VerifyOTPView(View):
                                 _send_async_email(
                                     subject=subject,
                                     message=email_message,
-                                    from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@subhero.ng"),
+                                    from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@subhero.com.ng"),
                                     recipient_list=[user.email],
                                 )
                         except Exception as ex:
@@ -561,7 +561,7 @@ class ProfileView(LoginRequiredMixin, View):
                     _send_async_email(
                         subject=subject,
                         message=email_message,
-                        from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@subhero.ng"),
+                        from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@subhero.com.ng"),
                         recipient_list=[request.user.email],
                     )
             except Exception as ex:
