@@ -1,0 +1,82 @@
+<div id="smm-order-progress-{{ order.id }}" class="smm-progress-card bg-slate-50 dark:bg-slate-800/80 border border-surface-border rounded-2xl p-4 my-4 shadow-sm"
+     {% if order.status == 'PROCESSING' or order.status == 'PENDING' %}
+     hx-get="{% url 'smm:order_progress' order_id=order.id %}"
+     hx-trigger="every 8s"
+     hx-swap="outerHTML"
+     {% endif %}>
+
+    <!-- Header / Status Badge -->
+    <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2">
+            {% if order.status == 'SUCCESS' %}
+                <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400">
+                    <i data-feather="check" class="w-3.5 h-3.5"></i>
+                </span>
+                <span class="text-xs font-bold text-emerald-700 dark:text-emerald-400">Order Completed</span>
+            {% elif order.status == 'PROCESSING' or order.status == 'PENDING' %}
+                <span class="relative flex h-3 w-3">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                </span>
+                <span class="text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
+                    Live Delivery Active
+                </span>
+            {% elif order.status == 'PARTIAL' %}
+                <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-600">
+                    <i data-feather="pie-chart" class="w-3.5 h-3.5"></i>
+                </span>
+                <span class="text-xs font-bold text-blue-600">Partial Delivery (Refunded)</span>
+            {% else %}
+                <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-100 text-red-600">
+                    <i data-feather="x" class="w-3.5 h-3.5"></i>
+                </span>
+                <span class="text-xs font-bold text-red-600">{{ order.get_status_display }}</span>
+            {% endif %}
+        </div>
+
+        <div class="text-xs font-extrabold font-mono text-text-primary dark:text-white">
+            {{ order.progress_percent }}%
+        </div>
+    </div>
+
+    <!-- Animated Progress Bar -->
+    <div class="w-full bg-slate-200 dark:bg-slate-700 h-3 rounded-full overflow-hidden mb-3 relative">
+        <div class="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-700 ease-out flex items-center justify-end pr-1"
+             style="width: {{ order.progress_percent }}%;">
+            {% if order.status == 'PROCESSING' or order.status == 'PENDING' %}
+                <div class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Counts Summary Grid -->
+    <div class="grid grid-cols-3 gap-2 text-center pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
+        <div class="p-1.5 rounded-xl bg-white/70 dark:bg-slate-900/50 border border-slate-200/40 dark:border-slate-800">
+            <span class="block text-[10px] uppercase tracking-wider font-semibold text-text-muted">Target</span>
+            <span class="text-xs font-bold font-mono text-text-primary dark:text-white">{{ order.quantity|default:0 }}</span>
+        </div>
+        <div class="p-1.5 rounded-xl bg-white/70 dark:bg-slate-900/50 border border-slate-200/40 dark:border-slate-800">
+            <span class="block text-[10px] uppercase tracking-wider font-semibold text-emerald-600 dark:text-emerald-400">Delivered</span>
+            <span class="text-xs font-bold font-mono text-emerald-600 dark:text-emerald-400">{{ order.delivered_count|default:0 }}</span>
+        </div>
+        <div class="p-1.5 rounded-xl bg-white/70 dark:bg-slate-900/50 border border-slate-200/40 dark:border-slate-800">
+            <span class="block text-[10px] uppercase tracking-wider font-semibold text-text-muted">Remaining</span>
+            <span class="text-xs font-bold font-mono text-text-primary dark:text-white">{{ order.remains|default:0 }}</span>
+        </div>
+    </div>
+
+    <!-- Starting / Current / Final Profile Followers Track (if start_count is known) -->
+    {% if order.start_count and order.start_count > 0 %}
+    <div class="mt-3 pt-2.5 border-t border-dashed border-slate-200 dark:border-slate-700 flex items-center justify-between text-[11px] text-text-muted font-medium">
+        <div>
+            Start: <span class="font-bold text-text-primary dark:text-white font-mono">{{ order.start_count|default:0 }}</span>
+        </div>
+        <div class="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-0.5">
+            Current: <span class="font-bold font-mono">{{ order.current_count }}</span>
+        </div>
+        <div>
+            Goal: <span class="font-bold text-text-primary dark:text-white font-mono">{{ order.target_final_count }}</span>
+        </div>
+    </div>
+    {% endif %}
+</div>

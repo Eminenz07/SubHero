@@ -1,7 +1,7 @@
 <div class="px-4 py-8 max-w-md mx-auto text-center" id="receipt-container"
      {% if order and order.status == 'PROCESSING' or order.status == 'PENDING' %}
      hx-get="{% url 'smm:receipt_status' order_id=order.id %}"
-     hx-trigger="every 2.5s"
+     hx-trigger="every 5s"
      hx-swap="outerHTML"
      {% endif %}>
 
@@ -11,12 +11,12 @@
         <i data-feather="clock" class="w-12 h-12 animate-spin" style="animation-duration: 3s;"></i>
     </div>
 
-    <h1 class="text-2xl font-bold text-text-primary mb-2">Order Submitted</h1>
+    <h1 class="text-2xl font-bold text-text-primary mb-2">Order In Progress</h1>
     <p class="text-sm text-text-muted mb-2">
         Your payment of <span class="font-bold text-text-primary">₦{{ amount|floatformat:2 }}</span> has been deducted.
     </p>
-    <p class="text-sm text-text-muted mb-8">
-        Your booster order for <span class="font-bold text-text-primary">{{ service_name }}</span> has been received and is being processed. This page will update automatically.
+    <p class="text-sm text-text-muted mb-4">
+        Your booster order for <span class="font-bold text-text-primary">{{ service_name }}</span> is active. Delivery progress updates live below.
     </p>
 
     {% elif order and order.status == 'FAILED' %}
@@ -37,9 +37,14 @@
     </div>
 
     <h1 class="text-2xl font-bold text-text-primary mb-2">Order Completed!</h1>
-    <p class="text-sm text-text-muted mb-8">
+    <p class="text-sm text-text-muted mb-4">
         Your SMM booster request for <span class="font-bold text-text-primary">{{ service_name }}</span> has been successfully delivered.
     </p>
+    {% endif %}
+
+    <!-- Live Order Progress Bar -->
+    {% if order %}
+        {% include 'smm/partials/_order_progress.html' with order=order %}
     {% endif %}
 
     <!-- Receipt Card -->

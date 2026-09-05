@@ -192,6 +192,85 @@ def refund_smm_order(order_id):
         logger.error("SMM Refund SMS delivery failed: %s", str(sms_err))
 
 
+def sync_single_smm_order(order):
+    """
+    Queries booster gateway API for live status of an order.
+    Updates status, start_count, and remains fields.
+    Returns the updated order.
+    """
+    api_key = settings.OGAVIRAL_API_KEY
+    if not api_key or not order.provider_order_id or order.provider_order_id.startswith("MOCK") or order.provider_order_id.startswith("Failed"):
+        return order
+
+    url = settings.OGAVIRAL_API_URL
+    try:
+        response = requests.post(url, data={
+            "key": api_key,
+            "action": "status",
+            "order": order.provider_order_id
+        }, timeout=10)
+        if response.status_code != 200:
+            return order
+        data = response.json()
+        
+        status = data.get("status")
+        start_count = data.get("start_count")
+        remains = data.get("remains")
+        
+        updated_fields = []
+        if start_count is not None:
+            try:
+                sc = int(start_count)
+                if sc >= 0 and order.start_count != sc:
+                    order.start_count = sc
+                    updated_fields.append("start_count")
+            except (ValueError, TypeError):
+                pass
+                
+        if remains is not None:
+            try:
+                rem = int(remains)
+                if rem >= 0 and order.remains != rem:
+                    order.remains = rem
+                    updated_fields.append("remains")
+            except (ValueError, TypeError):
+                pass
+                
+        if status:
+            if status in ["Completed", "Complete", "Success"] and order.status != SMMOrder.Status.SUCCESS:
+                order.status = SMMOrder.Status.SUCCESS
+                order.remains = 0
+                updated_fields.extend(["status", "remains"])
+                from apps.wallet.models import WalletTransaction
+                WalletTransaction.objects.filter(reference=order.reference).update(status=WalletTransaction.Status.SUCCESS)
+                try:
+                    from apps.notifications.services import send_push_notification
+                    send_push_notification(
+                        user=order.user,
+                        title="🚀 SMM Order Completed!",
+                        body=f"Your {order.service.name} booster request has been successfully delivered.",
+                        action_url="/smm/",
+                        level="financial"
+                    )
+                except Exception:
+                    pass
+            elif status in ["In progress", "Processing"] and order.status != SMMOrder.Status.PROCESSING:
+                order.status = SMMOrder.Status.PROCESSING
+                updated_fields.append("status")
+            elif status in ["Canceled", "Cancelled", "Fail", "Failed"] and order.status != SMMOrder.Status.FAILED:
+                order.status = SMMOrder.Status.FAILED
+                updated_fields.append("status")
+                refund_smm_order.delay(order.id)
+
+        if updated_fields:
+            order.save(update_fields=list(set(updated_fields)))
+            
+    except Exception as e:
+        logger.warning("Error syncing single SMM order %s: %s", order.id, e)
+
+    return order
+
+
 @shared_task
 def poll_smm_orders():
     """
@@ -224,10 +303,33 @@ def poll_smm_orders():
             }, timeout=15)
             data = response.json()
 
+            # Record start_count and remains
+            updated_fields = []
+            start_count = data.get("start_count")
+            remains = data.get("remains")
+            if start_count is not None:
+                try:
+                    sc = int(start_count)
+                    if sc >= 0 and order.start_count != sc:
+                        order.start_count = sc
+                        updated_fields.append("start_count")
+                except (ValueError, TypeError):
+                    pass
+            if remains is not None:
+                try:
+                    rem = int(remains)
+                    if rem >= 0 and order.remains != rem:
+                        order.remains = rem
+                        updated_fields.append("remains")
+                except (ValueError, TypeError):
+                    pass
+
             status = data.get("status")
             if status == "Completed":
                 order.status = SMMOrder.Status.SUCCESS
-                order.save(update_fields=["status"])
+                order.remains = 0
+                updated_fields.extend(["status", "remains"])
+                order.save(update_fields=list(set(updated_fields)))
                 WalletTransaction.objects.filter(reference=order.reference).update(status=WalletTransaction.Status.SUCCESS)
                 
                 # In-app & Web Push Success Alert

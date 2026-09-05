@@ -68,6 +68,8 @@ class SMMOrder(models.Model):
     api_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Cost price from provider API")
     reference = models.CharField(max_length=50, unique=True)
     provider_order_id = models.CharField(max_length=100, blank=True, default="")
+    start_count = models.IntegerField(default=0, help_text="Starting count on user account before delivery")
+    remains = models.IntegerField(default=0, help_text="Quantity left to deliver")
     status = models.CharField(max_length=15, choices=Status.choices, default=Status.PENDING)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
@@ -77,3 +79,44 @@ class SMMOrder(models.Model):
 
     def __str__(self):
         return f"SMMOrder {self.reference} - {self.status}"
+
+    @property
+    def delivered_count(self):
+        """Calculates how many followers/likes have been delivered so far."""
+        if self.status == self.Status.SUCCESS:
+            return self.quantity
+        if self.status == self.Status.FAILED or self.status == self.Status.CANCELLED:
+            return 0
+        if self.remains is not None and self.remains > 0:
+            if self.quantity >= self.remains:
+                return self.quantity - self.remains
+            return 0
+        if self.status == self.Status.PROCESSING and self.start_count > 0 and self.remains == 0:
+            # If start_count was recorded and remains is 0, delivery completed
+            return self.quantity
+        return 0
+
+    @property
+    def progress_percent(self):
+        """Returns integer 0-100 representing percentage delivered."""
+        if self.status == self.Status.SUCCESS:
+            return 100
+        if not self.quantity or self.quantity <= 0:
+            return 0
+        delivered = self.delivered_count
+        pct = int((delivered / self.quantity) * 100)
+        return min(100, max(0, pct))
+
+    @property
+    def current_count(self):
+        """Estimated current profile count: start_count + delivered_count."""
+        if self.start_count and self.start_count > 0:
+            return self.start_count + self.delivered_count
+        return None
+
+    @property
+    def target_final_count(self):
+        """Target count when order completes: start_count + quantity."""
+        if self.start_count and self.start_count > 0:
+            return self.start_count + self.quantity
+        return None

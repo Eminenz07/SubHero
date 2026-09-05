@@ -71,9 +71,12 @@ class SmmIndexView(LoginRequiredMixin, PinRequiredMixin, View):
                 rates_dict[platform][s.name] = s.subhero_price_per_1k / Decimal("1000.00")
                 platform_counts[platform] += 1
 
+        recent_orders = SMMOrder.objects.filter(user=request.user).select_related("service").order_by("-created_at")[:6]
+
         context = {
             "wallet": wallet,
             "rates": rates_dict,
+            "recent_orders": recent_orders,
         }
         return render(request, self.template_name, context)
 
@@ -334,12 +337,18 @@ class SmmServicesAjaxView(LoginRequiredMixin, View):
 class SmmReceiptStatusAjaxView(LoginRequiredMixin, View):
     """
     HTMX status polling endpoint for SMM receipts.
+    Syncs with provider live so delivery counters update in real time.
     """
     template_name = "smm/partials/_receipt_content.html"
 
     def get(self, request, order_id, *args, **kwargs):
         from django.shortcuts import get_object_or_404
+        from apps.smm.tasks import sync_single_smm_order
+
         order = get_object_or_404(SMMOrder, id=order_id, user=request.user)
+        if order.status in [SMMOrder.Status.PROCESSING, SMMOrder.Status.PENDING]:
+            order = sync_single_smm_order(order)
+
         wallet, _ = Wallet.objects.get_or_create(user=request.user)
         txn = WalletTransaction.objects.filter(reference=order.reference).first()
 
@@ -354,3 +363,22 @@ class SmmReceiptStatusAjaxView(LoginRequiredMixin, View):
             "amount": order.amount,
         }
         return render(request, self.template_name, context)
+
+
+class SmmOrderProgressAjaxView(LoginRequiredMixin, View):
+    """
+    HTMX live progress polling endpoint for individual SMM orders.
+    Syncs with provider in real time and renders the live progress bar.
+    """
+    template_name = "smm/partials/_order_progress.html"
+
+    def get(self, request, order_id, *args, **kwargs):
+        from django.shortcuts import get_object_or_404
+        from apps.smm.tasks import sync_single_smm_order
+
+        order = get_object_or_404(SMMOrder, id=order_id, user=request.user)
+        if order.status in [SMMOrder.Status.PROCESSING, SMMOrder.Status.PENDING]:
+            order = sync_single_smm_order(order)
+
+        return render(request, self.template_name, {"order": order})
+

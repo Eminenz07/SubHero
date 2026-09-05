@@ -205,6 +205,11 @@
                 <span class="text-[13px] text-text-muted">Quantity</span>
                 <span class="text-[13px] font-semibold text-text-primary font-mono">{{ order.quantity }}</span>
             </div>
+            <div class="h-[1px] bg-surface-border"></div>
+            <div class="pt-1">
+                <span class="text-[13px] text-text-muted font-semibold block mb-1">Live Delivery Tracker</span>
+                {% include 'smm/partials/_order_progress.html' with order=order %}
+            </div>
             {% endif %}
 
             <!-- Failure Reason Detail -->
