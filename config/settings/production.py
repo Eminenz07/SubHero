@@ -18,15 +18,37 @@ DEBUG = False
 # =============================================================
 _raw_hosts = config("ALLOWED_HOSTS", default="*", cast=Csv())
 ALLOWED_HOSTS = list(_raw_hosts)
-for h in ["subhero-smm.onrender.com", ".onrender.com", "subhero.fly.dev", "localhost", "127.0.0.1", "*"]:
+for h in [
+    "subhero.com.ng",
+    "www.subhero.com.ng",
+    "subhero-p3zo.onrender.com",
+    "subhero-smm.onrender.com",
+    ".onrender.com",
+    "subhero.fly.dev",
+    "localhost",
+    "127.0.0.1",
+    "*",
+]:
     if h not in ALLOWED_HOSTS:
         ALLOWED_HOSTS.append(h)
 
-_raw_csrf = config("CSRF_TRUSTED_ORIGINS", default="https://subhero.fly.dev,https://subhero-smm.onrender.com,https://*.onrender.com", cast=Csv())
+_raw_csrf = config("CSRF_TRUSTED_ORIGINS", default="", cast=Csv())
 CSRF_TRUSTED_ORIGINS = list(_raw_csrf)
-for c in ["https://subhero-smm.onrender.com", "https://*.onrender.com", "https://subhero.fly.dev"]:
+for c in [
+    "https://subhero.com.ng",
+    "https://www.subhero.com.ng",
+    "http://subhero.com.ng",
+    "http://www.subhero.com.ng",
+    "https://subhero-p3zo.onrender.com",
+    "https://subhero-smm.onrender.com",
+    "https://*.onrender.com",
+    "https://subhero.fly.dev",
+]:
     if c not in CSRF_TRUSTED_ORIGINS:
         CSRF_TRUSTED_ORIGINS.append(c)
+
+# Support reverse proxy HTTPS headers from Render and Cloudflare
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # =============================================================
 # DATABASE — PostgreSQL (PRD Section 3.1)
@@ -85,8 +107,8 @@ else:
             "LOCATION": "unique-ratelimit-cache",
         },
     }
-    # Fall back to database for persistent sessions, so user logins are saved safely
-    SESSION_ENGINE = "django.contrib.sessions.backends.db"
+# Use cached_db for resilient persistent sessions (cached in Redis, saved to Postgres)
+SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
 
 # =============================================================
 # STATIC FILES — WhiteNoise (PRD Section 6 optimisation)

@@ -60,11 +60,11 @@ SECURE_BROWSER_XSS_FILTER = True
 # =============================================================
 # SESSION SECURITY — PRD Section 7.1
 # =============================================================
-SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
 SESSION_CACHE_ALIAS = "sessions"
 SESSION_COOKIE_SECURE = True
 SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SAMESITE = "Strict"
+SESSION_COOKIE_SAMESITE = "Lax"
 SESSION_COOKIE_AGE = 86400  # 24 hours default
 SESSION_SAVE_EVERY_REQUEST = True
 
@@ -72,8 +72,8 @@ SESSION_SAVE_EVERY_REQUEST = True
 # CSRF — PRD Section 7.1
 # =============================================================
 CSRF_COOKIE_SECURE = True
-CSRF_COOKIE_HTTPONLY = True
-CSRF_COOKIE_SAMESITE = "Strict"
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_SAMESITE = "Lax"
 CSRF_TRUSTED_ORIGINS = config(
     "CSRF_TRUSTED_ORIGINS",
     default="https://localhost",
