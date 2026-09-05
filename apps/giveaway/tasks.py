@@ -57,26 +57,30 @@ def process_giveaway_claim(claim_id):
     giveaway = claim.giveaway
     escrow = giveaway.escrow
     
+    from apps.core.utils import generate_reference
+
     api_key = getattr(settings, "SABUSS_API_KEY", "")
     pin = getattr(settings, "SABUSS_PIN", "")
     base_url = getattr(settings, "SABUSS_BASE_URL", "https://sabuss.com")
+    vtu_mock = getattr(settings, "VTU_MOCK", False)
     
     success = False
     provider_ref = ""
     
-    if getattr(settings, "VTU_MOCK", False) or not api_key:
-        logger.info("Sabuss API Key is not set or mocked. Simulating VTU success.")
+    if vtu_mock or not api_key:
+        logger.info("VTU_MOCK is True (%s) or api_key missing (%s). Simulating VTU success for claim %s.", vtu_mock, bool(api_key), claim_id)
         success = True
         provider_ref = "MOCK-SABUSS-GWY"
     else:
         try:
+            order_ref = generate_reference(prefix="GWY")
             if giveaway.giveaway_type == 'DATA':
                 url = f"{base_url}/vtu/api/buy/{api_key}"
                 payload = {
                     "pin": pin,
                     "plan_id": str(giveaway.plan_id),
                     "phone": _format_phone(claim.phone_number),
-                    "reference": f"GWYCLM{str(claim.id).replace('-', '')}"
+                    "reference": order_ref
                 }
             else:
                 url = f"{base_url}/vtu/api/buy/{api_key}"
@@ -97,16 +101,19 @@ def process_giveaway_claim(claim_id):
                     "plan_id": plan_id,
                     "phone": _format_phone(claim.phone_number),
                     "amount": str(int(giveaway.amount_per_slot)),
-                    "reference": f"GWYCLM{str(claim.id).replace('-', '')}"
+                    "reference": order_ref
                 }
                 
+            logger.info("Calling Sabuss API for claim %s (%s %s to %s, ref: %s)", claim_id, giveaway.giveaway_type, giveaway.amount_per_slot, claim.phone_number, order_ref)
             response = requests.post(url, data=payload, timeout=25)
+            logger.info("Sabuss API response for claim %s: HTTP %s, body: %s", claim_id, response.status_code, response.text[:200])
+
             if response.status_code in [200, 201]:
                 response_data = response.json()
                 code = str(response_data.get("code"))
                 if code in ["200", "400"]:
                     success = True
-                    provider_ref = response_data.get("reference", response_data.get("id", f"GWYCLM{str(claim.id).replace('-', '')}"))
+                    provider_ref = response_data.get("reference", response_data.get("id", order_ref))
                 else:
                     logger.error(f"Sabuss API rejected claim {claim_id}: {response_data}")
             else:
