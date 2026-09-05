@@ -4,13 +4,16 @@
 echo "Running database migrations..."
 python manage.py migrate --noinput
 
-# Start Celery worker in the background
-echo "Starting Celery worker..."
-celery -A config worker --loglevel=info --concurrency=1 &
+# Start Celery worker and beat only if REDIS_URL is configured
+if [ -n "$REDIS_URL" ]; then
+    echo "Starting Celery worker..."
+    celery -A config worker --loglevel=info --concurrency=1 &
 
-# Start Celery beat in the background
-echo "Starting Celery beat..."
-celery -A config beat --loglevel=info &
+    echo "Starting Celery beat..."
+    celery -A config beat --loglevel=info &
+else
+    echo "REDIS_URL is not set. Running Celery in eager mode without background workers."
+fi
 
 # Start Gunicorn server in the foreground
 echo "Starting Gunicorn..."
