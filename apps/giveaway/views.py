@@ -377,42 +377,45 @@ def claim_failed(request, slug):
 def cancel_giveaway(request, slug):
     giveaway = get_object_or_404(Giveaway, slug=slug, host=request.user)
     
-    if giveaway.status != 'ACTIVE':
-        messages.error(request, "Only active giveaways can be cancelled.")
-        return redirect('giveaway:detail', slug=slug)
-        
-    if giveaway.claimed_slots > 0:
-        messages.error(request, "Giveaways with active claims cannot be cancelled.")
-        return redirect('giveaway:detail', slug=slug)
-        
     try:
         with transaction.atomic():
+            giveaway = Giveaway.objects.select_for_update().get(id=giveaway.id)
+            if giveaway.status != 'ACTIVE':
+                messages.error(request, "This giveaway is no longer active.")
+                return redirect('giveaway:mine')
+
             wallet = Wallet.objects.select_for_update().get(user=request.user)
             balance_before = wallet.balance
             
-            # Refund escrow
-            refund_amount = giveaway.total_locked
-            wallet.balance += refund_amount
-            wallet.save()
+            # Calculate refund for remaining unclaimed slots
+            unclaimed_slots = max(0, giveaway.total_slots - giveaway.claimed_slots)
+            refund_amount = unclaimed_slots * giveaway.amount_per_slot
             
-            # Update giveaway
+            if refund_amount > 0:
+                wallet.balance += refund_amount
+                wallet.save(update_fields=['balance'])
+                
+                # Transaction log
+                WalletTransaction.objects.create(
+                    wallet=wallet,
+                    txn_type=WalletTransaction.TxnType.REFUND,
+                    amount=refund_amount,
+                    balance_before=balance_before,
+                    balance_after=wallet.balance,
+                    status=WalletTransaction.Status.SUCCESS,
+                    reference=f"GWY_REFUND_{giveaway.id}",
+                    description=f"Refund for {unclaimed_slots} unclaimed slot(s) from giveaway: {giveaway.title}"
+                )
+            
             giveaway.status = 'CANCELLED'
-            giveaway.save()
+            giveaway.save(update_fields=['status'])
             
-            # Transaction log
-            WalletTransaction.objects.create(
-                wallet=wallet,
-                txn_type=WalletTransaction.TxnType.REFUND,
-                amount=refund_amount,
-                balance_before=balance_before,
-                balance_after=wallet.balance,
-                status=WalletTransaction.Status.SUCCESS,
-                reference=f"GWY_REFUND_{giveaway.id}",
-                description=f"Cancelled giveaway refund: {giveaway.title}"
-            )
-            
-        messages.success(request, f"Giveaway cancelled successfully! ₦{refund_amount} has been refunded to your wallet.")
+        if refund_amount > 0:
+            messages.success(request, f"Giveaway cancelled! ₦{refund_amount:,.2f} for {unclaimed_slots} unclaimed slot(s) has been refunded to your wallet.")
+        else:
+            messages.success(request, "Giveaway has been closed.")
     except Exception as e:
+        logger.exception("Error cancelling giveaway: %s", e)
         messages.error(request, f"Failed to cancel giveaway: {str(e)}")
         
     return redirect('giveaway:mine')

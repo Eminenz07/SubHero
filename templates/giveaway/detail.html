@@ -76,12 +76,12 @@
             </div>
         </div>
         
-        {% if giveaway.claimed_slots == 0 %}
+        {% if giveaway.status == 'ACTIVE' %}
         <div class="pt-4 border-t border-surface-border mt-4">
             <form method="POST" action="{% url 'giveaway:cancel' giveaway.slug %}">
                 {% csrf_token %}
-                <button type="submit" onclick="return confirm('Are you sure you want to cancel this giveaway? All locked funds will be refunded to your wallet.')" class="w-full py-3 rounded-xl bg-status-danger-bg text-status-danger-text font-bold flex items-center justify-center gap-2 active:scale-95 transition-all no-underline text-xs">
-                    <i data-feather="trash-2" class="w-4 h-4"></i> Cancel Giveaway & Refund Funds
+                <button type="submit" onclick="return confirm('Are you sure you want to cancel this giveaway? Remaining unclaimed funds will be immediately refunded to your wallet.')" class="w-full py-3 rounded-xl bg-status-danger-bg text-status-danger-text font-bold flex items-center justify-center gap-2 active:scale-95 transition-all no-underline text-xs">
+                    <i data-feather="trash-2" class="w-4 h-4"></i> Cancel Giveaway & Refund Unclaimed Funds
                 </button>
             </form>
         </div>
