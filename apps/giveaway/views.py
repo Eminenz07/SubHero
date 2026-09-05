@@ -162,6 +162,18 @@ def my_giveaways(request):
 @login_required
 def giveaway_detail(request, slug):
     giveaway = get_object_or_404(Giveaway, slug=slug, host=request.user)
+
+    # Auto-resolve any claims that were stuck in PENDING
+    pending_claims = list(giveaway.claims.filter(status='PENDING'))
+    if pending_claims:
+        from apps.giveaway.tasks import process_giveaway_claim
+        for p_claim in pending_claims:
+            try:
+                process_giveaway_claim(str(p_claim.id))
+            except Exception as p_err:
+                logger.error("Error auto-resolving pending claim %s: %s", p_claim.id, p_err)
+        giveaway.refresh_from_db()
+
     return render(request, 'giveaway/detail.html', {'giveaway': giveaway})
 
 import re
@@ -276,9 +288,18 @@ def claim_page(request, slug):
                     amount=giveaway_locked.amount_per_slot,
                     ip_address=ip_address
                 )
-                
-            # Dispatch Celery Task
-            process_giveaway_claim.delay(claim.id)
+
+            # Process claim immediately so vending and SMS happen in real-time
+            try:
+                process_giveaway_claim(str(claim.id))
+            except Exception as proc_err:
+                logger.error("Immediate claim process error: %s", proc_err)
+                try:
+                    process_giveaway_claim.delay(str(claim.id))
+                except Exception as delay_err:
+                    logger.error("Celery delay fallback error: %s", delay_err)
+
+            claim.refresh_from_db()
 
             # Trigger Web Push notification to giveaway host
             try:
@@ -293,15 +314,31 @@ def claim_page(request, slug):
             except Exception:
                 pass
 
+            if claim.status == 'SUCCESS':
+                return redirect(reverse('giveaway:claim_success', kwargs={'slug': giveaway.slug}) + f"?phone={claim.phone_number}")
+            elif claim.status == 'FAILED':
+                return redirect('giveaway:claim_failed', slug=giveaway.slug)
+
             return redirect('giveaway:claim_status', slug=giveaway.slug, claim_id=claim.id)
             
         except Exception as e:
-            return render(request, 'giveaway/claim.html', {'giveaway': giveaway, 'error': 'An error occurred. Try again later.'})
+            logger.exception("Error during giveaway claim: %s", e)
+            return render(request, 'giveaway/claim.html', {'giveaway': giveaway, 'error': 'An error occurred while processing your claim. Please try again.'})
 
     return render(request, 'giveaway/claim.html', {'giveaway': giveaway})
 
 def claim_status(request, slug, claim_id):
     claim = get_object_or_404(GiveawayClaim, id=claim_id, giveaway__slug=slug)
+
+    # If still pending, process it on demand
+    if claim.status == 'PENDING':
+        try:
+            from apps.giveaway.tasks import process_giveaway_claim
+            process_giveaway_claim(str(claim.id))
+            claim.refresh_from_db()
+        except Exception as proc_err:
+            logger.error("claim_status on-demand process error: %s", proc_err)
+
     if claim.status == 'SUCCESS':
         redirect_url = reverse('giveaway:claim_success', kwargs={'slug': slug}) + f"?phone={claim.phone_number}"
         if request.headers.get('HX-Request'):

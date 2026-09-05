@@ -193,7 +193,7 @@ def process_giveaway_claim(claim_id):
                 claim.save(update_fields=['status'])
                 
                 # Un-claim the slot so someone else can claim it
-                giveaway.claimed_slots -= 1
+                giveaway.claimed_slots = max(0, giveaway.claimed_slots - 1)
                 giveaway.save(update_fields=['claimed_slots'])
                 
             logger.error(f"Giveaway claim {claim_id} failed API purchase.")
@@ -203,7 +203,7 @@ def process_giveaway_claim(claim_id):
         with transaction.atomic():
             claim.status = 'FAILED'
             claim.save(update_fields=['status'])
-            giveaway.claimed_slots -= 1
+            giveaway.claimed_slots = max(0, giveaway.claimed_slots - 1)
             giveaway.save(update_fields=['claimed_slots'])
 
 
