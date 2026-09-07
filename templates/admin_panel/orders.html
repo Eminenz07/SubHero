@@ -94,7 +94,14 @@
                                 {{ o.type_display }}
                             </span>
                         </td>
-                        <td class="py-4 px-6 text-white font-semibold max-w-[180px] truncate" title="{{ o.description }}">{{ o.description }}</td>
+                        <td class="py-4 px-6 text-white font-semibold max-w-[180px]">
+                            <div class="truncate" title="{{ o.description }}">{{ o.description }}</div>
+                            {% if o.type == 'SMM' %}
+                            <div class="text-[10px] font-mono text-emerald-400 font-bold mt-0.5">
+                                Filled: {{ o.delivered_count }}/{{ o.quantity }} ({{ o.progress_percent }}%)
+                            </div>
+                            {% endif %}
+                        </td>
                         <td class="py-4 px-6 font-mono text-[11px] max-w-[150px] truncate" title="{{ o.recipient }}">{{ o.recipient }}</td>
                         <td class="py-4 px-6 text-white font-mono font-bold">₦{{ o.amount }}</td>
                         <td class="py-4 px-6" id="status-cell-{{ o.id }}">

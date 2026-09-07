@@ -53,8 +53,13 @@
                 <div class="text-[14px] font-semibold text-text-primary whitespace-nowrap overflow-hidden text-ellipsis">
                     {% if txn.description %}{{ txn.description|truncatechars:38 }}{% else %}{{ txn.get_txn_type_display }}{% endif %}
                 </div>
-                <div class="text-[11px] text-text-muted mt-[2px] flex items-center gap-1.5">
+                <div class="text-[11px] text-text-muted mt-[2px] flex items-center flex-wrap gap-1.5">
                     <span>{{ txn.created_at|date:"M d, g:i A" }}</span>
+                    {% if txn.smm_order %}
+                    <span class="inline-flex items-center gap-1 font-mono font-bold text-[10px] text-emerald-600 bg-emerald-50 border border-emerald-200/60 px-1.5 py-0.5 rounded-md">
+                        Filled: {{ txn.smm_order.delivered_count }}/{{ txn.smm_order.quantity }} ({{ txn.smm_order.progress_percent }}%)
+                    </span>
+                    {% endif %}
                 </div>
             </div>
             <div class="text-right shrink-0">

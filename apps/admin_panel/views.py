@@ -816,6 +816,7 @@ def get_unified_orders(status_filter=None, type_filter=None, query=None):
                 "id": o.id, "type": "SMM", "type_display": "SMM Booster",
                 "reference": o.reference, "user": o.user, "recipient": o.target_url,
                 "description": o.service.name, "amount": o.amount, "status": o.status, "created_at": o.created_at,
+                "delivered_count": o.delivered_count, "quantity": o.quantity, "progress_percent": o.progress_percent,
             })
             
     # 3. Airtime

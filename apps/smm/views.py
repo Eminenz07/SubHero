@@ -71,12 +71,9 @@ class SmmIndexView(LoginRequiredMixin, PinRequiredMixin, View):
                 rates_dict[platform][s.name] = s.subhero_price_per_1k / Decimal("1000.00")
                 platform_counts[platform] += 1
 
-        recent_orders = SMMOrder.objects.filter(user=request.user).select_related("service").order_by("-created_at")[:6]
-
         context = {
             "wallet": wallet,
             "rates": rates_dict,
-            "recent_orders": recent_orders,
         }
         return render(request, self.template_name, context)
 

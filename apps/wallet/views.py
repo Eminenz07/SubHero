@@ -200,6 +200,13 @@ class TransactionHistoryView(LoginRequiredMixin, PinRequiredMixin, View):
         # Build filter options
         type_choices = [("", "All")] + list(WalletTransaction.TxnType.choices)
 
+        # Attach SMM order delivery progress to transactions
+        from apps.smm.models import SMMOrder
+        refs = [t.reference for t in page_obj]
+        smm_map = {o.reference: o for o in SMMOrder.objects.filter(reference__in=refs)}
+        for t in page_obj:
+            t.smm_order = smm_map.get(t.reference)
+
         return render(request, self.template_name, {
             "wallet": wallet,
             "page_obj": page_obj,
