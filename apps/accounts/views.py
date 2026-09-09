@@ -488,14 +488,19 @@ class ProfileView(LoginRequiredMixin, View):
         
         if action == "update_profile":
             full_name = request.POST.get("full_name", "").strip()
-            email = request.POST.get("email", "").strip()
             
-            if not full_name or not email:
-                messages.error(request, "Name and Email are required.")
+            if not full_name:
+                messages.error(request, "Name is required.")
                 return render(request, self.template_name)
                 
             request.user.full_name = full_name
-            request.user.email = email
+
+            # Once verified, email cannot be changed
+            if not request.user.is_verified:
+                email = request.POST.get("email", "").strip()
+                if email:
+                    request.user.email = email
+
             request.user.save()
             
             # Profile update notification
