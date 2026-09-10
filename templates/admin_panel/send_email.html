@@ -1,0 +1,322 @@
+{% extends "admin_panel/base_admin.html" %}
+{% load static %}
+
+{% block title %}Email Dispatcher | SubHero HQ{% endblock %}
+
+{% block header_title %}Email Dispatcher{% endblock %}
+
+{% block header_subtitle %}
+<span class="text-xs text-slate-400 font-mono ml-2">Compose & dispatch branded announcements, updates & direct emails</span>
+{% endblock %}
+
+{% block admin_content %}
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 pb-12">
+    
+    <!-- Left Form Pane (7 Cols) -->
+    <div class="lg:col-span-7 space-y-6">
+        <div class="admin-card p-6 md:p-8">
+            <div class="flex items-center justify-between border-b border-white/[0.06] pb-4 mb-6">
+                <div>
+                    <h3 class="text-base font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                        <i data-feather="mail" class="w-4 h-4 text-emerald-400"></i>
+                        Email Composer
+                    </h3>
+                    <p class="text-xs text-slate-400 mt-1">Uses the official SubHero dark-emerald responsive HTML template.</p>
+                </div>
+                <button type="button" onclick="sendTestEmail()" id="btn-test-send" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/[0.06] hover:bg-white/[0.1] text-slate-300 hover:text-white border border-white/[0.08] transition-all flex items-center gap-1.5 cursor-pointer">
+                    <i data-feather="send" class="w-3.5 h-3.5 text-emerald-400"></i>
+                    Send Test to Me
+                </button>
+            </div>
+
+            <form id="email-dispatch-form" class="space-y-5 text-sm">
+                {% csrf_token %}
+
+                <!-- Recipient Target Selection -->
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider">Recipient Audience</label>
+                    <div class="grid grid-cols-3 gap-2.5">
+                        <label class="relative flex flex-col p-3 rounded-xl border border-white/[0.08] bg-slate-900/60 hover:bg-slate-900 cursor-pointer transition-all target-option" id="opt-all">
+                            <input type="radio" name="target" value="all" class="sr-only" onchange="onTargetChange(this.value)" {% if not preselected_user %}checked{% endif %}>
+                            <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                                <i data-feather="users" class="w-3.5 h-3.5 text-emerald-400"></i>
+                                All Users
+                            </span>
+                            <span class="text-[10px] text-slate-400 mt-0.5">Broadcast to all active accounts</span>
+                        </label>
+
+                        <label class="relative flex flex-col p-3 rounded-xl border border-white/[0.08] bg-slate-900/60 hover:bg-slate-900 cursor-pointer transition-all target-option" id="opt-user">
+                            <input type="radio" name="target" value="user" class="sr-only" onchange="onTargetChange(this.value)" {% if preselected_user %}checked{% endif %}>
+                            <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                                <i data-feather="user" class="w-3.5 h-3.5 text-emerald-400"></i>
+                                Specific User
+                            </span>
+                            <span class="text-[10px] text-slate-400 mt-0.5">Select single user account</span>
+                        </label>
+
+                        <label class="relative flex flex-col p-3 rounded-xl border border-white/[0.08] bg-slate-900/60 hover:bg-slate-900 cursor-pointer transition-all target-option" id="opt-custom">
+                            <input type="radio" name="target" value="custom" class="sr-only" onchange="onTargetChange(this.value)">
+                            <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                                <i data-feather="at-sign" class="w-3.5 h-3.5 text-emerald-400"></i>
+                                Custom Email
+                            </span>
+                            <span class="text-[10px] text-slate-400 mt-0.5">Direct address or test</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Specific User Dropdown (conditional) -->
+                <div id="field-user-select" class="space-y-1.5 {% if not preselected_user %}hidden{% endif %}">
+                    <label class="block text-xs font-semibold text-slate-400">Select User Account</label>
+                    <select name="target_user_id" id="target_user_id" class="w-full px-3.5 py-2.5 text-xs bg-slate-900 border border-white/[0.08] rounded-xl text-white focus:outline-none focus:border-emerald-500/50 transition-all font-mono">
+                        {% if preselected_user %}
+                        <option value="{{ preselected_user.id }}" selected>{{ preselected_user.full_name|default:"User" }} — {{ preselected_user.email }} ({{ preselected_user.phone_number }})</option>
+                        {% endif %}
+                        {% for u in recent_users %}
+                            {% if not preselected_user or u.id != preselected_user.id %}
+                            <option value="{{ u.id }}">{{ u.full_name|default:"User" }} — {{ u.email }} ({{ u.phone_number }})</option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Custom Email Input (conditional) -->
+                <div id="field-custom-email" class="space-y-1.5 hidden">
+                    <label class="block text-xs font-semibold text-slate-400">Recipient Email Address</label>
+                    <input type="email" name="custom_email" id="custom_email" placeholder="e.g. client@example.com" class="w-full px-3.5 py-2.5 text-xs bg-slate-900 border border-white/[0.08] rounded-xl text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500/50 transition-all font-mono">
+                </div>
+
+                <!-- Subject Line -->
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider">Email Subject *</label>
+                    <input type="text" name="subject" id="email_subject" required placeholder="e.g. Important Update: New MTN & Airtel Data Prices" class="w-full px-4 py-2.5 text-sm bg-slate-900 border border-white/[0.08] rounded-xl text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500/50 transition-all font-semibold" oninput="debouncePreview()">
+                </div>
+
+                <!-- Headline / Header Subtitle -->
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider">Header Headline <span class="text-slate-500 font-normal">(appears in emerald banner)</span></label>
+                    <input type="text" name="headline" id="email_headline" placeholder="e.g. Official System Announcement" value="Official SubHero Announcement" class="w-full px-4 py-2.5 text-sm bg-slate-900 border border-white/[0.08] rounded-xl text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500/50 transition-all" oninput="debouncePreview()">
+                </div>
+
+                <!-- Message Body -->
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider">Message Content *</label>
+                    <textarea name="content" id="email_content" rows="7" required placeholder="Write your message here... Separate paragraphs with a blank line." class="w-full px-4 py-3 text-sm bg-slate-900 border border-white/[0.08] rounded-xl text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500/50 transition-all leading-relaxed" oninput="debouncePreview()">We have updated our server infrastructure and automated cheaper data pricing across all networks.
+
+Fund your wallet today and enjoy instant VTU delivery and social boost orders!</textarea>
+                    <p class="text-[11px] text-slate-500">Double enter/newline automatically turns into clean paragraphs in the email template.</p>
+                </div>
+
+                <!-- Call-to-Action Button Options -->
+                <div class="p-4 rounded-xl bg-slate-900/40 border border-white/[0.04] space-y-3">
+                    <div class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                        <i data-feather="external-link" class="w-3.5 h-3.5 text-emerald-400"></i>
+                        Action Button <span class="text-slate-500 font-normal text-[10px]">(optional)</span>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[11px] text-slate-400 mb-1">Button Text</label>
+                            <input type="text" name="button_text" id="button_text" placeholder="e.g. Open Dashboard" value="Fund Wallet & Buy Data" class="w-full px-3 py-2 text-xs bg-slate-900 border border-white/[0.08] rounded-lg text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500/50" oninput="debouncePreview()">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] text-slate-400 mb-1">Button URL</label>
+                            <input type="url" name="button_url" id="button_url" placeholder="https://subhero.com.ng/dashboard/" value="https://subhero.com.ng/dashboard/" class="w-full px-3 py-2 text-xs bg-slate-900 border border-white/[0.08] rounded-lg text-white font-mono placeholder-slate-600 focus:outline-none focus:border-emerald-500/50" oninput="debouncePreview()">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Callout Notice Box -->
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider">Highlight Notice <span class="text-slate-500 font-normal text-[10px]">(optional callout banner)</span></label>
+                    <input type="text" name="notice_text" id="notice_text" placeholder="e.g. Support desk is open 24/7 on WhatsApp." value="Security Notice: SubHero admins will never ask for your password or 4-digit transaction PIN." class="w-full px-4 py-2.5 text-xs bg-slate-900 border border-white/[0.08] rounded-xl text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500/50 transition-all" oninput="debouncePreview()">
+                </div>
+
+                <!-- Action / Submit -->
+                <div class="pt-4 border-t border-white/[0.06] flex items-center justify-between gap-4">
+                    <div id="status-feedback" class="text-xs font-medium text-slate-400 truncate"></div>
+                    <button type="submit" id="btn-dispatch" class="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-emerald-900/30 transition-all flex items-center gap-2 cursor-pointer shrink-0">
+                        <i data-feather="send" class="w-4 h-4"></i>
+                        <span id="dispatch-label">Send Broadcast</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Right Live Preview Pane (5 Cols) -->
+    <div class="lg:col-span-5 space-y-4">
+        <div class="admin-card p-4 flex flex-col h-[750px]">
+            <div class="flex items-center justify-between border-b border-white/[0.06] pb-3 mb-3 shrink-0">
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span class="text-xs font-bold text-white uppercase tracking-wider">Live HTML Preview</span>
+                </div>
+                <button type="button" onclick="refreshPreview()" class="text-xs text-slate-400 hover:text-emerald-400 transition-colors flex items-center gap-1">
+                    <i data-feather="refresh-cw" class="w-3 h-3"></i> Refresh
+                </button>
+            </div>
+
+            <!-- Preview Iframe -->
+            <div class="flex-1 rounded-xl overflow-hidden border border-white/[0.08] bg-[#060B14]">
+                <iframe id="preview-frame" class="w-full h-full border-0" title="Email Live Preview"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let debounceTimer = null;
+
+    function onTargetChange(val) {
+        document.querySelectorAll('.target-option').forEach(el => el.classList.remove('border-emerald-500/60', 'bg-emerald-950/20'));
+        const activeOpt = document.getElementById('opt-' + val);
+        if (activeOpt) activeOpt.classList.add('border-emerald-500/60', 'bg-emerald-950/20');
+
+        const userField = document.getElementById('field-user-select');
+        const customField = document.getElementById('field-custom-email');
+        const dispatchLabel = document.getElementById('dispatch-label');
+
+        userField.classList.add('hidden');
+        customField.classList.add('hidden');
+
+        if (val === 'user') {
+            userField.classList.remove('hidden');
+            dispatchLabel.innerText = 'Send to User';
+        } else if (val === 'custom') {
+            customField.classList.remove('hidden');
+            dispatchLabel.innerText = 'Send to Address';
+        } else {
+            dispatchLabel.innerText = 'Send Broadcast (All Users)';
+        }
+    }
+
+    function debouncePreview() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(refreshPreview, 350);
+    }
+
+    function refreshPreview() {
+        const formData = new FormData(document.getElementById('email-dispatch-form'));
+        fetch("{% url 'admin_panel:preview_email_api' %}", {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(res => res.text())
+        .then(html => {
+            const frame = document.getElementById('preview-frame');
+            frame.srcdoc = html;
+        })
+        .catch(err => console.error("Preview render error:", err));
+    }
+
+    function sendTestEmail() {
+        const btn = document.getElementById('btn-test-send');
+        const originalHtml = btn.innerHTML;
+        const feedback = document.getElementById('status-feedback');
+
+        const subject = document.getElementById('email_subject').value.trim();
+        const content = document.getElementById('email_content').value.trim();
+
+        if (!subject || !content) {
+            alert('Please enter at least a Subject and Message Content to send a test copy.');
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="animate-spin mr-1">↻</span> Sending Test...';
+        feedback.innerText = 'Dispatching test copy to your admin email...';
+
+        const formData = new FormData(document.getElementById('email-dispatch-form'));
+        formData.set('target', 'test');
+
+        fetch("{% url 'admin_panel:send_email' %}", {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+            if (data.success) {
+                feedback.className = 'text-xs font-semibold text-emerald-400 truncate';
+                feedback.innerText = data.message || 'Test email dispatched!';
+            } else {
+                feedback.className = 'text-xs font-semibold text-red-400 truncate';
+                feedback.innerText = data.error || 'Failed to dispatch test.';
+            }
+        })
+        .catch(err => {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+            feedback.className = 'text-xs font-semibold text-red-400 truncate';
+            feedback.innerText = 'Network error while sending test.';
+        });
+    }
+
+    document.getElementById('email-dispatch-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const target = document.querySelector('input[name="target"]:checked').value;
+        const feedback = document.getElementById('status-feedback');
+        const submitBtn = document.getElementById('btn-dispatch');
+
+        let confirmMsg = 'Are you sure you want to dispatch this email?';
+        if (target === 'all') {
+            confirmMsg = '⚠️ BROADCAST CONFIRMATION:\n\nThis will send this branded email to ALL registered active users on SubHero.\n\nDo you wish to proceed?';
+        }
+
+        if (!confirm(confirmMsg)) {
+            return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.classList.add('opacity-60');
+        feedback.className = 'text-xs font-medium text-slate-400 truncate';
+        feedback.innerText = 'Queueing email dispatch...';
+
+        const formData = new FormData(this);
+
+        fetch("{% url 'admin_panel:send_email' %}", {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('opacity-60');
+            if (data.success) {
+                feedback.className = 'text-xs font-bold text-emerald-400 truncate';
+                feedback.innerText = '✓ ' + (data.message || 'Dispatched successfully!');
+                alert(data.message || 'Email successfully dispatched!');
+            } else {
+                feedback.className = 'text-xs font-bold text-red-400 truncate';
+                feedback.innerText = 'Error: ' + (data.error || 'Failed to dispatch.');
+                alert('Error: ' + (data.error || 'Failed to dispatch.'));
+            }
+        })
+        .catch(err => {
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('opacity-60');
+            feedback.className = 'text-xs font-bold text-red-400 truncate';
+            feedback.innerText = 'Network error occurred.';
+            alert('A network error occurred while queueing the email.');
+        });
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const checkedTarget = document.querySelector('input[name="target"]:checked');
+        if (checkedTarget) {
+            onTargetChange(checkedTarget.value);
+        }
+        refreshPreview();
+    });
+</script>
+{% endblock %}

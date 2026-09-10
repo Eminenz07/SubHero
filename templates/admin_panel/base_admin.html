@@ -120,6 +120,10 @@
                 <i data-feather="credit-card" class="w-4 h-4"></i>
                 API Wallet Monitor
             </a>
+            <a href="{% url 'admin_panel:send_email' %}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all {% if active_nav == 'send_email' %}bg-emerald-600/15 text-emerald-400 border border-emerald-500/20{% else %}text-slate-400 hover:text-white hover:bg-white/[0.03] border border-transparent{% endif %}">
+                <i data-feather="mail" class="w-4 h-4"></i>
+                Email Dispatcher
+            </a>
             <a href="{% url 'admin_panel:logs' %}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all {% if active_nav == 'logs' %}bg-emerald-600/15 text-emerald-400 border border-emerald-500/20{% else %}text-slate-400 hover:text-white hover:bg-white/[0.03] border border-transparent{% endif %}">
                 <i data-feather="terminal" class="w-4 h-4"></i>
                 Live Logs

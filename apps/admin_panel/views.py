@@ -1622,8 +1622,163 @@ def analytics_chart_data(request):
             'labels': [d['day'].strftime('%b %d') for d in data],
             'counts': [d['count'] for d in data],
         }
-    else:
-        result = {}
-
     cache.set(cache_key, result, timeout=300)
     return JsonResponse(result, safe=False)
+
+
+# ─────────────────────────────────────────────────────────────
+# ADMIN EMAIL DISPATCHER
+# ─────────────────────────────────────────────────────────────
+
+@admin_required
+def send_email_page(request):
+    """
+    SubHero HQ: Admin Email Dispatcher.
+    Allows composing and broadcasting/direct sending of branded HTML emails.
+    """
+    from django.contrib.auth import get_user_model
+    from django.template.loader import render_to_string
+    from apps.core.email import send_async_app_email, send_app_email
+    User = get_user_model()
+
+    preselected_user = None
+    user_id_param = request.GET.get("user_id")
+    if user_id_param:
+        preselected_user = User.objects.filter(id=user_id_param).first()
+
+    if request.method == "POST":
+        target = request.POST.get("target", "all")  # 'all', 'user', 'custom', 'test'
+        subject = request.POST.get("subject", "").strip()
+        headline = request.POST.get("headline", "").strip()
+        body_text = request.POST.get("content", "").strip()
+        button_text = request.POST.get("button_text", "").strip()
+        button_url = request.POST.get("button_url", "").strip()
+        notice_text = request.POST.get("notice_text", "").strip()
+
+        if not subject or not body_text:
+            return JsonResponse({"success": False, "error": "Subject and message body are required."})
+
+        # Format linebreaks into clean HTML paragraphs
+        formatted_html = "".join([f"<p style='margin: 0 0 16px 0;'>{p.replace(chr(10), '<br>')}</p>" for p in body_text.split("\n\n") if p.strip()])
+
+        def render_body_for(name="there"):
+            return render_to_string("emails/admin_broadcast.html", {
+                "subject": subject,
+                "headline": headline,
+                "user_name": name,
+                "content_html": formatted_html,
+                "button_text": button_text,
+                "button_url": button_url,
+                "notice_text": notice_text,
+                "support_email": getattr(settings, "SUPPORT_EMAIL", "support@subhero.com.ng"),
+            })
+
+        if target == "test":
+            admin_email = request.user.email
+            if not admin_email:
+                return JsonResponse({"success": False, "error": "Your admin account does not have an email address configured."})
+            html_msg = render_body_for(request.user.full_name or "Admin")
+            send_async_app_email(
+                subject=f"[TEST] {subject}",
+                recipient_email=admin_email,
+                html_content=html_msg,
+                text_content=body_text,
+            )
+            return JsonResponse({"success": True, "message": f"Test email dispatched to {admin_email}!"})
+
+        elif target == "custom":
+            custom_email = request.POST.get("custom_email", "").strip()
+            if not custom_email or "@" not in custom_email:
+                return JsonResponse({"success": False, "error": "Please provide a valid recipient email address."})
+            html_msg = render_body_for("Valued Customer")
+            send_async_app_email(
+                subject=subject,
+                recipient_email=custom_email,
+                html_content=html_msg,
+                text_content=body_text,
+            )
+            syslog(level="INFO", category="COMMUNICATION", message=f"Admin sent email to custom address: {custom_email} | Subject: {subject}")
+            return JsonResponse({"success": True, "message": f"Email successfully dispatched to {custom_email}!"})
+
+        elif target == "user":
+            target_user_id = request.POST.get("target_user_id", "").strip()
+            target_user = User.objects.filter(id=target_user_id).first()
+            if not target_user or not target_user.email:
+                return JsonResponse({"success": False, "error": "Selected user does not have a registered email address."})
+            html_msg = render_body_for(target_user.full_name or "User")
+            send_async_app_email(
+                subject=subject,
+                recipient_email=target_user.email,
+                html_content=html_msg,
+                text_content=body_text,
+            )
+            syslog(level="INFO", category="COMMUNICATION", message=f"Admin sent direct email to user: {target_user.email} ({target_user.phone_number}) | Subject: {subject}")
+            return JsonResponse({"success": True, "message": f"Direct email successfully sent to {target_user.email}!"})
+
+        elif target == "all":
+            import threading
+            def broadcast_worker():
+                users_qs = User.objects.filter(is_active=True, email__isnull=False).exclude(email="")
+                count = 0
+                for u in users_qs.iterator(chunk_size=100):
+                    try:
+                        u_html = render_body_for(u.full_name or "SubHero Member")
+                        send_app_email(
+                            subject=subject,
+                            recipient_email=u.email,
+                            html_content=u_html,
+                            text_content=body_text,
+                        )
+                        count += 1
+                        time.sleep(0.05)
+                    except Exception as err:
+                        logger.error("Broadcast delivery error to %s: %s", u.email, err)
+                syslog(level="INFO", category="COMMUNICATION", message=f"Admin broadcast completed to {count} users | Subject: {subject}")
+
+            t = threading.Thread(target=broadcast_worker, daemon=True)
+            t.start()
+
+            total_users = User.objects.filter(is_active=True, email__isnull=False).exclude(email="").count()
+            syslog(level="INFO", category="COMMUNICATION", message=f"Admin initiated bulk broadcast to {total_users} active users | Subject: {subject}")
+            return JsonResponse({"success": True, "message": f"Broadcast queued successfully for {total_users:,} active users!"})
+
+    # GET
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    recent_users = User.objects.filter(is_active=True, email__isnull=False).exclude(email="").order_by("-date_joined")[:50]
+
+    return render(request, "admin_panel/send_email.html", {
+        "active_nav": "send_email",
+        "preselected_user": preselected_user,
+        "recent_users": recent_users,
+    })
+
+
+@admin_required
+def preview_email_api(request):
+    """
+    Renders live HTML preview of the preloaded SubHero branded email template.
+    """
+    from django.template.loader import render_to_string
+
+    subject = request.POST.get("subject", "Preview: Important Announcement").strip()
+    headline = request.POST.get("headline", "SubHero Official Announcement").strip()
+    body_text = request.POST.get("content", "Hello, this is a live preview of your formatted SubHero announcement email. You can add bullet points, links, and action buttons.").strip()
+    button_text = request.POST.get("button_text", "").strip()
+    button_url = request.POST.get("button_url", "").strip()
+    notice_text = request.POST.get("notice_text", "").strip()
+
+    formatted_html = "".join([f"<p style='margin: 0 0 16px 0;'>{p.replace(chr(10), '<br>')}</p>" for p in body_text.split("\n\n") if p.strip()])
+
+    html_preview = render_to_string("emails/admin_broadcast.html", {
+        "subject": subject,
+        "headline": headline,
+        "user_name": "John Doe",
+        "content_html": formatted_html,
+        "button_text": button_text,
+        "button_url": button_url,
+        "notice_text": notice_text,
+        "support_email": getattr(settings, "SUPPORT_EMAIL", "support@subhero.com.ng"),
+    })
+
+    return HttpResponse(html_preview, content_type="text/html")

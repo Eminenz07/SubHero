@@ -265,7 +265,7 @@ def get_daily_funding_total(wallet):
 
 
 @transaction.atomic
-def transfer_p2p(sender_user, recipient_phone, amount, ip_address=None):
+def transfer_p2p(sender_user, recipient_phone, amount, description=None, ip_address=None):
     """
     P2P user-to-user transfer.
     PRD Section 6.2.3:
@@ -278,6 +278,7 @@ def transfer_p2p(sender_user, recipient_phone, amount, ip_address=None):
     User = get_user_model()
 
     amount = Decimal(str(amount))
+    clean_desc = (description or "").strip()
 
     # Validate limits
     if amount < settings.P2P_MIN_AMOUNT:
@@ -330,6 +331,13 @@ def transfer_p2p(sender_user, recipient_phone, amount, ip_address=None):
     sender_wallet.balance -= amount
     sender_wallet.save(update_fields=["balance"])
 
+    desc_suffix = f" - {clean_desc}" if clean_desc else ""
+    sender_meta = {"recipient_id": str(recipient.id)}
+    recv_meta = {"sender_id": str(sender_user.id)}
+    if clean_desc:
+        sender_meta["note"] = clean_desc
+        recv_meta["note"] = clean_desc
+
     send_txn = WalletTransaction.objects.create(
         wallet=sender_wallet,
         txn_type=WalletTransaction.TxnType.P2P_SEND,
@@ -338,8 +346,8 @@ def transfer_p2p(sender_user, recipient_phone, amount, ip_address=None):
         balance_after=sender_wallet.balance,
         reference=send_ref,
         status=WalletTransaction.Status.SUCCESS,
-        description=f"Transfer to {recipient.full_name} ({recipient.phone_number})",
-        metadata={"recipient_id": str(recipient.id)},
+        description=f"Transfer to {recipient.full_name} ({recipient.phone_number}){desc_suffix}",
+        metadata=sender_meta,
         ip_address=ip_address,
     )
 
@@ -356,31 +364,32 @@ def transfer_p2p(sender_user, recipient_phone, amount, ip_address=None):
         balance_after=recipient_wallet.balance,
         reference=recv_ref,
         status=WalletTransaction.Status.SUCCESS,
-        description=f"Transfer from {sender_user.full_name} ({sender_user.phone_number})",
-        metadata={"sender_id": str(sender_user.id)},
+        description=f"Transfer from {sender_user.full_name} ({sender_user.phone_number}){desc_suffix}",
+        metadata=recv_meta,
         ip_address=ip_address,
     )
 
     logger.info(
-        "P2P transfer: sender=%s → recipient=%s, amount=%s, send_ref=%s",
+        "P2P transfer: sender=%s -> recipient=%s, amount=%s, send_ref=%s",
         sender_user.id, recipient.id, amount, send_ref,
     )
 
     # Notifications for active P2P transfers
     try:
         from apps.notifications.models import Notification
+        note_text = f" Note: {clean_desc}." if clean_desc else ""
         # Sender Notification
         Notification.add(
             user=sender_user,
             title="Transfer Sent",
-            description=f"You successfully sent ₦{amount:,.2f} to {recipient.full_name} ({recipient.phone_number}).",
+            description=f"You successfully sent ₦{amount:,.2f} to {recipient.full_name} ({recipient.phone_number}).{note_text}",
             level="financial"
         )
         # Recipient Notification
         Notification.add(
             user=recipient,
             title="Transfer Received",
-            description=f"You received ₦{amount:,.2f} from {sender_user.full_name} ({sender_user.phone_number}).",
+            description=f"You received ₦{amount:,.2f} from {sender_user.full_name} ({sender_user.phone_number}).{note_text}",
             level="financial"
         )
     except Exception as ex:

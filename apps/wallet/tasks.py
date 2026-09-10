@@ -47,6 +47,9 @@ def execute_p2p_transfer(sender_id, recipient_id, amount_str, note=""):
             import uuid
             ref = f"P2P-{uuid.uuid4().hex[:12].upper()}"
 
+            note_clean = (note or "").strip()
+            note_suffix = f" - {note_clean}" if note_clean else ""
+
             # Create Sender Transaction record
             WalletTransaction.objects.create(
                 wallet=sender_wallet,
@@ -56,8 +59,8 @@ def execute_p2p_transfer(sender_id, recipient_id, amount_str, note=""):
                 balance_after=sender_wallet.balance,
                 reference=ref,
                 status=WalletTransaction.Status.SUCCESS,
-                description=f"Transfer to {recipient_wallet.user.full_name} ({recipient_wallet.user.phone_number})",
-                metadata={"recipient_id": str(recipient_id), "note": note}
+                description=f"Transfer to {recipient_wallet.user.full_name} ({recipient_wallet.user.phone_number}){note_suffix}",
+                metadata={"recipient_id": str(recipient_id), "note": note_clean}
             )
 
             # Create Recipient Transaction record
@@ -69,23 +72,24 @@ def execute_p2p_transfer(sender_id, recipient_id, amount_str, note=""):
                 balance_after=recipient_wallet.balance,
                 reference=f"RECV-{ref}",
                 status=WalletTransaction.Status.SUCCESS,
-                description=f"Transfer from {sender_wallet.user.full_name} ({sender_wallet.user.phone_number})",
-                metadata={"sender_id": str(sender_id), "note": note}
+                description=f"Transfer from {sender_wallet.user.full_name} ({sender_wallet.user.phone_number}){note_suffix}",
+                metadata={"sender_id": str(sender_id), "note": note_clean}
             )
 
             # Add in-app Notifications inside transaction
             try:
                 from apps.notifications.models import Notification
+                note_str = f" Note: {note_clean}." if note_clean else ""
                 Notification.add(
                     user=sender_wallet.user,
                     title="Transfer Sent",
-                    description=f"You successfully sent ₦{amount:,.2f} to {recipient_wallet.user.full_name}.",
+                    description=f"You successfully sent ₦{amount:,.2f} to {recipient_wallet.user.full_name}.{note_str}",
                     level="financial"
                 )
                 Notification.add(
                     user=recipient_wallet.user,
                     title="Transfer Received",
-                    description=f"You received ₦{amount:,.2f} from {sender_wallet.user.full_name}.",
+                    description=f"You received ₦{amount:,.2f} from {sender_wallet.user.full_name}.{note_str}",
                     level="financial"
                 )
             except Exception as e:

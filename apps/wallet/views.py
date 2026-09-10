@@ -101,6 +101,7 @@ class P2PTransferView(LoginRequiredMixin, PinRequiredMixin, View):
         if form.is_valid():
             recipient_phone = form.cleaned_data["recipient_phone"]
             amount = form.cleaned_data["amount"]
+            description = form.cleaned_data.get("description", "").strip()
             pin = form.cleaned_data["pin"]
             client_ip = get_client_ip(request)
 
@@ -144,6 +145,7 @@ class P2PTransferView(LoginRequiredMixin, PinRequiredMixin, View):
                     sender_user=request.user,
                     recipient_phone=recipient_phone,
                     amount=amount,
+                    description=description,
                     ip_address=client_ip,
                 )
 

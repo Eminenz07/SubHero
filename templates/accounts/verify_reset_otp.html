@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+
+{% block main_extra_classes %}no-bottom-nav p-0{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+    <div class="auth-top">
+        <div class="auth-logo">Sub<span>Hero</span></div>
+        <div class="auth-tagline">Security Verification.</div>
+    </div>
+    
+    <div class="auth-form flex flex-col">
+        <h2 class="auth-title mb-2">Verify Reset Code</h2>
+        <p class="text-[14px] text-text-secondary mb-6 leading-relaxed text-center">
+            Enter the 6-digit code sent to <strong class="text-text-primary">{{ masked_email }}</strong> to reset your password.
+        </p>
+        
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert {% if message.tags == 'error' %}alert-error{% elif message.tags == 'success' %}alert-success{% else %}alert-info{% endif %} mb-4">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+        
+        {% if debug %}
+        <div class="bg-status-warning-bg text-status-warning-text p-3 rounded-xl text-sm mb-6 text-center font-medium border border-status-warning/20">
+            <i data-feather="terminal" class="inline-block w-4 h-4 mr-1 mb-0.5"></i>
+            Dev Mode: Check your terminal for the OTP code.
+        </div>
+        {% endif %}
+        
+        <form method="post" id="reset-otp-form" class="flex flex-col flex-1">
+            {% csrf_token %}
+            
+            <input type="hidden" name="reset_code" id="hidden-reset-otp-input">
+            
+            <div class="flex justify-center gap-2 sm:gap-3 mb-8" id="reset-otp-inputs">
+                {% for i in "123456" %}
+                <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code"
+                       class="w-12 h-14 sm:w-[52px] sm:h-[60px] text-center text-2xl font-mono font-bold text-text-primary
+                              bg-surface-page border-[1.5px] border-surface-border rounded-xl
+                              focus:outline-none focus:border-brand-accent focus:bg-white focus:ring-4 focus:ring-brand-accent/10 transition-all
+                              shadow-sm" 
+                       data-otp-index="{{ forloop.counter0 }}">
+                {% endfor %}
+            </div>
+
+            <div class="mt-auto pt-4">
+                <button type="submit" id="reset-otp-submit" class="btn-primary btn-block mb-6" disabled>
+                    Confirm Code →
+                </button>
+            </div>
+        </form>
+        
+        <div class="text-center pb-4">
+            <p class="text-[13px] text-text-secondary mb-1">Didn't receive the code?</p>
+            <form method="post" action="{% url 'accounts:resend_reset_otp' %}">
+                {% csrf_token %}
+                <button type="submit" class="text-[14px] font-bold text-brand-primary bg-transparent border-none p-2 active:opacity-70 cursor-pointer">
+                    Resend Reset Code
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const container = document.getElementById('reset-otp-inputs');
+    if (!container) return;
+    const inputs = container.querySelectorAll('input');
+    const hiddenInput = document.getElementById('hidden-reset-otp-input');
+    const submitBtn = document.getElementById('reset-otp-submit');
+    const form = document.getElementById('reset-otp-form');
+
+    if (inputs.length > 0) {
+        inputs[0].focus();
+    }
+
+    function updateOtpValue() {
+        let code = '';
+        inputs.forEach(input => {
+            code += input.value.trim();
+        });
+        hiddenInput.value = code;
+        submitBtn.disabled = (code.length !== 6);
+    }
+
+    inputs.forEach((input, index) => {
+        input.addEventListener('input', function() {
+            const val = this.value.replace(/[^0-9]/g, '');
+            this.value = val ? val.slice(-1) : '';
+            if (this.value && index < inputs.length - 1) {
+                inputs[index + 1].focus();
+            }
+            updateOtpValue();
+            if (hiddenInput.value.length === 6) {
+                form.submit();
+            }
+        });
+
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Backspace') {
+                if (!this.value && index > 0) {
+                    inputs[index - 1].focus();
+                    inputs[index - 1].value = '';
+                    updateOtpValue();
+                }
+            } else if (e.key === 'ArrowLeft' && index > 0) {
+                inputs[index - 1].focus();
+            } else if (e.key === 'ArrowRight' && index < inputs.length - 1) {
+                inputs[index + 1].focus();
+            }
+        });
+
+        input.addEventListener('paste', function(e) {
+            e.preventDefault();
+            const pasteData = (e.clipboardData || window.clipboardData).getData('text').replace(/[^0-9]/g, '').slice(0, 6);
+            if (!pasteData) return;
+            pasteData.split('').forEach((char, i) => {
+                if (inputs[i]) {
+                    inputs[i].value = char;
+                }
+            });
+            const nextIdx = Math.min(pasteData.length, inputs.length - 1);
+            inputs[nextIdx].focus();
+            updateOtpValue();
+            if (hiddenInput.value.length === 6) {
+                form.submit();
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
+
+{% block modals %}{% endblock %}

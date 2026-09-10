@@ -109,14 +109,16 @@ def send_otp(phone_number):
         return False
 
 
-def verify_otp(phone_number, code):
+def verify_otp(identifier, code):
     """
     Verify an OTP code against the hashed value in cache.
+    Accepts phone number or email address as identifier.
     Returns True if valid, False otherwise.
     Single-use — consumed immediately on verification (PRD Section 7.1).
     """
-    cache_key = f"otp:{phone_number}"
-    attempts_key = f"otp_attempts:{phone_number}"
+    clean_id = identifier.strip().lower() if "@" in identifier else identifier.strip()
+    cache_key = f"otp:{clean_id}"
+    attempts_key = f"otp_attempts:{clean_id}"
 
     stored_hash = cache.get(cache_key)
     if stored_hash is None:
@@ -130,7 +132,7 @@ def verify_otp(phone_number, code):
         return False
 
     # Verify
-    if stored_hash == _hash_otp(code, phone_number):
+    if stored_hash == _hash_otp(code, clean_id):
         # Single-use: delete immediately
         cache.delete(cache_key)
         cache.delete(attempts_key)
@@ -139,6 +141,89 @@ def verify_otp(phone_number, code):
         # Increment attempt counter
         cache.set(attempts_key, attempts + 1, settings.OTP_EXPIRY_SECONDS)
         return False
+
+
+def send_email_otp(user, purpose="registration"):
+    """
+    Generate and dispatch a 6-digit OTP code to user's email address.
+    Stores hashed OTP in cache.
+    Dispatches styled HTML email asynchronously via Brevo HTTP API / fallback.
+    Returns the generated OTP code.
+    """
+    from django.template.loader import render_to_string
+    from apps.core.email import send_async_app_email
+
+    otp = "".join(random.choices(string.digits, k=settings.OTP_LENGTH))
+    identifier = user.email.strip().lower()
+
+    # Store hashed OTP in cache with TTL
+    cache_key = f"otp:{identifier}"
+    attempts_key = f"otp_attempts:{identifier}"
+    cache.set(cache_key, _hash_otp(otp, identifier), settings.OTP_EXPIRY_SECONDS)
+    cache.set(attempts_key, 0, settings.OTP_EXPIRY_SECONDS)
+
+    if purpose == "registration":
+        template_name = "emails/registration_otp.html"
+        subject = "SubHero Email Verification"
+    else:
+        template_name = "emails/password_reset_otp.html"
+        subject = "Reset Your SubHero Password"
+
+    context = {
+        "user_name": user.full_name or "there",
+        "otp_code": otp,
+    }
+
+    try:
+        html_content = render_to_string(template_name, context)
+    except Exception as e:
+        logger.error("Failed to render %s: %s", template_name, e)
+        html_content = f"<p>Your SubHero verification code is: <strong>{otp}</strong>. Valid for 10 minutes.</p>"
+
+    text_content = f"Your SubHero verification code is {otp}. It will expire in {settings.OTP_EXPIRY_SECONDS // 60} minutes."
+
+    send_async_app_email(
+        subject=subject,
+        recipient_email=user.email,
+        html_content=html_content,
+        text_content=text_content,
+    )
+
+    if settings.DEBUG or getattr(settings, "TERMII_MOCK", False):
+        logger.info(
+            "EMAIL OTP [%s] for %s: %s (expires in %ds)",
+            purpose,
+            user.email,
+            otp,
+            settings.OTP_EXPIRY_SECONDS,
+        )
+        print(f"\n{'='*50}")
+        print(f"  EMAIL OTP [{purpose.upper()}] for {user.email}: {otp}")
+        print(f"  Expires in {settings.OTP_EXPIRY_SECONDS // 60} minutes")
+        print(f"{'='*50}\n")
+
+    return otp
+
+
+def mask_email(email):
+    """
+    Mask email for display.
+    Examples:
+        eminenceadeoluwa@gmail.com -> em****a@gmail.com
+        user@domain.com -> u****r@domain.com
+        me@domain.com -> m*@domain.com
+    """
+    if not email or "@" not in email:
+        return email or ""
+    user_part, domain = email.split("@", 1)
+    if len(user_part) <= 2:
+        masked_user = user_part[0] + "*"
+    elif len(user_part) <= 4:
+        masked_user = user_part[0] + "**" + user_part[-1]
+    else:
+        masked_user = user_part[:2] + "****" + user_part[-1]
+    return f"{masked_user}@{domain}"
+
 
 
 def normalize_phone(phone_number):

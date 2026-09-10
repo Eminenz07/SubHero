@@ -57,7 +57,9 @@ urlpatterns = [
     # Analytics Dashboard
     path("analytics/", views.analytics_page, name="analytics"),
     path("analytics/data/", views.analytics_data, name="analytics_data"),
-    path("analytics/chart/", views.analytics_chart_data, name="analytics_chart"),
+    # Email Dispatcher
+    path("email/", views.send_email_page, name="send_email"),
+    path("email/preview/", views.preview_email_api, name="preview_email_api"),
 
     # Settings
     path("settings/", views.system_settings, name="settings"),

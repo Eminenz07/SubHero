@@ -12,7 +12,7 @@
     <div class="auth-form flex flex-col">
         <h2 class="auth-title mb-2">Verify OTP</h2>
         <p class="text-[14px] text-text-secondary mb-8 leading-relaxed text-center">
-            We sent a 6-digit code to <strong class="text-text-primary">{{ masked_phone }}</strong>.
+            We sent a 6-digit code to <strong class="text-text-primary">{{ masked_email|default:masked_phone }}</strong>.
         </p>
         
         {% if debug %}
@@ -70,6 +70,75 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const container = document.getElementById('otp-inputs');
+    if (!container) return;
+    const inputs = container.querySelectorAll('input');
+    const hiddenInput = document.getElementById('hidden-otp-input');
+    const submitBtn = document.getElementById('otp-submit');
+    const form = document.getElementById('otp-form');
+
+    if (inputs.length > 0) {
+        inputs[0].focus();
+    }
+
+    function updateOtpValue() {
+        let code = '';
+        inputs.forEach(input => {
+            code += input.value.trim();
+        });
+        hiddenInput.value = code;
+        submitBtn.disabled = (code.length !== 6);
+    }
+
+    inputs.forEach((input, index) => {
+        input.addEventListener('input', function() {
+            const val = this.value.replace(/[^0-9]/g, '');
+            this.value = val ? val.slice(-1) : '';
+            if (this.value && index < inputs.length - 1) {
+                inputs[index + 1].focus();
+            }
+            updateOtpValue();
+            if (hiddenInput.value.length === 6) {
+                form.submit();
+            }
+        });
+
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Backspace') {
+                if (!this.value && index > 0) {
+                    inputs[index - 1].focus();
+                    inputs[index - 1].value = '';
+                    updateOtpValue();
+                }
+            } else if (e.key === 'ArrowLeft' && index > 0) {
+                inputs[index - 1].focus();
+            } else if (e.key === 'ArrowRight' && index < inputs.length - 1) {
+                inputs[index + 1].focus();
+            }
+        });
+
+        input.addEventListener('paste', function(e) {
+            e.preventDefault();
+            const pasteData = (e.clipboardData || window.clipboardData).getData('text').replace(/[^0-9]/g, '').slice(0, 6);
+            if (!pasteData) return;
+            pasteData.split('').forEach((char, i) => {
+                if (inputs[i]) {
+                    inputs[i].value = char;
+                }
+            });
+            const nextIdx = Math.min(pasteData.length, inputs.length - 1);
+            inputs[nextIdx].focus();
+            updateOtpValue();
+            if (hiddenInput.value.length === 6) {
+                form.submit();
+            }
+        });
+    });
+});
+</script>
 {% endblock %}
 
 {% block modals %}{% endblock %}

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ subject|default:"SubHero Notification" }}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #060B14; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #FFFFFF;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #060B14; padding: 40px 15px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" style="max-width: 540px; background-color: #0D1524; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 20px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.5);" cellspacing="0" cellpadding="0">
+          
+          <!-- Header Banner -->
+          <tr>
+            <td style="padding: 35px 30px; background: linear-gradient(135deg, #00C46A 0%, #004D2C 100%); text-align: center;">
+              <h1 style="margin: 0; font-size: 28px; font-weight: 800; color: #FFFFFF; letter-spacing: -0.5px;">Sub<span style="color: #A3FFD2;">Hero</span></h1>
+              {% if headline %}
+              <p style="margin: 6px 0 0 0; font-size: 14px; color: rgba(255, 255, 255, 0.95); font-weight: 600; letter-spacing: 0.2px;">{{ headline }}</p>
+              {% else %}
+              <p style="margin: 6px 0 0 0; font-size: 13px; color: rgba(255, 255, 255, 0.9); font-weight: 500;">Official Update</p>
+              {% endif %}
+            </td>
+          </tr>
+          
+          <!-- Content Body -->
+          <tr>
+            <td style="padding: 35px 30px; text-align: left;">
+              {% if user_name %}
+              <h2 style="margin: 0 0 16px 0; font-size: 17px; font-weight: 700; color: #FFFFFF;">Hi {{ user_name }},</h2>
+              {% endif %}
+
+              <!-- Message Body -->
+              <div style="font-size: 14px; line-height: 1.7; color: #CBD5E1; margin: 0 0 24px 0;">
+                {{ content_html|safe }}
+              </div>
+
+              <!-- Optional Call-to-Action Button -->
+              {% if button_text and button_url %}
+              <div style="text-align: center; margin: 32px 0 28px 0;">
+                <a href="{{ button_url }}" target="_blank" style="display: inline-block; padding: 14px 32px; background: linear-gradient(135deg, #00C46A 0%, #009E54 100%); color: #FFFFFF; font-size: 14px; font-weight: 700; text-decoration: none; border-radius: 12px; box-shadow: 0 4px 15px rgba(0, 196, 106, 0.35); letter-spacing: 0.3px;">
+                  {{ button_text }} &rarr;
+                </a>
+              </div>
+              {% endif %}
+
+              <!-- Optional Callout Notice -->
+              {% if notice_text %}
+              <div style="margin-top: 24px; padding: 16px; background-color: rgba(255, 255, 255, 0.03); border-radius: 12px; border-left: 3px solid #00C46A;">
+                <p style="margin: 0; font-size: 12px; line-height: 1.6; color: #94A3B8;">
+                  📌 {{ notice_text }}
+                </p>
+              </div>
+              {% endif %}
+            </td>
+          </tr>
+          
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 24px 30px; background-color: #080D18; border-top: 1px solid rgba(255, 255, 255, 0.04); text-align: center;">
+              <p style="margin: 0 0 8px 0; font-size: 12px; color: #64748B;">
+                Need assistance? Contact our support desk at <a href="mailto:{{ support_email|default:'support@subhero.com.ng' }}" style="color: #00C46A; text-decoration: none; font-weight: 600;">{{ support_email|default:'support@subhero.com.ng' }}</a>
+              </p>
+              <p style="margin: 0; font-size: 11px; color: #475569;">
+                &copy; 2026 SubHero Nigeria &bull; <a href="https://subhero.com.ng" style="color: #00C46A; text-decoration: none;">subhero.com.ng</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

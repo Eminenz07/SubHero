@@ -266,6 +266,14 @@
             <div class="h-[1px] bg-surface-border"></div>
             {% endif %}
             
+            {% if txn.metadata.note %}
+            <div class="flex items-center justify-between">
+                <span class="text-[13px] text-text-muted">Note</span>
+                <span class="text-[13px] font-semibold text-text-primary text-right max-w-[200px]">{{ txn.metadata.note }}</span>
+            </div>
+            <div class="h-[1px] bg-surface-border"></div>
+            {% endif %}
+            
             <div class="flex items-center justify-between">
                 <span class="text-[13px] text-text-muted">Reference</span>
                 <span class="text-[12px] font-mono text-text-secondary">{{ txn.reference }}</span>

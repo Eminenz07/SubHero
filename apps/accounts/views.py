@@ -19,8 +19,25 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django_ratelimit.decorators import ratelimit
 from django.utils.decorators import method_decorator
 
-from apps.core.utils import get_client_ip, normalize_phone, send_otp, verify_otp
-from .forms import LoginForm, OTPVerificationForm, RegistrationForm, TransactionPINForm
+from apps.core.utils import (
+    get_client_ip,
+    normalize_phone,
+    send_otp,
+    verify_otp,
+    send_email_otp,
+    mask_email,
+)
+from apps.core.email import send_async_app_email
+from .forms import (
+    LoginForm,
+    OTPVerificationForm,
+    RegistrationForm,
+    TransactionPINForm,
+    ForgotPasswordForm,
+    VerifyResetOTPForm,
+    SetNewPasswordForm,
+    ResetPasswordForm,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +91,6 @@ class RegisterView(View):
         form = RegistrationForm(request.POST)
         if form.is_valid():
             from django.contrib.auth import get_user_model
-            from django.contrib.auth import login
 
             User = get_user_model()
 
@@ -83,39 +99,26 @@ class RegisterView(View):
                 email=form.cleaned_data["email"],
                 password=form.cleaned_data["password"],
                 full_name=form.cleaned_data["full_name"],
-                is_verified=True,  # OTP temporarily suspended pending Termii Sender ID approval
+                is_verified=False,
                 is_active=True,
             )
 
-            # Auto-login after registration
-            login(request, user, backend="apps.accounts.backends.PhoneAuthBackend")
-            request.session.cycle_key()
-
-            # Auto-create wallet + virtual account (PRD Section 6.1.1)
+            # Dispatch email verification OTP via Brevo HTTP API
+            send_email_otp(user, purpose="registration")
             try:
-                from apps.wallet.services import create_wallet
-                create_wallet(user)
-            except Exception as e:
-                logger.error(
-                    "Wallet creation failed during registration: user=%s, error=%s",
-                    user.id, str(e),
-                )
+                if not getattr(settings, "TERMII_MOCK", False) and getattr(settings, "TERMII_API_KEY", ""):
+                    send_otp(user.phone_number)
+            except Exception:
+                pass
 
-            # Welcome notification
-            try:
-                from apps.notifications.models import Notification
-                Notification.add(
-                    user,
-                    "Welcome to SubHero!",
-                    f"Hi {user.full_name}, your account has been successfully created. Fund your wallet to start purchasing VTU and SMM services!",
-                    level="success"
-                )
-            except Exception as ex:
-                logger.error("Welcome notification creation failed: %s", str(ex))
+            request.session["otp_user_id"] = str(user.id)
+            request.session["otp_phone"] = user.phone_number
+            request.session["otp_email"] = user.email
+            request.session["otp_purpose"] = "registration"
 
-            logger.info("Registration auto-verified (OTP suspended): phone=%s", user.phone_number)
-            messages.success(request, "Registration successful! Please set your transaction PIN.")
-            return redirect("accounts:set_pin")
+            logger.info("User registered, email OTP dispatched: email=%s, phone=%s", user.email, user.phone_number)
+            messages.success(request, f"Account created! We've sent a 6-digit verification code to {user.email}.")
+            return redirect("accounts:verify_otp")
 
         return render(request, self.template_name, {"form": form})
 
@@ -197,15 +200,15 @@ class LoginView(View):
             messages.error(request, "Invalid credentials. Please try again.")
             return render(request, self.template_name, {"form": form})
 
-        # Auto-verify existing accounts while OTP is suspended
+        # Ensure account email is verified
         if not user.is_verified:
-            user.is_verified = True
-            user.save(update_fields=["is_verified"])
-            try:
-                from apps.wallet.services import create_wallet
-                create_wallet(user)
-            except Exception as e:
-                logger.error("Wallet auto-creation failed for login: %s", str(e))
+            send_email_otp(user, purpose="registration")
+            request.session["otp_user_id"] = str(user.id)
+            request.session["otp_phone"] = user.phone_number
+            request.session["otp_email"] = user.email
+            request.session["otp_purpose"] = "registration"
+            messages.info(request, f"Please verify your email address. A 6-digit verification code was sent to {mask_email(user.email)}.")
+            return redirect("accounts:verify_otp")
 
         # Successful login
         # Reset failed attempts
@@ -290,48 +293,72 @@ class VerifyOTPView(View):
 
     def get(self, request):
         phone = request.session.get("otp_phone")
-        if not phone:
+        email = request.session.get("otp_email")
+        if not phone and not email:
             return redirect("accounts:login")
         form = OTPVerificationForm()
-        # Mask phone for display (show last 4 digits)
-        masked_phone = f"***{phone[-4:]}" if len(phone) >= 4 else phone
+        masked_phone = f"***{phone[-4:]}" if phone and len(phone) >= 4 else (phone or "")
+        masked_email = mask_email(email) if email else ""
         return render(request, self.template_name, {
             "form": form,
             "masked_phone": masked_phone,
+            "masked_email": masked_email,
         })
 
     def post(self, request):
         phone = request.session.get("otp_phone")
+        email = request.session.get("otp_email")
+        user_id = request.session.get("otp_user_id")
         purpose = request.session.get("otp_purpose", "registration")
 
-        if not phone:
+        if not phone and not email:
             return redirect("accounts:login")
 
         form = OTPVerificationForm(request.POST)
-        masked_phone = f"***{phone[-4:]}" if len(phone) >= 4 else phone
+        masked_phone = f"***{phone[-4:]}" if phone and len(phone) >= 4 else (phone or "")
+        masked_email = mask_email(email) if email else ""
 
         if form.is_valid():
             code = form.cleaned_data["otp_code"]
 
-            if verify_otp(phone, code):
-                from django.contrib.auth import get_user_model
+            # Verify against email or phone
+            is_valid = False
+            if email and verify_otp(email, code):
+                is_valid = True
+            elif phone and verify_otp(phone, code):
+                is_valid = True
 
+            if is_valid:
+                from django.contrib.auth import get_user_model
                 User = get_user_model()
 
                 try:
-                    user = User.objects.get(phone_number=phone)
+                    user = None
+                    if user_id:
+                        user = User.objects.filter(id=user_id).first()
+                    if not user and email:
+                        user = User.objects.filter(email__iexact=email).first()
+                    if not user and phone:
+                        user = User.objects.filter(phone_number=phone).first()
+
+                    if not user:
+                        messages.error(request, "Account not found. Please register again.")
+                        return redirect("accounts:register")
+
                     user.is_verified = True
                     user.save(update_fields=["is_verified"])
 
                     # Clear OTP session data
-                    del request.session["otp_phone"]
-                    del request.session["otp_purpose"]
+                    request.session.pop("otp_phone", None)
+                    request.session.pop("otp_email", None)
+                    request.session.pop("otp_user_id", None)
+                    request.session.pop("otp_purpose", None)
 
                     # Auto-login after verification
                     login(request, user, backend="apps.accounts.backends.PhoneAuthBackend")
                     request.session.cycle_key()
 
-                    logger.info("OTP verified: phone=%s", phone)
+                    logger.info("OTP verified: user=%s, email=%s", user.id, user.email)
 
                     # Auto-create wallet + virtual account (PRD Section 6.1.1)
                     if purpose == "registration":
@@ -363,43 +390,71 @@ class VerifyOTPView(View):
                                     f"Best regards,\n"
                                     f"The SubHero Team"
                                 )
-                                _send_async_email(
+                                send_async_app_email(
                                     subject=subject,
-                                    message=email_message,
-                                    from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@subhero.com.ng"),
-                                    recipient_list=[user.email],
+                                    recipient_email=user.email,
+                                    html_content=f"<p>{email_message.replace(chr(10), '<br>')}</p>",
+                                    text_content=email_message,
                                 )
                         except Exception as ex:
                             logger.error("Welcome notification/email creation failed: %s", str(ex))
 
-                        messages.success(request, "Phone verified! Please set your transaction PIN.")
+                        messages.success(request, "Email verified! Please set your transaction PIN.")
                         return redirect("accounts:set_pin")
                     else:
                         return redirect("dashboard")
 
-                except User.DoesNotExist:
-                    messages.error(request, "Verification failed. Please try again.")
+                except Exception as ex:
+                    logger.error("Error during OTP completion: %s", ex)
+                    messages.error(request, "Verification error. Please try again.")
             else:
                 messages.error(request, "Invalid or expired code. Please try again.")
 
         return render(request, self.template_name, {
             "form": form,
             "masked_phone": masked_phone,
+            "masked_email": masked_email,
         })
 
 
 class ResendOTPView(View):
-    """Resend OTP to the phone number in session."""
+    """Resend OTP to the email and phone in session."""
 
     @method_decorator(ratelimit(key="ip", rate="3/m", method="POST", block=True))
     def dispatch(self, *args, **kwargs):
         return super().dispatch(*args, **kwargs)
 
     def post(self, request):
+        email = request.session.get("otp_email")
         phone = request.session.get("otp_phone")
-        if phone:
+        user_id = request.session.get("otp_user_id")
+
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+
+        user = None
+        if user_id:
+            user = User.objects.filter(id=user_id).first()
+        if not user and email:
+            user = User.objects.filter(email__iexact=email).first()
+        if not user and phone:
+            user = User.objects.filter(phone_number=phone).first()
+
+        if user:
+            send_email_otp(user, purpose="registration")
+            try:
+                if not getattr(settings, "TERMII_MOCK", False) and getattr(settings, "TERMII_API_KEY", ""):
+                    send_otp(user.phone_number)
+            except Exception:
+                pass
+            messages.success(request, f"A new verification code has been sent to {mask_email(user.email)}.")
+        elif phone:
             send_otp(phone)
             messages.success(request, "A new code has been sent to your phone.")
+        else:
+            messages.error(request, "Session expired. Please register or login again.")
+            return redirect("accounts:register")
+
         return redirect("accounts:verify_otp")
 
 
@@ -626,3 +681,253 @@ class ProfileView(LoginRequiredMixin, View):
 
     def get(self, request):
         return render(request, self.template_name)
+
+
+class ForgotPasswordView(View):
+    """
+    Password reset request view.
+    Accepts email or phone number identifier, generates 6-digit OTP,
+    and emails it to the user's registered email address.
+    Rate limit: 5 req/min per IP.
+    """
+    template_name = "accounts/forgot_password.html"
+
+    @method_decorator(ratelimit(key="ip", rate="5/m", method="POST", block=True))
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
+    def get(self, request):
+        if request.user.is_authenticated:
+            return redirect("dashboard")
+        return render(request, self.template_name)
+
+    def post(self, request):
+        if request.user.is_authenticated:
+            return redirect("dashboard")
+
+        form = ForgotPasswordForm(request.POST)
+        if not form.is_valid():
+            messages.error(request, "Please provide a valid email or phone number.")
+            return render(request, self.template_name)
+
+        identifier = form.cleaned_data["identifier"]
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+
+        user = None
+        if "@" in identifier:
+            user = User.objects.filter(email__iexact=identifier).first()
+        else:
+            norm_phone = normalize_phone(identifier)
+            user = User.objects.filter(phone_number=norm_phone).first()
+
+        if user and user.email:
+            send_email_otp(user, purpose="password_reset")
+            request.session["reset_user_id"] = str(user.id)
+            request.session["reset_email"] = user.email
+            request.session["reset_otp_verified"] = False
+
+            logger.info("Password reset code dispatched: user=%s, email=%s", user.id, user.email)
+            messages.success(request, f"A 6-digit reset code has been sent to {mask_email(user.email)}.")
+            return redirect("accounts:verify_reset_otp")
+        else:
+            messages.error(request, "No registered account found with that email or phone number.")
+            return render(request, self.template_name)
+
+
+class VerifyResetOTPView(View):
+    """
+    Step 2 of Password Reset: Verify the 6-digit OTP code before setting new password.
+    Rate limit: 5 req/min per IP.
+    """
+    template_name = "accounts/verify_reset_otp.html"
+
+    @method_decorator(ratelimit(key="ip", rate="5/m", method="POST", block=True))
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
+    def get(self, request):
+        if request.user.is_authenticated:
+            return redirect("dashboard")
+
+        reset_email = request.session.get("reset_email")
+        if not reset_email:
+            messages.warning(request, "Please enter your email or phone number to request a reset code.")
+            return redirect("accounts:forgot_password")
+
+        return render(request, self.template_name, {
+            "masked_email": mask_email(reset_email),
+        })
+
+    def post(self, request):
+        if request.user.is_authenticated:
+            return redirect("dashboard")
+
+        reset_email = request.session.get("reset_email")
+        reset_user_id = request.session.get("reset_user_id")
+
+        if not reset_email or not reset_user_id:
+            messages.error(request, "Reset session expired. Please request a new code.")
+            return redirect("accounts:forgot_password")
+
+        form = VerifyResetOTPForm(request.POST)
+        masked_email = mask_email(reset_email)
+
+        if not form.is_valid():
+            messages.error(request, "Please enter a valid 6-digit code.")
+            return render(request, self.template_name, {
+                "masked_email": masked_email,
+            })
+
+        code = form.cleaned_data["reset_code"]
+
+        if not verify_otp(reset_email, code):
+            messages.error(request, "Invalid or expired reset code. Please check your email or request a new code.")
+            return render(request, self.template_name, {
+                "masked_email": masked_email,
+            })
+
+        # Mark OTP as successfully verified in session
+        request.session["reset_otp_verified"] = True
+        logger.info("Password reset OTP verified for user=%s, email=%s", reset_user_id, reset_email)
+        messages.success(request, "Code confirmed! Please create your new password.")
+        return redirect("accounts:reset_password")
+
+
+class ResendResetOTPView(View):
+    """Resend password reset OTP to user in session."""
+
+    @method_decorator(ratelimit(key="ip", rate="3/m", method="POST", block=True))
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
+    def post(self, request):
+        reset_email = request.session.get("reset_email")
+        reset_user_id = request.session.get("reset_user_id")
+
+        if not reset_email or not reset_user_id:
+            messages.error(request, "Reset session expired. Please start again.")
+            return redirect("accounts:forgot_password")
+
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        user = User.objects.filter(id=reset_user_id).first()
+
+        if user and user.email:
+            send_email_otp(user, purpose="password_reset")
+            messages.success(request, f"A new 6-digit code has been sent to {mask_email(user.email)}.")
+        else:
+            messages.error(request, "User not found. Please try again.")
+
+        return redirect("accounts:verify_reset_otp")
+
+
+class ResetPasswordView(View):
+    """
+    Step 3 of Password Reset: Set a new password after confirming the OTP.
+    Rate limit: 5 req/min per IP.
+    """
+    template_name = "accounts/reset_password.html"
+
+    @method_decorator(ratelimit(key="ip", rate="5/m", method="POST", block=True))
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
+    def get(self, request):
+        if request.user.is_authenticated:
+            return redirect("dashboard")
+
+        reset_email = request.session.get("reset_email")
+        reset_user_id = request.session.get("reset_user_id")
+        reset_otp_verified = request.session.get("reset_otp_verified")
+
+        if not reset_email or not reset_user_id:
+            messages.warning(request, "Please enter your email or phone number to request a reset code.")
+            return redirect("accounts:forgot_password")
+
+        if not reset_otp_verified:
+            messages.warning(request, "Please verify your reset code first.")
+            return redirect("accounts:verify_reset_otp")
+
+        form = SetNewPasswordForm()
+        return render(request, self.template_name, {
+            "form": form,
+            "masked_email": mask_email(reset_email),
+        })
+
+    def post(self, request):
+        if request.user.is_authenticated:
+            return redirect("dashboard")
+
+        reset_email = request.session.get("reset_email")
+        reset_user_id = request.session.get("reset_user_id")
+        reset_otp_verified = request.session.get("reset_otp_verified")
+
+        if not reset_email or not reset_user_id or not reset_otp_verified:
+            messages.error(request, "Reset session expired or unverified. Please start again.")
+            return redirect("accounts:forgot_password")
+
+        form = SetNewPasswordForm(request.POST)
+
+        if not form.is_valid():
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, error)
+            return render(request, self.template_name, {
+                "form": form,
+                "masked_email": mask_email(reset_email),
+            })
+
+        new_password = form.cleaned_data["new_password"]
+
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+
+        try:
+            user = User.objects.get(id=reset_user_id)
+            user.set_password(new_password)
+            user.failed_login_count = 0
+            user.save(update_fields=["password", "failed_login_count"])
+
+            # Clear lockout cache keys
+            cache.delete(f"login_lockout:{user.phone_number}")
+            cache.delete(f"login_attempts:{user.phone_number}")
+
+            # Clear reset session data
+            request.session.pop("reset_user_id", None)
+            request.session.pop("reset_email", None)
+            request.session.pop("reset_otp_verified", None)
+
+            # Send password changed security alert email
+            if user.email:
+                subject = "Security Alert: SubHero Password Changed 🔐"
+                email_text = (
+                    f"Hello {user.full_name or 'SubHero User'},\n\n"
+                    f"Your SubHero account password was successfully reset.\n\n"
+                    f"If you made this change, no further action is needed.\n"
+                    f"If you did NOT reset your password, please contact support immediately at support@subhero.com.ng.\n\n"
+                    f"Best regards,\n"
+                    f"The SubHero Security Team"
+                )
+                send_async_app_email(
+                    subject=subject,
+                    recipient_email=user.email,
+                    html_content=f"<p>{email_text.replace(chr(10), '<br>')}</p>",
+                    text_content=email_text,
+                )
+
+            # Auto-login the user
+            login(request, user, backend="apps.accounts.backends.PhoneAuthBackend")
+            request.session.cycle_key()
+
+            logger.info("Password reset successfully for user=%s, email=%s", user.id, user.email)
+            messages.success(request, "Password reset successfully! Welcome back.")
+
+            if not user.pin_hash:
+                return redirect("accounts:set_pin")
+            return redirect("dashboard")
+
+        except User.DoesNotExist:
+            messages.error(request, "User account not found. Please try again.")
+            return redirect("accounts:forgot_password")
+

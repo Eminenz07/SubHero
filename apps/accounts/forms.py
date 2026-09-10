@@ -192,3 +192,89 @@ class TransactionPINForm(forms.Form):
             self.add_error("confirm_pin", "PINs do not match.")
 
         return cleaned_data
+
+
+class ForgotPasswordForm(forms.Form):
+    """
+    Form to request a password reset OTP using registered email or phone number.
+    """
+    identifier = forms.CharField(
+        max_length=254,
+        widget=forms.TextInput(attrs={
+            "placeholder": "e.g. user@gmail.com or 08012345678",
+            "class": "form-input",
+            "id": "identifier",
+            "autofocus": "autofocus",
+        }),
+    )
+
+    def clean_identifier(self):
+        return self.cleaned_data["identifier"].strip()
+
+
+class VerifyResetOTPForm(forms.Form):
+    """
+    Form to verify 6-digit reset code before creating a new password.
+    """
+    reset_code = forms.CharField(
+        max_length=6,
+        min_length=6,
+        widget=forms.TextInput(attrs={
+            "placeholder": "123456",
+            "class": "form-input font-mono font-bold tracking-widest text-center text-lg",
+            "id": "reset_code",
+            "maxlength": "6",
+            "inputmode": "numeric",
+            "pattern": "[0-9]*",
+        }),
+    )
+
+    def clean_reset_code(self):
+        code = self.cleaned_data["reset_code"].strip()
+        if not code.isdigit() or len(code) != 6:
+            raise forms.ValidationError("Enter a valid 6-digit code.")
+        return code
+
+
+class SetNewPasswordForm(forms.Form):
+    """
+    Form to set a new password after confirming reset OTP.
+    """
+    new_password = forms.CharField(
+        min_length=8,
+        widget=forms.PasswordInput(attrs={
+            "placeholder": "Min 8 characters",
+            "class": "form-input pr-11",
+            "id": "new_password",
+            "autocomplete": "new-password",
+        }),
+    )
+    confirm_password = forms.CharField(
+        min_length=8,
+        widget=forms.PasswordInput(attrs={
+            "placeholder": "Repeat new password",
+            "class": "form-input pr-11",
+            "id": "confirm_password",
+            "autocomplete": "new-password",
+        }),
+    )
+
+    def clean_new_password(self):
+        password = self.cleaned_data["new_password"]
+        validate_password_strength(password)
+        return password
+
+    def clean(self):
+        cleaned_data = super().clean()
+        new_password = cleaned_data.get("new_password")
+        confirm_password = cleaned_data.get("confirm_password")
+
+        if new_password and confirm_password and new_password != confirm_password:
+            self.add_error("confirm_password", "Passwords do not match.")
+
+        return cleaned_data
+
+
+# Alias for backward compatibility
+ResetPasswordForm = SetNewPasswordForm
+

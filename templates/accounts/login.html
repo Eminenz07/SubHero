@@ -47,11 +47,20 @@
             <div class="form-group">
                 <div class="flex justify-between items-end mb-1.5">
                     <label for="{{ form.password.id_for_label }}" class="form-label !mb-0">Password</label>
-                    <a href="#" class="text-xs font-semibold text-brand-primary">Forgot Password?</a>
+                    <a href="{% url 'accounts:forgot_password' %}" class="text-xs font-semibold text-brand-primary">Forgot Password?</a>
                 </div>
-                <input type="password" name="{{ form.password.name }}" id="{{ form.password.id_for_label }}" 
-                       class="form-input {% if form.password.errors %}form-input--error{% endif %}" 
-                       placeholder="••••••••" required>
+                <div class="relative">
+                    <input type="password" name="{{ form.password.name }}" id="{{ form.password.id_for_label }}" 
+                           class="form-input pr-11 {% if form.password.errors %}form-input--error{% endif %}" 
+                           placeholder="••••••••" required>
+                    <button type="button" 
+                            onclick="togglePasswordVisibility('{{ form.password.id_for_label }}', this)" 
+                            class="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-1.5 focus:outline-none transition-colors cursor-pointer flex items-center justify-center"
+                            aria-label="Toggle password visibility">
+                        <i data-feather="eye" class="w-4 h-4 eye-open"></i>
+                        <i data-feather="eye-off" class="w-4 h-4 eye-closed hidden"></i>
+                    </button>
+                </div>
                 {% if form.password.errors %}
                     <p class="form-error">{{ form.password.errors.0 }}</p>
                 {% endif %}

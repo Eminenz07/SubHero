@@ -45,6 +45,17 @@ class P2PTransferForm(forms.Form):
         label="Amount (₦)",
     )
 
+    description = forms.CharField(
+        max_length=200,
+        required=False,
+        widget=forms.TextInput(attrs={
+            "placeholder": "What's this for? (optional)",
+            "class": "form-input",
+            "autocomplete": "off",
+        }),
+        label="Description (Optional)",
+    )
+
     pin = forms.CharField(
         max_length=4,
         min_length=4,
@@ -71,3 +82,7 @@ class P2PTransferForm(forms.Form):
         if amount > settings.P2P_MAX_AMOUNT:
             raise forms.ValidationError(f"Maximum transfer is ₦{settings.P2P_MAX_AMOUNT:,}")
         return amount
+
+    def clean_description(self):
+        desc = self.cleaned_data.get("description", "")
+        return desc.strip() if desc else ""

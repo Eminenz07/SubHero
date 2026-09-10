@@ -80,6 +80,22 @@
             {% endfor %}
         </div>
 
+        <!-- Description (Optional) -->
+        <div class="form-group">
+            <label class="form-label" for="id_description">Description <span class="text-text-muted font-normal text-xs">(optional)</span></label>
+            <input type="text"
+                   name="description"
+                   id="id_description"
+                   class="form-input {% if form.description.errors %}form-input--error{% endif %}"
+                   placeholder="What's this for? (e.g. Lunch, Freelance work)"
+                   maxlength="200"
+                   autocomplete="off"
+                   value="{{ form.description.value|default:'' }}">
+            {% for error in form.description.errors %}
+            <div class="form-error">{{ error }}</div>
+            {% endfor %}
+        </div>
+
         <!-- Transaction PIN -->
         <div class="form-group">
             <label class="form-label" for="id_pin">Transaction PIN</label>
