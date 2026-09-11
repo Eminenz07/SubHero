@@ -1452,7 +1452,7 @@ from apps.admin_panel.queries import (
     get_vtu_network_split, get_vtu_service_split, get_top_vtu_plans,
     get_vtu_orders_by_hour, get_smm_stats, get_smm_platform_split,
     get_smm_avg_delivery_time, get_giveaway_stats, get_giveaway_claim_rate,
-    get_top_giveaway_hosts, get_transaction_stats, get_peak_transaction_hour
+    get_top_giveaway_hosts, get_giveaway_claims_chart, get_transaction_stats, get_peak_transaction_hour
 )
 
 from datetime import date, timedelta
@@ -1563,13 +1563,15 @@ def analytics_data(request):
 @admin_required
 def analytics_chart_data(request):
     """JSON endpoint for Chart.js — returns chart data"""
-    chart = request.GET.get('chart')
+    chart = request.GET.get('chart') or 'revenue'
     range_param = request.GET.get('range', '30d')
     start, end = parse_date_range(range_param)
     cache_key = f'chart:{chart}:{range_param}'
     cached = cache.get(cache_key)
     if cached:
         return JsonResponse(cached, safe=False)
+
+    result = {'labels': [], 'counts': []}
 
     if chart == 'revenue':
         data = get_revenue_chart_data(start, end)
@@ -1605,19 +1607,7 @@ def analytics_chart_data(request):
             'counts': [d['count'] for d in data],
         }
     elif chart == 'giveaway_claims':
-        data = list(
-            GiveawayClaim.objects.filter(
-                status='SUCCESS',
-                claimed_at__range=(
-                    datetime.combine(start, datetime.min.time(), tzinfo=timezone.utc),
-                    datetime.combine(end, datetime.max.time(), tzinfo=timezone.utc)
-                )
-            ).annotate(
-                day=TruncDate('claimed_at')
-            ).values('day').annotate(
-                count=Count('id')
-            ).order_by('day')
-        )
+        data = get_giveaway_claims_chart(start, end)
         result = {
             'labels': [d['day'].strftime('%b %d') for d in data],
             'counts': [d['count'] for d in data],

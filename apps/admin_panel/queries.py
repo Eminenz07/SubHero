@@ -466,6 +466,25 @@ def get_top_giveaway_hosts(start: date, end: date, limit: int = 5) -> List[Dict[
         ).order_by('-total_given')[:limit].values('id', 'full_name', 'phone_number', 'total_given', 'giveaway_count')
     )
 
+def get_giveaway_claims_chart(start: date, end: date) -> List[Dict[str, Any]]:
+    """Timeseries of successful giveaway claims."""
+    s_dt = datetime.combine(start, datetime.min.time(), tzinfo=timezone.utc)
+    e_dt = datetime.combine(end, datetime.max.time(), tzinfo=timezone.utc)
+    s_dt = max(s_dt, CUTOFF_DATE)
+    if e_dt < CUTOFF_DATE:
+        return []
+
+    return list(
+        GiveawayClaim.objects.filter(
+            status='SUCCESS',
+            claimed_at__range=(s_dt, e_dt)
+        ).annotate(
+            day=TruncDate('claimed_at')
+        ).values('day').annotate(
+            count=Count('id')
+        ).order_by('day')
+    )
+
 def get_transaction_stats(start: date, end: date) -> Dict[str, Any]:
     """Naira volume and counts for deposits/P2P."""
     s_dt = datetime.combine(start, datetime.min.time(), tzinfo=timezone.utc)
