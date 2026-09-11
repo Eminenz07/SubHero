@@ -63,6 +63,10 @@ except Exception:
             "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
             "LOCATION": "sessions",
         },
+        "ratelimit": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "unique-ratelimit-cache",
+        },
     }
     SESSION_ENGINE = "django.contrib.sessions.backends.db"
 

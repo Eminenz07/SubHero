@@ -69,10 +69,11 @@
 document.addEventListener('DOMContentLoaded', function() {
     const container = document.getElementById('reset-otp-inputs');
     if (!container) return;
-    const inputs = container.querySelectorAll('input');
+    const inputs = Array.from(container.querySelectorAll('input'));
     const hiddenInput = document.getElementById('hidden-reset-otp-input');
     const submitBtn = document.getElementById('reset-otp-submit');
     const form = document.getElementById('reset-otp-form');
+    let isSubmitting = false;
 
     if (inputs.length > 0) {
         inputs[0].focus();
@@ -84,8 +85,35 @@ document.addEventListener('DOMContentLoaded', function() {
             code += input.value.trim();
         });
         hiddenInput.value = code;
-        submitBtn.disabled = (code.length !== 6);
+        if (!isSubmitting) {
+            submitBtn.disabled = (code.length !== 6);
+        }
+        return code;
     }
+
+    function triggerSubmit() {
+        const code = updateOtpValue();
+        if (code.length !== 6 || isSubmitting) return;
+        isSubmitting = true;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="inline-block animate-spin mr-2">⟳</span> Verifying...';
+        form.submit();
+    }
+
+    form.addEventListener('submit', function(e) {
+        if (isSubmitting) {
+            e.preventDefault();
+            return false;
+        }
+        const code = updateOtpValue();
+        if (code.length !== 6) {
+            e.preventDefault();
+            return false;
+        }
+        isSubmitting = true;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="inline-block animate-spin mr-2">⟳</span> Verifying...';
+    });
 
     inputs.forEach((input, index) => {
         input.addEventListener('input', function() {
@@ -94,9 +122,9 @@ document.addEventListener('DOMContentLoaded', function() {
             if (this.value && index < inputs.length - 1) {
                 inputs[index + 1].focus();
             }
-            updateOtpValue();
-            if (hiddenInput.value.length === 6) {
-                form.submit();
+            const code = updateOtpValue();
+            if (code.length === 6) {
+                triggerSubmit();
             }
         });
 
@@ -111,6 +139,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 inputs[index - 1].focus();
             } else if (e.key === 'ArrowRight' && index < inputs.length - 1) {
                 inputs[index + 1].focus();
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                triggerSubmit();
             }
         });
 
@@ -125,9 +156,9 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             const nextIdx = Math.min(pasteData.length, inputs.length - 1);
             inputs[nextIdx].focus();
-            updateOtpValue();
-            if (hiddenInput.value.length === 6) {
-                form.submit();
+            const code = updateOtpValue();
+            if (code.length === 6) {
+                triggerSubmit();
             }
         });
     });

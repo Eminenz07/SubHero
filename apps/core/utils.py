@@ -45,40 +45,58 @@ def get_client_ip(request):
     return request.META.get("REMOTE_ADDR", "0.0.0.0")
 
 
+def _mark_session_modified(session):
+    if session is not None and hasattr(session, "modified"):
+        session.modified = True
+
+
 def _hash_otp(otp, phone):
-    """Hash OTP for storage in Redis — never store plaintext (PRD Section 7.1)."""
-    return hashlib.sha256(f"{otp}:{phone}".encode()).hexdigest()
+    """Hash an OTP with the phone number or email as salt using SHA-256."""
+    clean_otp = str(otp).strip()
+    clean_id = str(phone).strip().lower() if "@" in str(phone) else str(phone).strip()
+    return hashlib.sha256(f"{clean_otp}:{clean_id}".encode()).hexdigest()
 
 
-def send_otp(phone_number):
+def send_otp(phone_number, session=None, otp=None):
     """
     Send a 6-digit OTP via Termii SMS.
     In mock mode (dev), logs OTP to console instead.
     Returns True on success, False on failure.
     """
-    otp = "".join(random.choices(string.digits, k=settings.OTP_LENGTH))
+    if not otp:
+        otp = "".join(random.choices(string.digits, k=settings.OTP_LENGTH))
+    clean_phone = phone_number.strip()
 
     # Store hashed OTP in cache with TTL
-    cache_key = f"otp:{phone_number}"
-    attempts_key = f"otp_attempts:{phone_number}"
-    cache.set(cache_key, _hash_otp(otp, phone_number), settings.OTP_EXPIRY_SECONDS)
+    cache_key = f"otp:{clean_phone}"
+    attempts_key = f"otp_attempts:{clean_phone}"
+    hashed = _hash_otp(otp, clean_phone)
+    cache.set(cache_key, hashed, settings.OTP_EXPIRY_SECONDS)
     cache.set(attempts_key, 0, settings.OTP_EXPIRY_SECONDS)
+
+    if session is not None:
+        import time
+        session["otp_hash"] = hashed
+        session["otp_expires_at"] = time.time() + settings.OTP_EXPIRY_SECONDS
+        session["otp_identifier"] = clean_phone
+        session["otp_attempts"] = 0
+        _mark_session_modified(session)
 
     if settings.TERMII_MOCK:
         logger.info(
             "MOCK OTP for %s: %s (expires in %ds)",
-            phone_number,
+            clean_phone,
             otp,
             settings.OTP_EXPIRY_SECONDS,
         )
         print(f"\n{'='*50}")
-        print(f"  MOCK OTP for {phone_number}: {otp}")
+        print(f"  MOCK OTP for {clean_phone}: {otp}")
         print(f"  Expires in {settings.OTP_EXPIRY_SECONDS // 60} minutes")
         print(f"{'='*50}\n")
         return True
 
     # Standardize phone number for Termii (e.g. +2349073601282 or 09073601282 -> 2349073601282)
-    formatted_phone = phone_number.strip().replace("+", "")
+    formatted_phone = clean_phone.replace("+", "")
     if formatted_phone.startswith("0"):
         formatted_phone = "234" + formatted_phone[1:]
 
@@ -95,7 +113,7 @@ def send_otp(phone_number):
         }
         response = requests.post(url, json=payload, timeout=10)
         if response.status_code == 200:
-            logger.info("OTP sent to %s via Termii", phone_number)
+            logger.info("OTP sent to %s via Termii", clean_phone)
             return True
         else:
             logger.error(
@@ -109,58 +127,115 @@ def send_otp(phone_number):
         return False
 
 
-def verify_otp(identifier, code):
+def verify_otp(identifier, code, session=None):
     """
-    Verify an OTP code against the hashed value in cache.
+    Verify an OTP code against the hashed value in cache or session.
     Accepts phone number or email address as identifier.
     Returns True if valid, False otherwise.
     Single-use — consumed immediately on verification (PRD Section 7.1).
     """
-    clean_id = identifier.strip().lower() if "@" in identifier else identifier.strip()
+    import time
+
+    clean_id = str(identifier).strip().lower() if "@" in str(identifier) else str(identifier).strip()
+    clean_code = str(code).strip()
     cache_key = f"otp:{clean_id}"
     attempts_key = f"otp_attempts:{clean_id}"
 
     stored_hash = cache.get(cache_key)
-    if stored_hash is None:
-        return False
+    target_hash = _hash_otp(clean_code, clean_id)
 
-    # Check attempt limit (max 3 attempts per PRD)
-    attempts = cache.get(attempts_key, 0)
-    if attempts >= settings.OTP_MAX_ATTEMPTS:
-        cache.delete(cache_key)
-        cache.delete(attempts_key)
-        return False
+    # 1. Primary verification against cache (Redis / LocMem)
+    if stored_hash is not None:
+        attempts = cache.get(attempts_key, 0)
+        if attempts >= settings.OTP_MAX_ATTEMPTS:
+            cache.delete(cache_key)
+            cache.delete(attempts_key)
+            if session is not None:
+                session.pop("otp_hash", None)
+                session.pop("otp_expires_at", None)
+                session.pop("otp_identifier", None)
+                _mark_session_modified(session)
+            return False
 
-    # Verify
-    if stored_hash == _hash_otp(code, clean_id):
-        # Single-use: delete immediately
-        cache.delete(cache_key)
-        cache.delete(attempts_key)
-        return True
-    else:
-        # Increment attempt counter
-        cache.set(attempts_key, attempts + 1, settings.OTP_EXPIRY_SECONDS)
-        return False
+        if stored_hash == target_hash:
+            # Single-use: delete immediately
+            cache.delete(cache_key)
+            cache.delete(attempts_key)
+            if session is not None:
+                session.pop("otp_hash", None)
+                session.pop("otp_expires_at", None)
+                session.pop("otp_identifier", None)
+                _mark_session_modified(session)
+            return True
+        else:
+            cache.set(attempts_key, attempts + 1, settings.OTP_EXPIRY_SECONDS)
+            return False
+
+    # 2. Resilient session fallback (handles multi-worker Gunicorn LocMemCache or Redis dropouts)
+    if session is not None:
+        sess_hash = session.get("otp_hash")
+        sess_expires = session.get("otp_expires_at", 0)
+        sess_id = session.get("otp_identifier", "")
+        sess_attempts = session.get("otp_attempts", 0)
+
+        # Check if session has matching OTP and is not expired
+        if sess_hash and time.time() <= sess_expires:
+            # Check attempt limit
+            if sess_attempts >= settings.OTP_MAX_ATTEMPTS:
+                session.pop("otp_hash", None)
+                session.pop("otp_expires_at", None)
+                session.pop("otp_identifier", None)
+                _mark_session_modified(session)
+                return False
+
+            clean_sess_id = str(sess_id).strip().lower() if "@" in str(sess_id) else str(sess_id).strip()
+            # Allow match if target hash matches session hash, or if hashed with sess_id
+            if sess_hash == target_hash or sess_hash == _hash_otp(clean_code, clean_sess_id):
+                session.pop("otp_hash", None)
+                session.pop("otp_expires_at", None)
+                session.pop("otp_identifier", None)
+                session.pop("otp_attempts", None)
+                _mark_session_modified(session)
+                # Clean up any cache keys if present
+                cache.delete(cache_key)
+                cache.delete(attempts_key)
+                return True
+            else:
+                session["otp_attempts"] = sess_attempts + 1
+                _mark_session_modified(session)
+                return False
+
+    return False
 
 
-def send_email_otp(user, purpose="registration"):
+def send_email_otp(user, purpose="registration", session=None):
     """
     Generate and dispatch a 6-digit OTP code to user's email address.
-    Stores hashed OTP in cache.
+    Stores hashed OTP in cache and optional session fallback.
     Dispatches styled HTML email asynchronously via Brevo HTTP API / fallback.
     Returns the generated OTP code.
     """
+    import time
     from django.template.loader import render_to_string
     from apps.core.email import send_async_app_email
 
     otp = "".join(random.choices(string.digits, k=settings.OTP_LENGTH))
     identifier = user.email.strip().lower()
+    hashed = _hash_otp(otp, identifier)
 
     # Store hashed OTP in cache with TTL
     cache_key = f"otp:{identifier}"
     attempts_key = f"otp_attempts:{identifier}"
-    cache.set(cache_key, _hash_otp(otp, identifier), settings.OTP_EXPIRY_SECONDS)
+    cache.set(cache_key, hashed, settings.OTP_EXPIRY_SECONDS)
     cache.set(attempts_key, 0, settings.OTP_EXPIRY_SECONDS)
+
+    # Store in session fallback if session provided
+    if session is not None:
+        session["otp_hash"] = hashed
+        session["otp_expires_at"] = time.time() + settings.OTP_EXPIRY_SECONDS
+        session["otp_identifier"] = identifier
+        session["otp_attempts"] = 0
+        _mark_session_modified(session)
 
     if purpose == "registration":
         template_name = "emails/registration_otp.html"

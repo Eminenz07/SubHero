@@ -75,7 +75,8 @@ def send_app_email(subject: str, recipient_email: str, html_content: str, text_c
             )
             with urllib.request.urlopen(req, timeout=10) as response:
                 if response.status in (200, 201, 202):
-                    logger.info("Email sent via Brevo HTTP API to %s: %s", recipient_email, subject)
+                    safe_subj = subject.encode("ascii", "replace").decode("ascii")
+                    logger.info("Email sent via Brevo HTTP API to %s: %s", recipient_email, safe_subj)
                     return True
         except urllib.error.HTTPError as he:
             err_body = he.read().decode("utf-8", errors="ignore")
@@ -93,7 +94,8 @@ def send_app_email(subject: str, recipient_email: str, html_content: str, text_c
             recipient_list=[recipient_email],
             fail_silently=False,
         )
-        logger.info("Email sent via Django fallback to %s: %s", recipient_email, subject)
+        safe_subj = subject.encode("ascii", "replace").decode("ascii")
+        logger.info("Email sent via Django fallback to %s: %s", recipient_email, safe_subj)
         return True
     except Exception as e:
         logger.error("Failed to send email fallback to %s: %s", recipient_email, e)
