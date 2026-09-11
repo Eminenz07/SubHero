@@ -35,15 +35,22 @@
             
             <input type="hidden" name="reset_code" id="hidden-reset-otp-input">
             
-            <div class="flex justify-center gap-2 sm:gap-3 mb-8" id="reset-otp-inputs">
+            <div class="flex justify-center gap-2 sm:gap-3 mb-4" id="reset-otp-inputs">
                 {% for i in "123456" %}
-                <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code"
+                <input type="text" maxlength="6" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code"
                        class="w-12 h-14 sm:w-[52px] sm:h-[60px] text-center text-2xl font-mono font-bold text-text-primary
                               bg-surface-page border-[1.5px] border-surface-border rounded-xl
                               focus:outline-none focus:border-brand-accent focus:bg-white focus:ring-4 focus:ring-brand-accent/10 transition-all
-                              shadow-sm" 
+                              shadow-sm select-all" 
                        data-otp-index="{{ forloop.counter0 }}">
                 {% endfor %}
+            </div>
+
+            <div class="flex justify-center mb-6" id="paste-wrap">
+                <button type="button" id="paste-reset-btn" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-brand-primary bg-brand-primary/10 hover:bg-brand-primary/20 transition-all cursor-pointer">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                    Paste Code
+                </button>
             </div>
 
             <div class="mt-auto pt-4">
@@ -73,6 +80,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const hiddenInput = document.getElementById('hidden-reset-otp-input');
     const submitBtn = document.getElementById('reset-otp-submit');
     const form = document.getElementById('reset-otp-form');
+    const pasteBtn = document.getElementById('paste-reset-btn');
     let isSubmitting = false;
 
     if (inputs.length > 0) {
@@ -115,16 +123,47 @@ document.addEventListener('DOMContentLoaded', function() {
         submitBtn.innerHTML = '<span class="inline-block animate-spin mr-2">⟳</span> Verifying...';
     });
 
+    function handlePastedDigits(rawText, startIndex = 0) {
+        const digits = (rawText || '').replace(/[^0-9]/g, '');
+        if (!digits) return;
+
+        // If 6 or more digits, always fill from 0 to 5 regardless of which box was focused
+        const start = (digits.length >= 6) ? 0 : startIndex;
+        const slice = digits.slice(0, 6);
+
+        slice.split('').forEach((char, i) => {
+            if (start + i < inputs.length) {
+                inputs[start + i].value = char;
+            }
+        });
+
+        const nextIdx = Math.min(start + slice.length, inputs.length - 1);
+        inputs[nextIdx].focus();
+
+        const code = updateOtpValue();
+        if (code.length === 6) {
+            setTimeout(triggerSubmit, 100);
+        }
+    }
+
     inputs.forEach((input, index) => {
         input.addEventListener('input', function() {
-            const val = this.value.replace(/[^0-9]/g, '');
-            this.value = val ? val.slice(-1) : '';
+            const raw = this.value;
+            const digits = raw.replace(/[^0-9]/g, '');
+
+            // Multi-character input from paste, drag-and-drop, or mobile autofill
+            if (digits.length > 1) {
+                handlePastedDigits(digits, index);
+                return;
+            }
+
+            this.value = digits ? digits.slice(-1) : '';
             if (this.value && index < inputs.length - 1) {
                 inputs[index + 1].focus();
             }
             const code = updateOtpValue();
             if (code.length === 6) {
-                triggerSubmit();
+                setTimeout(triggerSubmit, 100);
             }
         });
 
@@ -147,21 +186,35 @@ document.addEventListener('DOMContentLoaded', function() {
 
         input.addEventListener('paste', function(e) {
             e.preventDefault();
-            const pasteData = (e.clipboardData || window.clipboardData).getData('text').replace(/[^0-9]/g, '').slice(0, 6);
-            if (!pasteData) return;
-            pasteData.split('').forEach((char, i) => {
-                if (inputs[i]) {
-                    inputs[i].value = char;
-                }
-            });
-            const nextIdx = Math.min(pasteData.length, inputs.length - 1);
-            inputs[nextIdx].focus();
-            const code = updateOtpValue();
-            if (code.length === 6) {
-                triggerSubmit();
+            let pasteData = '';
+            if (e.clipboardData && e.clipboardData.getData) {
+                pasteData = e.clipboardData.getData('text');
+            } else if (window.clipboardData && window.clipboardData.getData) {
+                pasteData = window.clipboardData.getData('Text');
             }
+            handlePastedDigits(pasteData, index);
+        });
+
+        input.addEventListener('focus', function() {
+            this.select();
         });
     });
+
+    // Quick Paste button using Clipboard API
+    if (pasteBtn) {
+        pasteBtn.addEventListener('click', async function() {
+            try {
+                if (navigator.clipboard && navigator.clipboard.readText) {
+                    const text = await navigator.clipboard.readText();
+                    handlePastedDigits(text, 0);
+                } else {
+                    inputs[0].focus();
+                }
+            } catch (err) {
+                inputs[0].focus();
+            }
+        });
+    }
 });
 </script>
 {% endblock %}
