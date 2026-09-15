@@ -1,5 +1,15 @@
 {% extends 'base.html' %}
-{% block title %}Giveaway Details | SubHero{% endblock %}
+{% block title %}{{ giveaway.title }} - Giveaway Details | SubHero{% endblock %}
+{% block meta_description %}{{ giveaway.title }} ({{ giveaway.prize_display }}) hosted by {{ giveaway.host_display }}. {{ giveaway.claimed_slots }} of {{ giveaway.total_slots }} slots claimed on SubHero.{% endblock %}
+{% block canonical_url %}{{ request.scheme }}://{{ request.get_host }}{% url 'giveaway:detail' giveaway.slug %}{% endblock %}
+
+{% block og_title %}{{ giveaway.title }} | SubHero Giveaway{% endblock %}
+{% block og_description %}{{ giveaway.prize_display }} ({{ giveaway.get_network_display }}) hosted by {{ giveaway.host_display }}. {{ giveaway.claimed_slots }} of {{ giveaway.total_slots }} slots claimed. Status: {{ giveaway.status }}.{% endblock %}
+{% block og_image %}{{ request.scheme }}://{{ request.get_host }}{% static 'img/giveaway-og.jpg' %}{% endblock %}
+
+{% block twitter_title %}{{ giveaway.title }} | SubHero Giveaway{% endblock %}
+{% block twitter_description %}{{ giveaway.prize_display }} hosted by {{ giveaway.host_display }}. Status: {{ giveaway.status }}.{% endblock %}
+{% block twitter_image %}{{ request.scheme }}://{{ request.get_host }}{% static 'img/giveaway-og.jpg' %}{% endblock %}
 
 {% block top_bar %}
 {% include 'partials/_top_bar.html' with title="Giveaway Details" show_back=True %}

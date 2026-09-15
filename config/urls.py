@@ -6,12 +6,23 @@ Root URL routing for all apps.
 
 from django.conf import settings
 from django.contrib import admin
+from django.contrib.sitemaps.views import sitemap
 from django.urls import include, path
 from django.views.generic import TemplateView
 from apps.giveaway import views as giveaway_views
 from apps.core import views as core_views
+from config.sitemaps import StaticViewSitemap, GiveawaySitemap
+
+sitemaps = {
+    "static": StaticViewSitemap,
+    "giveaways": GiveawaySitemap,
+}
 
 urlpatterns = [
+    # Search Engine Optimization (SEO)
+    path("robots.txt", core_views.robots_txt, name="robots_txt"),
+    path("sitemap.xml", sitemap, {"sitemaps": sitemaps}, name="django.contrib.sitemaps.views.sitemap"),
+
     # Zero-overhead healthcheck for UptimeRobot / uptime monitors (0 Redis commands)
     path("healthz/", core_views.healthcheck, name="healthcheck"),
     path("ping/", core_views.healthcheck, name="ping"),

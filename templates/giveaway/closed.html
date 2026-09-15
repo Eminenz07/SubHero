@@ -1,5 +1,10 @@
 {% extends 'base.html' %}
-{% block title %}Giveaway Closed | SubHero{% endblock %}
+{% block title %}{{ giveaway.title|default:"Giveaway" }} (Closed) | SubHero{% endblock %}
+{% block meta_description %}This giveaway ({{ giveaway.title|default:"Giveaway" }}) has closed as all slots have been claimed or expired. Join SubHero to host or claim future giveaways.{% endblock %}
+{% block canonical_url %}{{ request.scheme }}://{{ request.get_host }}/g/{{ giveaway.slug }}{% endblock %}
+
+{% block og_title %}Giveaway Closed | {{ giveaway.title|default:"SubHero" }}{% endblock %}
+{% block og_description %}This giveaway has either expired or all available slots have been fully claimed. Visit SubHero for more giveaways and cheap data.{% endblock %}
 
 {% block content %}
 <div class="px-4 pt-20 pb-10 max-w-sm mx-auto text-center flex flex-col justify-center min-h-[80vh]">

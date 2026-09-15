@@ -2,6 +2,35 @@
 {% load static %}
 
 {% block title %}SubHero | Cheap Data, Airtime & Social Media Booster{% endblock %}
+{% block meta_description %}Buy cheap data, instant airtime, cable TV, electricity, host automated giveaways, and boost social media presence in Nigeria with SubHero.{% endblock %}
+{% block canonical_url %}{{ request.scheme }}://{{ request.get_host }}/{% endblock %}
+
+{% block og_title %}SubHero | Cheap Data, Airtime & Social Media Booster in Nigeria{% endblock %}
+{% block og_description %}Instant VTU, cheap data from ₦250/GB, airtime discounts, automated social media growth, and escrow giveaways with instant bank transfers on SubHero.{% endblock %}
+
+{% block json_ld %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "SubHero",
+  "url": "https://subhero.com.ng",
+  "logo": "https://subhero.com.ng{% static 'img/sh-logo.png' %}",
+  "description": "SubHero is Nigeria's premier platform for instant VTU (cheap data, airtime, utilities), automated giveaways, and social media growth services.",
+  "sameAs": [
+    "https://twitter.com/SubHeroNG",
+    "https://instagram.com/subherong"
+  ],
+  "contactPoint": {
+    "@type": "ContactPoint",
+    "email": "support@subhero.com.ng",
+    "contactType": "customer service",
+    "areaServed": "NG",
+    "availableLanguage": ["English"]
+  }
+}
+</script>
+{% endblock %}
 
 {% block main_extra_classes %}no-bottom-nav{% endblock %}
 

@@ -49,6 +49,22 @@ class Giveaway(models.Model):
             return False
         return True
 
+    @property
+    def host_display(self):
+        if self.host:
+            return self.host.full_name or self.host.phone_number or "SubHero User"
+        return "SubHero User"
+
+    @property
+    def prize_display(self):
+        if self.giveaway_type == 'DATA':
+            return f"{self.plan_id} Data" if self.plan_id else "Free Data"
+        return f"₦{int(self.amount_per_slot):,} Airtime"
+
+    def get_absolute_url(self):
+        from django.urls import reverse
+        return reverse('giveaway_short_link', kwargs={'slug': self.slug})
+
 
 class GiveawayClaim(models.Model):
     STATUS = [('PENDING','Pending'),('SUCCESS','Success'),

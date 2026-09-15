@@ -1,14 +1,16 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}Claim Giveaway | SubHero{% endblock %}
-                                                 
-{% block og_title %}🎁 {{ giveaway.title }} | Free {{ giveaway.get_giveaway_type_display }}{% endblock %}
-{% block og_description %}{{ giveaway.remaining_slots }} of {{ giveaway.total_slots }} slots remaining. No account needed, claim instantly.{% endblock %}
+{% block title %}Claim {{ giveaway.prize_display }} from {{ giveaway.host_display }} | SubHero{% endblock %}
+{% block meta_description %}Claim {{ giveaway.prize_display }} ({{ giveaway.get_network_display }}) hosted by {{ giveaway.host_display }}. {{ giveaway.remaining_slots }} of {{ giveaway.total_slots }} slots remaining! Instant delivery on SubHero.{% endblock %}
+{% block canonical_url %}{{ request.scheme }}://{{ request.get_host }}/g/{{ giveaway.slug }}{% endblock %}
+
+{% block og_title %}🎁 {{ giveaway.host_display }} sent you {{ giveaway.prize_display }}!{% endblock %}
+{% block og_description %}Claim your free {{ giveaway.prize_display }} ({% if giveaway.network == 'all' %}All Networks{% else %}{{ giveaway.get_network_display }}{% endif %}) from {{ giveaway.host_display }} on SubHero. {{ giveaway.remaining_slots }} of {{ giveaway.total_slots }} slots left!{% endblock %}
 {% block og_image %}{{ request.scheme }}://{{ request.get_host }}{% static 'img/giveaway-og.jpg' %}{% endblock %}
 {% block og_url %}{{ request.scheme }}://{{ request.get_host }}/g/{{ giveaway.slug }}{% endblock %}
 
-{% block twitter_title %}🎁 {{ giveaway.title }}{% endblock %}
-{% block twitter_description %}{{ giveaway.remaining_slots }} free slots left on SubHero{% endblock %}
+{% block twitter_title %}🎁 {{ giveaway.host_display }} sent you {{ giveaway.prize_display }}!{% endblock %}
+{% block twitter_description %}Claim your free {{ giveaway.prize_display }} from {{ giveaway.host_display }} on SubHero. {{ giveaway.remaining_slots }}/{{ giveaway.total_slots }} slots remaining!{% endblock %}
 {% block twitter_image %}{{ request.scheme }}://{{ request.get_host }}{% static 'img/giveaway-og.jpg' %}{% endblock %}
 
 {% block content %}

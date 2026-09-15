@@ -4,7 +4,7 @@ def unread_notifications(request):
     """
     Globally injects the count of unread notifications for the active authenticated user.
     """
-    if request.user.is_authenticated:
+    if hasattr(request, "user") and request.user.is_authenticated:
         count = Notification.objects.filter(user=request.user, is_read=False).count()
         return {"unread_notifications_count": count}
     return {"unread_notifications_count": 0}
