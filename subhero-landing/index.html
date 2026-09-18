@@ -1,0 +1,1498 @@
+<!doctype html>
+<html lang="en"><head><script data-od-srcdoc-transport-activation>(function(){
+  var generation = "";
+  function announceReady(probeId){
+    if (!generation) return;
+    try {
+      if (window.parent && window.parent !== window) {
+        var message = { type: 'od:srcdoc-transport-activated', generation: generation };
+        if (typeof probeId === 'string' && probeId) message.probeId = probeId;
+        window.parent.postMessage(message, '*');
+      }
+    } catch (_) { /* sandboxed parent */ }
+  }
+  window.addEventListener('message', function(ev){
+    var data = ev && ev.data;
+    if (data && data.type === 'od:srcdoc-transport-ready-probe') {
+      if (data.generation === generation) announceReady(data.probeId);
+      return;
+    }
+    if (!data || data.type !== 'od:srcdoc-transport-activate' || typeof data.html !== 'string' || typeof data.generation !== 'string' || !data.generation) return;
+    document.open();
+    document.write(data.html);
+    document.close();
+  });
+  announceReady();
+})();</script><script data-od-preview-redirect-guard>(function(){
+  var NAME_PREFIX = '__odRedirectGuard=';
+  var MAX_HOPS = 15;
+  var WINDOW_MS = 4000;
+  var SELF_MIN_DELAY_MS = 2000;
+  var MESSAGE_TYPE = "od:redirect-loop-blocked";
+  var BLOCK_LOAD_TIME_SCRIPT_REDIRECT = false;
+  function nowMs(){ try { return Date.now(); } catch (_) { return 0; } }
+  function readState(){
+    try {
+      var raw = window.name;
+      if (typeof raw === 'string' && raw.indexOf(NAME_PREFIX) === 0) {
+        var parsed = JSON.parse(raw.slice(NAME_PREFIX.length));
+        if (parsed && typeof parsed.hops === 'number' && typeof parsed.windowStart === 'number') return parsed;
+      }
+    } catch (_) {}
+    return null;
+  }
+  function writeState(state){
+    try { window.name = NAME_PREFIX + JSON.stringify({ hops: state.hops, windowStart: state.windowStart }); } catch (_) {}
+  }
+  function clearState(){
+    try { if (typeof window.name === 'string' && window.name.indexOf(NAME_PREFIX) === 0) window.name = ''; } catch (_) {}
+  }
+  function nextState(){
+    var t = nowMs();
+    var prev = readState();
+    var withinWindow = prev && (t - prev.windowStart) <= WINDOW_MS;
+    return { hops: (withinWindow ? prev.hops : 0) + 1, windowStart: withinWindow ? prev.windowStart : t };
+  }
+  function scheduleCandidateReset(state){
+    try {
+      if (typeof setTimeout !== 'function') return;
+      setTimeout(function(){
+        try {
+          var current = readState();
+          if (current && current.hops === state.hops && current.windowStart === state.windowStart) clearState();
+        } catch (_) {}
+      }, WINDOW_MS + 1);
+    } catch (_) {}
+  }
+  function recordScriptRedirectCandidate(){
+    if (!BLOCK_LOAD_TIME_SCRIPT_REDIRECT) return;
+    var state = nextState();
+    if (state.hops > MAX_HOPS) {
+      clearState();
+      report(state.hops);
+      return;
+    }
+    writeState(state);
+    scheduleCandidateReset(state);
+  }
+  function metaRefreshes(){
+    var out = [];
+    try {
+      var metas = document.getElementsByTagName('meta');
+      for (var i = 0; i < metas.length; i++) {
+        var equiv = metas[i].getAttribute ? metas[i].getAttribute('http-equiv') : null;
+        if (equiv && String(equiv).toLowerCase() === 'refresh') out.push(metas[i]);
+      }
+    } catch (_) {}
+    return out;
+  }
+  function parseContent(meta){
+    var content = '';
+    try { content = String(meta.getAttribute('content') || ''); } catch (_) {}
+    var delayMatch = content.match(/^\s*([0-9]+(?:\.[0-9]+)?)/);
+    var delayMs = delayMatch ? Math.round(parseFloat(delayMatch[1]) * 1000) : 0;
+    var urlMatch = content.match(/[;,]\s*url\s*=\s*['"]?\s*([^'"\s]+)/i);
+    return { delayMs: delayMs, url: urlMatch ? urlMatch[1] : '' };
+  }
+  function currentArtifactHref(){
+    try {
+      var href = String(location.href || '');
+      if (href === 'about:srcdoc') {
+        return String(document.baseURI || href);
+      }
+      return href;
+    } catch (_) {
+      return '';
+    }
+  }
+  function isSelfTarget(url){
+    if (!url) return true; // no url => refresh the current document
+    try {
+      var base = (document.baseURI) || location.href;
+      return new URL(url, base).href === currentArtifactHref();
+    } catch (_) { return false; }
+  }
+  function isFastSrcdocUrlHop(parsed){
+    if (!parsed.url || parsed.delayMs > SELF_MIN_DELAY_MS) return false;
+    try { return String(location.href || '') === 'about:srcdoc'; } catch (_) { return false; }
+  }
+  function neutralize(metas){
+    for (var i = 0; i < metas.length; i++) {
+      try { metas[i].parentNode && metas[i].parentNode.removeChild(metas[i]); } catch (_) {}
+    }
+    try { if (window.stop) window.stop(); } catch (_) {}
+  }
+  function report(hops){
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: MESSAGE_TYPE, hops: hops }, '*');
+      }
+    } catch (_) {}
+  }
+  function evaluate(){
+    var metas = metaRefreshes();
+    if (!metas.length) {
+      // No refresh directive: this document breaks any accumulating chain.
+      if (!BLOCK_LOAD_TIME_SCRIPT_REDIRECT) clearState();
+      return;
+    }
+    var selfLoop = false;
+    for (var i = 0; i < metas.length; i++) {
+      var parsed = parseContent(metas[i]);
+      if (parsed.delayMs <= SELF_MIN_DELAY_MS && isSelfTarget(parsed.url)) { selfLoop = true; break; }
+      if (isFastSrcdocUrlHop(parsed)) { selfLoop = true; break; }
+    }
+    var state = nextState();
+    if (selfLoop || state.hops > MAX_HOPS) {
+      neutralize(metas);
+      clearState();
+      report(state.hops);
+      return;
+    }
+    writeState(state);
+  }
+  recordScriptRedirectCandidate();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', evaluate);
+  } else {
+    evaluate();
+  }
+})();</script><script data-od-sandbox-shim>(function(){
+  function makeStore(){
+    var data = {};
+    var api = {
+      getItem: function(k){ return Object.prototype.hasOwnProperty.call(data, k) ? data[k] : null; },
+      setItem: function(k, v){ data[k] = String(v); },
+      removeItem: function(k){ delete data[k]; },
+      clear: function(){ data = {}; },
+      key: function(i){ return Object.keys(data)[i] || null; }
+    };
+    Object.defineProperty(api, 'length', { get: function(){ return Object.keys(data).length; } });
+    return api;
+  }
+  function tryShim(name){
+    var works = false;
+    try { works = !!window[name] && typeof window[name].getItem === 'function'; void window[name].length; }
+    catch (_) { works = false; }
+    if (works) return;
+    try { Object.defineProperty(window, name, { configurable: true, value: makeStore() }); }
+    catch (_) { try { window[name] = makeStore(); } catch (__) {} }
+  }
+  tryShim('localStorage');
+  tryShim('sessionStorage');
+  // A <base href> pointing at the artifact's real /raw/ URL (injectBaseHref,
+  // below) is what lets relative asset paths resolve inside this opaque
+  // srcDoc document. That same base is what breaks history.pushState /
+  // replaceState: a bare-hash call like replaceState(null, '', '#/3') — the
+  // exact pattern generated decks use for their own slide routing — resolves
+  // against the <base> into a real http(s) URL, and the browser throws
+  // SecurityError because the DOCUMENT's own origin is the opaque "null" of
+  // about:srcdoc, which can never match a concrete origin. A deck whose own
+  // navigation function calls replaceState before it finishes updating the
+  // slide DOM (ordering varies by generated template) aborts mid-navigation
+  // on that throw, leaving the main canvas blank until a manual reload —
+  // the thumbnail rail is unaffected because it does not run the deck's
+  // script per-thumbnail. Wrap both methods so that failure degrades to a
+  // no-op instead of interrupting the caller: the iframe's address bar was
+  // never visible to the user anyway, so losing the hash update here is
+  // invisible.
+  function shimHistoryMethod(name){
+    try {
+      var h = window.history;
+      var original = h && h[name];
+      if (typeof original !== 'function') return;
+      h[name] = function(state, title, url){
+        try {
+          return original.call(h, state, title, url);
+        } catch (_) {
+          return undefined;
+        }
+      };
+    } catch (_) {}
+  }
+  shimHistoryMethod('pushState');
+  shimHistoryMethod('replaceState');
+  document.addEventListener('click', (e) => {
+    if (!e.target || !(e.target instanceof Element)) return;
+    var link = e.target.closest('a[href]');
+    if (!link) return;
+    var href = link.getAttribute('href');
+    if (href === null) return;
+    var isAnchor = href.startsWith('#') || href === '';
+    if (isAnchor) {
+      e.preventDefault();
+      if (href === '' || href === '#') {
+        window.scrollTo({ top: 0 });
+        history.replaceState(null, '', ' ');
+      } else {
+        var targetId = href.slice(1);
+        var target = targetId ? document.getElementById(targetId) : null;
+        if (target) {
+          target.scrollIntoView();
+          location.hash === href && history.replaceState(null, '', ' ');
+          location.hash = href;
+        }
+      }
+    } else if (link.getAttribute('target') === '_blank') {
+      e.preventDefault();
+      let safe = false;
+      try {
+        var url = new URL(href, location.href);
+        safe =
+          url.protocol === 'http:' ||
+          url.protocol === 'https:' ||
+          url.protocol === 'mailto:';
+      } catch (_) {}
+      safe && window.open(href, '_blank', 'noopener,noreferrer');
+    }
+  });
+})();</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SubHero — Buy data, pay bills, grow your socials in Nigeria</title>
+<meta name="description" content="Buy cheap data from ₦250/GB, instant airtime, cable TV, electricity, escrow giveaways, and automated social media growth — all in one secure Nigerian platform.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   DESIGN TOKENS — SubHero (dark navy + signature green)
+   Bound to the Bento design-system contract, brand values applied.
+   ============================================================ */
+:root {
+  --bg: #060B14;
+  --surface: #0D1321;
+  --surface-2: #111A2C;
+  --fg: #F5F8FF;
+  --fg-2: #C6D0E0;
+  --muted: #8B95A8;
+  --meta: #00C46A;
+  --border: rgba(255,255,255,0.08);
+  --border-soft: rgba(255,255,255,0.05);
+  --border-strong: rgba(255,255,255,0.14);
+  --accent: #00C46A;
+  --accent-on: #03170F;
+  --accent-hover: #00D474;
+  --accent-active: #00B861;
+  --accent-deep: #006B3E;
+  --accent-dim: rgba(0,196,106,0.10);
+  --accent-glow: rgba(0,196,106,0.16);
+  --success: #16a34a;
+  --danger: #ef4444;
+  --font-display: "Bricolage Grotesque", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  --text-xs: 12px; --text-sm: 14px; --text-base: 16px; --text-lg: 18px;
+  --text-xl: 24px; --text-2xl: 36px; --text-3xl: 52px; --text-4xl: 72px;
+  --leading-body: 1.55; --leading-tight: 1.05;
+  --tracking-display: -0.03em;
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+  --space-5: 20px; --space-6: 24px; --space-8: 32px; --space-12: 48px; --space-16: 64px;
+  --section-y-desktop: 96px; --section-y-tablet: 64px; --section-y-phone: 48px;
+  --radius-sm: 10px; --radius-md: 16px; --radius-lg: 24px; --radius-pill: 9999px;
+  --elev-flat: none;
+  --elev-raised: 0 24px 60px rgba(0,0,0,0.45);
+  --focus-ring: 0 0 0 4px rgba(0,196,106,0.28);
+  --motion-fast: 150ms; --motion-base: 240ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --container-max: 1180px;
+  --container-gutter-desktop: 36px; --container-gutter-tablet: 24px; --container-gutter-phone: 16px;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: var(--leading-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(900px 520px at 72% -8%, rgba(0,196,106,0.09), transparent 62%),
+    radial-gradient(760px 460px at 4% 18%, rgba(0,107,62,0.10), transparent 60%),
+    var(--bg);
+  pointer-events: none;
+}
+img, svg { display: block; }
+a { color: inherit; }
+h1, h2, h3, p { margin: 0; }
+ul, ol { margin: 0; padding: 0; list-style: none; }
+button { font: inherit; }
+:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius-sm); }
+::selection { background: var(--accent); color: var(--accent-on); }
+
+.container {
+  width: 100%;
+  max-width: var(--container-max);
+  margin-inline: auto;
+  padding-inline: var(--container-gutter-phone);
+}
+@media (min-width: 640px)  { .container { padding-inline: var(--container-gutter-tablet); } }
+@media (min-width: 1024px) { .container { padding-inline: var(--container-gutter-desktop); } }
+
+section[id] { scroll-margin-top: 96px; }
+
+/* ---------- Typography ---------- */
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.eyebrow::before { content: ""; width: 20px; height: 1px; background: var(--accent); opacity: 0.7; }
+.eyebrow--center { justify-content: center; }
+.eyebrow--center::before { display: none; }
+.eyebrow--center::after  { display: none; }
+h1, h2, h3, .display {
+  font-family: var(--font-display);
+  letter-spacing: var(--tracking-display);
+  line-height: var(--leading-tight);
+  color: var(--fg);
+  font-weight: 700;
+}
+.lead { font-size: var(--text-lg); color: var(--fg-2); line-height: 1.6; }
+.mono { font-family: var(--font-mono); }
+
+.section-head { max-width: 640px; margin-bottom: var(--space-12); }
+.section-head--center { margin-inline: auto; text-align: center; }
+.section-head h2 { font-size: clamp(1.75rem, 3.4vw, var(--text-2xl)); font-weight: 800; margin: var(--space-3) 0 var(--space-4); }
+.section-head .lead { font-size: var(--text-base); }
+.section-head--center .eyebrow { justify-content: center; }
+.section-head--center .eyebrow::before { display: none; }
+.section-head.eyebrow-only h2 { margin-top: var(--space-4); }
+
+/* ---------- Buttons ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 48px;
+  padding: 0.7rem 1.5rem;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  line-height: 1.2;
+  text-decoration: none;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--ease-standard),
+              border-color var(--motion-fast) var(--ease-standard),
+              transform var(--motion-fast) var(--ease-standard),
+              box-shadow var(--motion-fast) var(--ease-standard);
+  white-space: nowrap;
+}
+.btn svg { width: 17px; height: 17px; flex-shrink: 0; }
+.btn-primary { background: var(--accent); color: var(--accent-on); }
+.btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 10px 28px rgba(0,196,106,0.28); }
+.btn-primary:active { background: var(--accent-active); transform: translateY(0); }
+.btn-secondary { color: var(--fg); background: transparent; border-color: var(--border-strong); }
+.btn-secondary:hover { background: rgba(255,255,255,0.06); border-color: var(--accent); color: var(--fg); }
+.btn-ghost { color: var(--fg-2); background: transparent; border-color: transparent; }
+.btn-ghost:hover { color: var(--fg); background: rgba(255,255,255,0.05); }
+.btn-lg { min-height: 54px; padding: 0.85rem 1.9rem; font-size: var(--text-base); }
+
+/* ---------- Nav ---------- */
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  background: rgba(6,11,20,0.72);
+  border-bottom: 1px solid var(--border);
+}
+.nav__inner { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); padding-block: var(--space-3); }
+.brand { font-family: var(--font-display); font-weight: 800; font-size: 22px; letter-spacing: -0.02em; color: var(--fg); text-decoration: none; min-height: 48px; display: inline-flex; align-items: center; }
+.brand span { color: var(--accent); }
+.nav__links { display: none; align-items: center; gap: var(--space-6); }
+.nav__links a { font-size: var(--text-sm); color: var(--fg-2); text-decoration: none; padding: 5px 2px; transition: color var(--motion-fast) var(--ease-standard); }
+.nav__links a:hover { color: var(--fg); }
+.nav__actions { display: flex; align-items: center; gap: var(--space-2); }
+.nav .btn { min-height: 44px; padding: 0.55rem 1.1rem; font-size: var(--text-sm); }
+@media (min-width: 800px) { .nav__links { display: flex; } }
+
+/* ---------- Hero ---------- */
+.hero { padding: var(--space-16) 0 0; }
+.hero__grid { display: grid; gap: var(--space-12); align-items: center; }
+.hero__badge {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  padding: 0.42rem 0.95rem; border-radius: var(--radius-pill);
+  border: 1px solid var(--border-strong);
+  background: rgba(255,255,255,0.03); color: var(--fg-2);
+  font-family: var(--font-mono); font-size: var(--text-xs); font-weight: 600; letter-spacing: 0.08em;
+  margin-bottom: var(--space-6);
+}
+.hero__badge .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.hero h1 {
+  font-size: clamp(2.35rem, 5.4vw, 3.85rem);
+  font-weight: 800;
+}
+.hero h1 .stroke { color: var(--accent); }
+.hero .lead { margin-top: var(--space-6); max-width: 30em; }
+.hero__ctas { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-8); }
+.hero__meta { display: flex; flex-wrap: wrap; gap: var(--space-4) var(--space-8); margin-top: var(--space-8); color: var(--muted); font-size: var(--text-sm); }
+.hero__meta li { display: flex; align-items: center; gap: var(--space-2); }
+.hero__meta svg { width: 15px; height: 15px; color: var(--muted); }
+
+/* Sample app preview */
+.sample {
+  position: relative;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(17,26,44,0.9), rgba(13,19,33,0.96));
+  box-shadow: var(--elev-raised), 0 0 0 1px rgba(0,196,106,0.06), 0 0 90px rgba(0,196,106,0.08);
+  padding: var(--space-5) var(--space-5) var(--space-4);
+}
+.sample__flag {
+  position: absolute; top: -11px; right: var(--space-5);
+  padding: 0.18rem 0.7rem; border-radius: var(--radius-pill);
+  background: var(--surface-2); border: 1px solid var(--border-strong);
+  font-family: var(--font-mono); font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--muted);
+}
+.sample__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-4); }
+.sample__who { font-family: var(--font-display); font-weight: 700; font-size: var(--text-base); }
+.sample__who small { display: block; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.sample__nets { display: flex; gap: var(--space-1); align-items: center; }
+.sample__nets span { font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.04em; color: var(--fg-2); padding: 0.3rem 0.55rem; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: var(--radius-pill); }
+.sample__tabs { display: flex; gap: var(--space-1); padding: 4px; background: rgba(255,255,255,0.04); border: 1px solid var(--border-soft); border-radius: var(--radius-md); margin-bottom: var(--space-4); }
+.tab { flex: 1; min-height: 44px; border: 0; background: transparent; color: var(--muted); border-radius: calc(var(--radius-md) - 4px); font-size: var(--text-sm); font-weight: 600; cursor: pointer; transition: color var(--motion-fast), background-color var(--motion-fast); }
+.tab[aria-selected="true"] { background: var(--accent); color: var(--accent-on); }
+.plan { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4); border: 1px solid var(--border); border-radius: var(--radius-md); margin-bottom: var(--space-2); transition: border-color var(--motion-fast); background: rgba(255,255,255,0.02); }
+.plan:hover { border-color: var(--accent-deep); }
+.plan__name { font-size: var(--text-sm); font-weight: 600; }
+.plan__name small { display: block; font-weight: 400; color: var(--muted); font-size: 12px; }
+.plan__price { font-family: var(--font-mono); font-weight: 700; font-size: var(--text-sm); color: var(--fg); }
+.plan__price .from { color: var(--muted); font-weight: 500; font-size: 12px; }
+.plan--pick { border-color: rgba(0,196,106,0.45); background: rgba(0,196,106,0.06); }
+.plan--pick .plan__pick { color: var(--accent); font-family: var(--font-mono); font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; }
+.sample__divider { border: 0; border-top: 1px dashed var(--border); margin: var(--space-4) 0; }
+.boost { display: flex; align-items: center; gap: var(--space-3); }
+.boost__icon { width: 40px; height: 40px; border-radius: var(--radius-sm); display: grid; place-items: center; background: var(--accent-dim); color: var(--accent); flex-shrink: 0; }
+.boost__icon svg { width: 18px; height: 18px; }
+.boost__info { flex: 1; }
+.boost__info strong { display: block; font-size: var(--text-sm); font-weight: 600; }
+.boost__info span { font-size: var(--text-xs); color: var(--muted); }
+.boost__track { height: 6px; border-radius: var(--radius-pill); background: rgba(255,255,255,0.08); margin-top: var(--space-2); overflow: hidden; }
+.boost__track i { display: block; height: 100%; width: 62%; border-radius: inherit; background: linear-gradient(90deg, var(--accent-deep), var(--accent)); }
+@media (min-width: 1024px) { .hero { padding-top: var(--space-16); } .hero__grid { grid-template-columns: 1.05fr 0.95fr; } }
+
+/* ---------- Marquee ---------- */
+.marquee-band { padding: var(--section-y-desktop) 0 var(--space-12); }
+.marquee-band .section-head { margin-bottom: var(--space-8); }
+.marquee {
+  position: relative;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+}
+.marquee__row { display: flex; width: max-content; padding-block: var(--space-2); }
+.group { display: flex; gap: var(--space-3); flex: none; padding-right: var(--space-3); }
+.marquee__row--a { animation: scroll-l 46s linear infinite; }
+.marquee__row--b { animation: scroll-r 52s linear infinite; }
+.marquee:hover .marquee__row { animation-play-state: paused; }
+@keyframes scroll-l { to { transform: translateX(-50%); } }
+@keyframes scroll-r { from { transform: translateX(-50%); } to { transform: translateX(0); } }
+.chip {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  padding: 0.55rem 1rem; border-radius: var(--radius-pill);
+  background: var(--surface); border: 1px solid var(--border);
+  white-space: nowrap; transition: border-color var(--motion-fast), transform var(--motion-fast), background-color var(--motion-fast);
+}
+.chip:hover { border-color: var(--border-strong); transform: translateY(-2px); background: var(--surface-2); }
+.chip__dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+.chip__name { font-size: var(--text-sm); font-weight: 600; color: var(--fg); }
+.chip__tag { font-family: var(--font-mono); font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: 0.04em; }
+
+/* ---------- Sections ---------- */
+.section { padding-block: var(--section-y-phone); }
+@media (min-width: 640px)  { .section { padding-block: var(--section-y-tablet); } }
+@media (min-width: 1024px) { .section { padding-block: var(--section-y-desktop); } }
+
+/* Bento services grid */
+.bento { display: grid; gap: var(--space-4); grid-template-columns: 1fr; }
+.bento__item {
+  position: relative; overflow: hidden;
+  display: flex; flex-direction: column; gap: var(--space-3);
+  padding: var(--space-6);
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  text-decoration: none; color: inherit;
+  transition: transform var(--motion-base) var(--ease-standard),
+              border-color var(--motion-base) var(--ease-standard),
+              background-color var(--motion-base) var(--ease-standard),
+              box-shadow var(--motion-base) var(--ease-standard);
+}
+.bento__item::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit;
+  background: radial-gradient(340px 160px at 12% -10%, rgba(0,196,106,0.10), transparent 62%);
+  opacity: 0; transition: opacity var(--motion-base);
+}
+.bento__item:hover { transform: translateY(-3px); border-color: rgba(0,196,106,0.35); background: var(--surface-2); box-shadow: 0 18px 44px rgba(0,0,0,0.4); }
+.bento__item:hover::after { opacity: 1; }
+.bento__icon { width: 46px; height: 46px; border-radius: var(--radius-sm); display: grid; place-items: center; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--fg-2); transition: color var(--motion-base), background-color var(--motion-base), border-color var(--motion-base); }
+.bento__icon svg { width: 21px; height: 21px; }
+.bento__item:hover .bento__icon { color: var(--accent); border-color: rgba(0,196,106,0.4); background: var(--accent-dim); }
+.bento__title { font-family: var(--font-display); font-size: var(--text-xl); font-weight: 700; letter-spacing: -0.01em; position: relative; z-index: 1; }
+.bento__copy { font-size: var(--text-sm); color: var(--muted); line-height: 1.6; position: relative; z-index: 1; max-width: 34em; }
+.bento__anchor { display: inline-flex; align-items: center; gap: var(--space-1); font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin-top: auto; position: relative; z-index: 1; transition: color var(--motion-base); }
+.bento__item:hover .bento__anchor { color: var(--accent); }
+.bento__anchor svg { width: 14px; height: 14px; }
+.bento__item--featured { border-color: rgba(0,196,106,0.3); background:
+  radial-gradient(420px 240px at 88% -10%, rgba(0,196,106,0.14), transparent 60%), var(--surface); }
+.bento__item--featured .bento__icon { background: var(--accent); border-color: var(--accent); color: var(--accent-on); }
+.platform-dots { display: flex; flex-wrap: wrap; gap: var(--space-2); position: relative; z-index: 1; }
+.platform-dots span { font-size: var(--text-xs); color: var(--muted); padding: 0.28rem 0.6rem; background: rgba(255,255,255,0.04); border: 1px solid var(--border-soft); border-radius: var(--radius-pill); font-family: var(--font-mono); font-weight: 600; }
+@media (min-width: 700px) { .bento { grid-template-columns: repeat(2, 1fr); } .bento__item--wide { grid-column: 1 / -1; } }
+@media (min-width: 1024px) {
+  .bento { grid-template-columns: repeat(4, 1fr); grid-auto-rows: auto; }
+  .bento__item--data { grid-column: span 2; }
+  .bento__item--smm { grid-column: span 2; }
+  .bento__item--power { grid-column: span 1; }
+  .bento__item--air { grid-column: span 1; }
+  .bento__item--tv { grid-column: span 1; }
+  .bento__item--gift { grid-column: span 1; }
+}
+
+/* Steps */
+.steps { display: grid; gap: var(--space-4); }
+.step { display: flex; gap: var(--space-5); padding: var(--space-6); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); transition: border-color var(--motion-base), transform var(--motion-base); }
+.step:hover { border-color: var(--border-strong); transform: translateY(-2px); }
+.step__num { font-family: var(--font-mono); font-size: var(--text-xl); font-weight: 700; color: var(--accent); line-height: 1; flex-shrink: 0; }
+.step__body h3 { font-family: var(--font-display); font-size: var(--text-xl); font-weight: 700; margin-bottom: var(--space-2); }
+.step__body p { font-size: var(--text-sm); color: var(--muted); max-width: 34em; }
+@media (min-width: 1024px) { .steps { grid-template-columns: repeat(3, 1fr); } }
+
+/* Features */
+.features { display: grid; gap: var(--space-4); }
+.feature { padding: var(--space-6); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); transition: border-color var(--motion-base), transform var(--motion-base); }
+.feature:hover { border-color: var(--border-strong); transform: translateY(-2px); }
+.feature__icon { width: 42px; height: 42px; border-radius: var(--radius-sm); display: grid; place-items: center; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--fg-2); margin-bottom: var(--space-4); }
+.feature__icon svg { width: 19px; height: 19px; }
+.feature h3 { font-family: var(--font-display); font-size: var(--text-lg); font-weight: 700; margin-bottom: var(--space-2); }
+.feature p { font-size: var(--text-sm); color: var(--muted); }
+@media (min-width: 700px)  { .features { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1024px) { .features { grid-template-columns: repeat(3, 1fr); } }
+
+/* Stats */
+.stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-6); padding: var(--space-8); border: 1px solid var(--border); border-radius: var(--radius-lg); background: linear-gradient(180deg, rgba(17,26,44,0.7), rgba(13,19,33,0.85)); }
+.stat { text-align: center; }
+.stat__value { font-family: var(--font-display); font-size: clamp(1.9rem, 4vw, 2.9rem); font-weight: 800; letter-spacing: -0.02em; color: var(--fg); }
+.stat__value em { font-style: normal; color: var(--accent); }
+.stat__label { margin-top: var(--space-2); font-size: var(--text-sm); color: var(--muted); }
+@media (min-width: 1024px) { .stats { grid-template-columns: repeat(4, 1fr); } }
+
+/* CTA */
+.cta { padding-block: var(--section-y-phone); }
+.cta__panel {
+  position: relative; overflow: hidden;
+  padding: clamp(2.5rem, 6vw, 4.5rem) clamp(1.25rem, 5vw, 4rem);
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(0,196,106,0.3);
+  background: radial-gradient(560px 300px at 50% -20%, rgba(0,196,106,0.18), transparent 62%), var(--surface);
+  text-align: center;
+}
+.cta__panel h2 { font-size: clamp(1.8rem, 4vw, 2.75rem); font-weight: 800; max-width: 18em; margin: var(--space-4) auto 0; }
+.cta__panel .lead { max-width: 34em; margin: var(--space-4) auto 0; }
+.cta__panel .btn { margin-top: var(--space-8); }
+.trust { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-3); margin-top: var(--space-8); }
+.trust__badge { display: inline-flex; align-items: center; gap: var(--space-2); padding: 0.4rem 0.9rem; border-radius: var(--radius-pill); border: 1px solid var(--border); background: rgba(255,255,255,0.03); color: var(--fg-2); font-size: var(--text-sm); }
+.trust__badge svg { width: 14px; height: 14px; color: var(--muted); }
+
+/* Footer */
+.footer { padding: var(--space-12) 0 var(--space-8); border-top: 1px solid var(--border); }
+.footer__grid { display: grid; gap: var(--space-8); }
+.footer__brand p { font-size: var(--text-sm); color: var(--muted); max-width: 30em; margin-top: var(--space-3); }
+.footer h4 { font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); margin-bottom: var(--space-4); }
+.footer__links { display: grid; gap: var(--space-3); }
+.footer__links a { font-size: var(--text-sm); color: var(--fg-2); text-decoration: none; transition: color var(--motion-fast); }
+.footer__links a:hover { color: var(--accent); }
+.footer__bottom { display: flex; flex-wrap: wrap; gap: var(--space-3); justify-content: space-between; align-items: center; margin-top: var(--space-12); padding-top: var(--space-6); border-top: 1px solid var(--border); color: var(--muted); font-size: var(--text-sm); }
+@media (min-width: 700px) { .footer__grid { grid-template-columns: 2fr 1fr 1fr 1fr; } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+  .marquee__row { animation: none !important; }
+  html { scroll-behavior: auto; }
+}
+</style>
+<style data-od-tweaks-bridge-style>
+[data-od-tweaks-hidden] .tw-panel {
+  transform: translateX(calc(100% + 32px)) !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+.tw-restore { display: none !important; }
+</style><script data-od-tweaks-bridge>(function(){
+  // Synchronously hide BEFORE the artifact body parses so the panel never
+  // flashes on initial paint. The host removes the attribute via postMessage
+  // once it knows the desired state.
+  document.documentElement.setAttribute('data-od-tweaks-hidden', '');
+
+  var suppressEcho = false;
+  var observer = null;
+
+  function panelEl(){ return document.querySelector('.tw-panel'); }
+
+  function applyClassesToPanel(visible){
+    var panel = panelEl();
+    if (panel) panel.classList.toggle('tw-hidden', !visible);
+  }
+
+  function setPanelVisible(visible){
+    suppressEcho = true;
+    document.documentElement.toggleAttribute('data-od-tweaks-hidden', !visible);
+    applyClassesToPanel(visible);
+    // Clear flag after the MutationObserver has had a chance to fire for this
+    // change so we don't echo our own host-driven toggles back to the host.
+    Promise.resolve().then(function(){ suppressEcho = false; });
+  }
+
+  function postState(){
+    var panel = panelEl();
+    if (!panel) return;
+    try {
+      parent.postMessage({
+        type: 'od:tweaks-panel-state',
+        visible: !panel.classList.contains('tw-hidden'),
+      }, '*');
+    } catch (e) {}
+  }
+
+  function postAvailability(){
+    try {
+      parent.postMessage({
+        type: 'od:tweaks-available',
+        available: !!panelEl(),
+      }, '*');
+    } catch (e) {}
+  }
+
+  function attachObserver(){
+    var panel = panelEl();
+    if (!panel || observer) return;
+    observer = new MutationObserver(function(){
+      if (suppressEcho) return;
+      postState();
+    });
+    observer.observe(panel, { attributes: true, attributeFilter: ['class'] });
+  }
+
+  function onReady(){
+    // Capture the panel authored visibility BEFORE we apply the host hidden
+    // attribute. The bridge sets data-od-tweaks-hidden synchronously in head
+    // (before the body parses), so on entry to onReady the attribute is
+    // always present even though the artifact may have authored the panel
+    // as default-visible. Reading the panel class first is the only place
+    // we can still observe the author intent. Then drive the attribute,
+    // classes, and posted state from that captured value so a default
+    // visible tw-panel reports visible:true and the toolbar toggle starts
+    // ON. Issue surfaced in PR #1643 review.
+    var panel = panelEl();
+    var initialVisible = !!panel && !panel.classList.contains('tw-hidden');
+    document.documentElement.toggleAttribute('data-od-tweaks-hidden', !initialVisible);
+    applyClassesToPanel(initialVisible);
+    attachObserver();
+    postAvailability();
+    // Post the captured initial visibility so the toolbar toggle reflects
+    // the default state on mount. Without this the toggle reads OFF while
+    // a default-visible tw-panel artifact clearly shows its panel and the
+    // user would have to click toggle-on then toggle-off to actually hide.
+    postState();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', onReady);
+  } else {
+    onReady();
+  }
+
+  window.addEventListener('message', function(ev){
+    if (!ev.data || ev.data.type !== 'od:tweaks-panel-visible') return;
+    setPanelVisible(!!ev.data.visible);
+  });
+})();</script></head>
+<body>
+
+<!-- ============ SVG sprite ============ -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+  <symbol id="i-wifi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" data-od-id="path-0-0"><path d="M5 12.55a11 11 0 0 1 14.08 0"></path><path d="M1.42 9a16 16 0 0 1 21.16 0"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" data-od-id="path-0-1"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></symbol>
+  <symbol id="i-zap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" data-od-id="path-0-2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></symbol>
+  <symbol id="i-tv" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" data-od-id="path-0-3"><rect x="2" y="7" width="20" height="15" rx="2"></rect><polyline points="17 2 12 7 7 2"></polyline></symbol>
+  <symbol id="i-trend" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" data-od-id="path-0-4"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></symbol>
+  <symbol id="i-gift" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" data-od-id="path-0-5"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" data-od-id="path-0-6"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></symbol>
+  <symbol id="i-percent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" data-od-id="path-0-7"><line x1="19" y1="5" x2="5" y2="19"></line><circle cx="6.5" cy="6.5" r="2.5"></circle><circle cx="17.5" cy="17.5" r="2.5"></circle></symbol>
+  <symbol id="i-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" data-od-id="path-0-8"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path></symbol>
+  <symbol id="i-head" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" data-od-id="path-0-9"><path d="M3 18v-6a9 9 0 0 1 18 0v6"></path><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" data-od-id="path-0-10"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-od-id="path-0-11"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" data-od-id="path-0-12"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" data-od-id="path-0-13"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></symbol>
+  <symbol id="i-check-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" data-od-id="path-0-14"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></symbol>
+</svg>
+
+<!-- ============ NAV ============ -->
+<header class="nav" data-od-id="site-nav">
+  <div class="container nav__inner" data-od-id="path-1-0">
+    <a class="brand" href="#top" data-od-id="nav-brand">Sub<span>Hero</span></a>
+    <nav class="nav__links" aria-label="Primary" data-od-id="path-1-0-1">
+      <a href="#services" data-od-id="nav-services">Services</a>
+      <a href="#how" data-od-id="nav-how">How it works</a>
+      <a href="#why" data-od-id="nav-why">Why SubHero</a>
+    </nav>
+    <div class="nav__actions">
+      <a class="btn btn-ghost" href="https://subhero-smm.onrender.com/auth/login/" data-od-id="nav-login">Login</a>
+      <a class="btn btn-secondary" href="https://subhero-smm.onrender.com/auth/register/" data-od-id="nav-signup">Get started</a>
+    </div>
+  </div>
+</header>
+
+<main id="top" data-od-id="path-2">
+
+  <!-- ============ HERO ============ -->
+  <section class="hero" data-od-id="hero">
+    <div class="container hero__grid" data-od-id="path-2-0-0">
+      <div>
+        <h1 data-od-id="hero-headline">Pay bills, buy data,<br>grow your <span class="stroke">socials</span></h1>
+        <p class="lead" data-od-id="hero-subhead">The all-in-one platform for smart Nigerians. Instant VTU, affordable data, and automated social media growth — with seamless payments in one secure app.</p>
+        <div class="hero__ctas">
+          <a class="btn btn-primary btn-lg" href="https://subhero-smm.onrender.com/auth/register/" data-od-id="hero-cta">Create free account <svg aria-hidden="true"><use href="#i-arrow"></use></svg></a>
+          <a class="btn btn-secondary btn-lg" href="https://subhero-smm.onrender.com/auth/login/" data-od-id="hero-secondary">Login to SubHero</a>
+        </div>
+        <ul class="hero__meta" data-od-id="hero-trust">
+          <li><svg aria-hidden="true"><use href="#i-lock"></use></svg> PCI-DSS secure payments</li>
+          <li><svg aria-hidden="true"><use href="#i-check-circle"></use></svg> Escrow giveaways</li>
+          <li><svg aria-hidden="true"><use href="#i-zap"></use></svg> Delivery in seconds</li>
+        </ul>
+      </div>
+
+      <div class="sample" data-od-id="hero-preview">
+        <span class="sample__flag">Data from ₦250/GB</span>
+        <div class="sample__head">
+          <div class="sample__who">SubHero wallet<small>Data plans · sample rates</small></div>
+          <div class="sample__nets" data-od-id="preview-nets"><span>MTN</span><span>GLO</span><span>Airtel</span><span>9mobile</span></div>
+        </div>
+        <div class="sample__tabs" role="tablist" aria-label="Service type">
+          <button class="tab" type="button" role="tab" aria-selected="true" tabindex="0" data-od-id="preview-tab-data">Data</button>
+          <button class="tab" type="button" role="tab" aria-selected="false" tabindex="-1" data-od-id="preview-tab-airtime">Airtime</button>
+          <button class="tab" type="button" role="tab" aria-selected="false" tabindex="-1" data-od-id="preview-tab-power">Power</button>
+        </div>
+        <div class="plan plan--pick" data-od-id="preview-plan-1gb">
+          <div class="plan__name">1GB · 30 days<small>MTN · GLO · Airtel · 9mobile</small></div>
+          <div class="plan__price"><span class="from">from </span>₦250</div>
+          <span class="plan__pick">Best deal</span>
+        </div>
+        <div class="plan" data-od-id="preview-plan-35gb">
+          <div class="plan__name">3.5GB · 30 days<small>Always-on data</small></div>
+          <div class="plan__price">₦875</div>
+        </div>
+        <div class="plan" data-od-id="preview-plan-5gb">
+          <div class="plan__name">5GB · 30 days<small>Streaming &amp; sharing</small></div>
+          <div class="plan__price">₦1,250</div>
+        </div>
+        <hr class="sample__divider">
+        <div class="boost" data-od-id="preview-boost">
+          <div class="boost__icon"><svg aria-hidden="true"><use href="#i-trend"></use></svg></div>
+          <div class="boost__info">
+            <strong>Instagram boost · auto on</strong>
+            <span>Followers + Likes · running now</span>
+            <div class="boost__track"><i></i></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PLATFORM MARQUEE ============ -->
+  <section class="marquee-band" data-od-id="platform-marquee" aria-label="Supported platforms">
+    <div class="container section-head section-head--center" data-od-id="path-2-1-0">
+      <span class="eyebrow eyebrow--center">SMM growth ecosystem</span>
+      <h2 data-od-id="path-2-1-0-1">26+ global platforms, one instant boost</h2>
+      <p class="lead">Every row below doubles the set to loop seamlessly.</p>
+    </div>
+    <div class="marquee" data-od-id="path-2-1-1">
+      <div class="marquee__row marquee__row--a" aria-hidden="true">
+        <span class="group">
+          <span class="chip"><span class="chip__dot" style="background:#E1306C"></span><span class="chip__name">Instagram</span><span class="chip__tag">Followers &amp; Likes</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#00F2EA"></span><span class="chip__name">TikTok</span><span class="chip__tag">Views &amp; Fans</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#FF0000"></span><span class="chip__name">YouTube</span><span class="chip__tag">Subs &amp; Watchtime</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#E7E9EC"></span><span class="chip__name">X / Twitter</span><span class="chip__tag">Retweets &amp; Likes</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#2AABEE"></span><span class="chip__name">Telegram</span><span class="chip__tag">Members &amp; Views</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#1DB954"></span><span class="chip__name">Spotify</span><span class="chip__tag">Streams &amp; Playlist</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#1877F2"></span><span class="chip__name">Facebook</span><span class="chip__tag">Page Likes</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#25D366"></span><span class="chip__name">WhatsApp</span><span class="chip__tag">Channel Members</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#FF4500"></span><span class="chip__name">Reddit</span><span class="chip__tag">Upvotes &amp; Karma</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#0A66C2"></span><span class="chip__name">LinkedIn</span><span class="chip__tag">Connections &amp; Likes</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#00C3FF"></span><span class="chip__name">Boomplay</span><span class="chip__tag">Streams</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#FFA200"></span><span class="chip__name">Audiomack</span><span class="chip__tag">Plays &amp; Reposts</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#C9C9D4"></span><span class="chip__name">Threads</span><span class="chip__tag">Followers</span></span>
+        </span>
+        <span class="group">
+          <span class="chip"><span class="chip__dot" style="background:#E1306C"></span><span class="chip__name">Instagram</span><span class="chip__tag">Followers &amp; Likes</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#00F2EA"></span><span class="chip__name">TikTok</span><span class="chip__tag">Views &amp; Fans</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#FF0000"></span><span class="chip__name">YouTube</span><span class="chip__tag">Subs &amp; Watchtime</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#E7E9EC"></span><span class="chip__name">X / Twitter</span><span class="chip__tag">Retweets &amp; Likes</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#2AABEE"></span><span class="chip__name">Telegram</span><span class="chip__tag">Members &amp; Views</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#1DB954"></span><span class="chip__name">Spotify</span><span class="chip__tag">Streams &amp; Playlist</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#1877F2"></span><span class="chip__name">Facebook</span><span class="chip__tag">Page Likes</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#25D366"></span><span class="chip__name">WhatsApp</span><span class="chip__tag">Channel Members</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#FF4500"></span><span class="chip__name">Reddit</span><span class="chip__tag">Upvotes &amp; Karma</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#0A66C2"></span><span class="chip__name">LinkedIn</span><span class="chip__tag">Connections &amp; Likes</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#00C3FF"></span><span class="chip__name">Boomplay</span><span class="chip__tag">Streams</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#FFA200"></span><span class="chip__name">Audiomack</span><span class="chip__tag">Plays &amp; Reposts</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#C9C9D4"></span><span class="chip__name">Threads</span><span class="chip__tag">Followers</span></span>
+        </span>
+      </div>
+      <div class="marquee__row marquee__row--b" aria-hidden="true">
+        <span class="group">
+          <span class="chip"><span class="chip__dot" style="background:#FA243C"></span><span class="chip__name">Apple Music</span><span class="chip__tag">Streams</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#5865F2"></span><span class="chip__name">Discord</span><span class="chip__tag">Members &amp; Boosts</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#A238FF"></span><span class="chip__name">Deezer</span><span class="chip__tag">Fans &amp; Streams</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#9146FF"></span><span class="chip__name">Twitch</span><span class="chip__tag">Viewers &amp; Followers</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#B92B27"></span><span class="chip__name">Quora</span><span class="chip__tag">Answers &amp; Upvotes</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#8B949E"></span><span class="chip__name">GitHub</span><span class="chip__tag">Stars &amp; Forks</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#53FC18"></span><span class="chip__name">Kick</span><span class="chip__tag">Views &amp; Chatters</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#5000FF"></span><span class="chip__name">Mixcloud</span><span class="chip__tag">Listeners</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#0088FF"></span><span class="chip__name">Shazam</span><span class="chip__tag">Tags &amp; Streams</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#E0A620"></span><span class="chip__name">Roblox</span><span class="chip__tag">Visits</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#66C0F4"></span><span class="chip__name">Steam</span><span class="chip__tag">Wishlists</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#00C46A"></span><span class="chip__name">Website Traffic</span><span class="chip__tag">Real Visits</span></span>
+        </span>
+        <span class="group">
+          <span class="chip"><span class="chip__dot" style="background:#FA243C"></span><span class="chip__name">Apple Music</span><span class="chip__tag">Streams</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#5865F2"></span><span class="chip__name">Discord</span><span class="chip__tag">Members &amp; Boosts</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#A238FF"></span><span class="chip__name">Deezer</span><span class="chip__tag">Fans &amp; Streams</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#9146FF"></span><span class="chip__name">Twitch</span><span class="chip__tag">Viewers &amp; Followers</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#B92B27"></span><span class="chip__name">Quora</span><span class="chip__tag">Answers &amp; Upvotes</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#8B949E"></span><span class="chip__name">GitHub</span><span class="chip__tag">Stars &amp; Forks</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#53FC18"></span><span class="chip__name">Kick</span><span class="chip__tag">Views &amp; Chatters</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#5000FF"></span><span class="chip__name">Mixcloud</span><span class="chip__tag">Listeners</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#0088FF"></span><span class="chip__name">Shazam</span><span class="chip__tag">Tags &amp; Streams</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#E0A620"></span><span class="chip__name">Roblox</span><span class="chip__tag">Visits</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#66C0F4"></span><span class="chip__name">Steam</span><span class="chip__tag">Wishlists</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#00C46A"></span><span class="chip__name">Website Traffic</span><span class="chip__tag">Real Visits</span></span>
+        </span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SERVICES / BENTO ============ -->
+  <section class="section" id="services" data-od-id="services">
+    <div class="container" data-od-id="path-2-2-0">
+      <div class="section-head">
+        <span class="eyebrow">Services</span>
+        <h2 data-od-id="path-2-2-0-0-1">Everything you need, one platform</h2>
+        <p class="lead">All your daily digital transactions — from data to social media growth — in one secure place.</p>
+      </div>
+
+      <div class="bento">
+        <a class="bento__item bento__item--data" href="https://subhero-smm.onrender.com/auth/register/" data-od-id="service-data">
+          <span class="bento__icon"><svg aria-hidden="true"><use href="#i-wifi"></use></svg></span>
+          <span class="bento__title">Data</span>
+          <p class="bento__copy">Instant VTU across MTN, GLO, Airtel and 9mobile — prices start from ₦250/GB.</p>
+          <span class="bento__anchor">From ₦250/GB <svg aria-hidden="true"><use href="#i-arrow"></use></svg></span>
+        </a>
+
+        <a class="bento__item bento__item--air" href="https://subhero-smm.onrender.com/auth/register/" data-od-id="service-airtime">
+          <span class="bento__icon"><svg aria-hidden="true"><use href="#i-phone"></use></svg></span>
+          <span class="bento__title">Airtime</span>
+          <p class="bento__copy">Top-up any Nigerian number instantly, at a discount.</p>
+          <span class="bento__anchor">Top up now <svg aria-hidden="true"><use href="#i-arrow"></use></svg></span>
+        </a>
+
+        <a class="bento__item bento__item--power" href="https://subhero-smm.onrender.com/auth/register/" data-od-id="service-power">
+          <span class="bento__icon"><svg aria-hidden="true"><use href="#i-zap"></use></svg></span>
+          <span class="bento__title">Power</span>
+          <p class="bento__copy">Pay prepaid electricity meters and never sit in the dark.</p>
+          <span class="bento__anchor">Pay bill <svg aria-hidden="true"><use href="#i-arrow"></use></svg></span>
+        </a>
+
+        <a class="bento__item bento__item--tv" href="https://subhero-smm.onrender.com/auth/register/" data-od-id="service-tv">
+          <span class="bento__icon"><svg aria-hidden="true"><use href="#i-tv"></use></svg></span>
+          <span class="bento__title">Cable TV</span>
+          <p class="bento__copy">Renew DStv, GOtv and Showmax subscriptions with ease.</p>
+          <span class="bento__anchor">Subscribe <svg aria-hidden="true"><use href="#i-arrow"></use></svg></span>
+        </a>
+
+        <a class="bento__item bento__item--smm bento__item--featured" href="https://subhero-smm.onrender.com/auth/register/" data-od-id="service-smm">
+          <span class="bento__icon"><svg aria-hidden="true"><use href="#i-trend"></use></svg></span>
+          <span class="bento__title">Social media growth</span>
+          <p class="bento__copy">Boost followers, likes, views and streams across 26+ platforms — Instagram, TikTok, YouTube, Telegram, Spotify and more. Delivered fast, on a safe channel.</p>
+          <span class="platform-dots" data-od-id="smm-platforms">
+            <span>Instagram</span><span>TikTok</span><span>YouTube</span><span>X</span><span>Telegram</span><span>Spotify</span><span>Facebook</span><span>LinkedIn</span><span>+18 more</span>
+          </span>
+          <span class="bento__anchor">Start boosting <svg aria-hidden="true"><use href="#i-arrow"></use></svg></span>
+        </a>
+
+        <a class="bento__item bento__item--gift" href="https://subhero-smm.onrender.com/auth/register/" data-od-id="service-giveaway">
+          <span class="bento__icon"><svg aria-hidden="true"><use href="#i-gift"></use></svg></span>
+          <span class="bento__title">Giveaways</span>
+          <p class="bento__copy">Host automated giveaways with escrow protection and instant bank transfers to winners.</p>
+          <span class="bento__anchor">Run a giveaway <svg aria-hidden="true"><use href="#i-arrow"></use></svg></span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ HOW IT WORKS ============ -->
+  <section class="section" id="how" data-od-id="how-it-works">
+    <div class="container" data-od-id="path-2-3-0">
+      <div class="section-head">
+        <span class="eyebrow">How it works</span>
+        <h2 data-od-id="path-2-3-0-0-1">Live in under two minutes</h2>
+        <p class="lead">No paperwork, no waiting. Fund once and buy anything on the platform.</p>
+      </div>
+      <ol class="steps">
+        <li class="step" data-od-id="step-1">
+          <span class="step__num">01</span>
+          <div class="step__body">
+            <h3 data-od-id="path-2-3-0-1-0-1-0">Create your free account</h3>
+            <p>Sign up with just a phone number and a 4-digit PIN. Most accounts are open in seconds.</p>
+          </div>
+        </li>
+        <li class="step" data-od-id="step-2">
+          <span class="step__num">02</span>
+          <div class="step__body">
+            <h3 data-od-id="path-2-3-0-1-1-1-0">Fund your wallet</h3>
+            <p>Top up securely by bank transfer or card. Payments are PCI-DSS compliant and encrypted end to end.</p>
+          </div>
+        </li>
+        <li class="step" data-od-id="step-3">
+          <span class="step__num">03</span>
+          <div class="step__body">
+            <h3 data-od-id="path-2-3-0-1-2-1-0">Buy, pay, or boost</h3>
+            <p>Data, airtime, power, cable TV and social boosts — delivered in seconds with full order tracking.</p>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ============ WHY SUBHERO ============ -->
+  <section class="section" id="why" data-od-id="why-subhero">
+    <div class="container" data-od-id="path-2-4-0">
+      <div class="section-head section-head--center">
+        <span class="eyebrow eyebrow--center">Why SubHero</span>
+        <h2 data-od-id="path-2-4-0-0-1">Why Nigerians choose SubHero</h2>
+        <p class="lead">Built for the unique needs of Nigeria’s growing digital economy.</p>
+      </div>
+      <div class="features">
+        <article class="feature" data-od-id="feature-speed">
+          <span class="feature__icon"><svg aria-hidden="true"><use href="#i-zap"></use></svg></span>
+          <h3 data-od-id="path-2-4-0-1-0-1">Lightning fast</h3>
+          <p>Transactions complete in seconds, not minutes. Instant data delivery, immediate airtime top-up, and real-time growth.</p>
+        </article>
+        <article class="feature" data-od-id="feature-security">
+          <span class="feature__icon"><svg aria-hidden="true"><use href="#i-shield"></use></svg></span>
+          <h3 data-od-id="path-2-4-0-1-1-1">Bank-level security</h3>
+          <p>Your funds and data are protected with encryption and PCI-DSS compliant payment processing.</p>
+        </article>
+        <article class="feature" data-od-id="feature-price">
+          <span class="feature__icon"><svg aria-hidden="true"><use href="#i-percent"></use></svg></span>
+          <h3 data-od-id="path-2-4-0-1-2-1">Best prices</h3>
+          <p>We negotiate directly with providers to eliminate middlemen and pass the savings straight to you.</p>
+        </article>
+        <article class="feature" data-od-id="feature-uptime">
+          <span class="feature__icon"><svg aria-hidden="true"><use href="#i-cloud"></use></svg></span>
+          <h3 data-od-id="path-2-4-0-1-3-1">99.9% uptime</h3>
+          <p>Robust infrastructure keeps services available even at peak hours. Never miss a transaction.</p>
+        </article>
+        <article class="feature" data-od-id="feature-support">
+          <span class="feature__icon"><svg aria-hidden="true"><use href="#i-head"></use></svg></span>
+          <h3 data-od-id="path-2-4-0-1-4-1">Local support</h3>
+          <p>A Nigerian-based support team via email and in-app chat. We understand your needs.</p>
+        </article>
+        <article class="feature" data-od-id="feature-community">
+          <span class="feature__icon"><svg aria-hidden="true"><use href="#i-users"></use></svg></span>
+          <h3 data-od-id="path-2-4-0-1-5-1">Growing community</h3>
+          <p>Join 50,000+ Nigerians who trust SubHero for their daily digital transactions.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ STATS ============ -->
+  <section class="section" data-od-id="stats-band" aria-label="SubHero by the numbers">
+    <div class="container" data-od-id="path-2-5-0">
+      <div class="stats">
+        <div class="stat" data-od-id="stat-uptime">
+          <div class="stat__value">99.9<em>%</em></div>
+          <div class="stat__label">Service uptime</div>
+        </div>
+        <div class="stat" data-od-id="stat-delivery">
+          <div class="stat__value">&lt;2<em>s</em></div>
+          <div class="stat__label">Average delivery time</div>
+        </div>
+        <div class="stat" data-od-id="stat-platforms">
+          <div class="stat__value">26<em>+</em></div>
+          <div class="stat__label">SMM platforms supported</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CTA ============ -->
+  <section class="cta" data-od-id="cta">
+    <div class="container" data-od-id="path-2-6-0">
+      <div class="cta__panel">
+        <span class="eyebrow eyebrow--center">Get started</span>
+        <h2 data-od-id="path-2-6-0-0-1">Ready for faster, cheaper and more secure transactions?</h2>
+        <p class="lead">Join thousands of Nigerians already enjoying a better way to handle daily digital payments.</p>
+        <a class="btn btn-primary btn-lg" href="https://subhero-smm.onrender.com/auth/register/" data-od-id="cta-button">Get started free <svg aria-hidden="true"><use href="#i-arrow"></use></svg></a>
+        <div class="trust" data-od-id="cta-trust">
+          <span class="trust__badge"><svg aria-hidden="true"><use href="#i-lock"></use></svg> Secure</span>
+          <span class="trust__badge"><svg aria-hidden="true"><use href="#i-zap"></use></svg> Instant</span>
+          <span class="trust__badge"><svg aria-hidden="true"><use href="#i-shield"></use></svg> Escrow protected</span>
+          <span class="trust__badge"><svg aria-hidden="true"><use href="#i-clock"></use></svg> 24/7</span>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ============ FOOTER ============ -->
+<footer class="footer" data-od-id="site-footer">
+  <div class="container" data-od-id="path-3-0">
+    <div class="footer__grid">
+      <div class="footer__brand">
+        <a class="brand" href="#top" data-od-id="path-3-0-0-0-0">Sub<span>Hero</span></a>
+        <p>Instant VTU, cheap data, utilities and automated social media growth for Nigeria — all in one secure app.</p>
+      </div>
+      <div>
+        <h4 data-od-id="path-3-0-0-1-0">Platform</h4>
+        <nav class="footer__links" aria-label="Services" data-od-id="path-3-0-0-1-1">
+          <a href="#services" data-od-id="footer-data">Data &amp; airtime</a>
+          <a href="#services" data-od-id="footer-bills">Bills &amp; utilities</a>
+          <a href="#services" data-od-id="footer-smm">Social boost</a>
+          <a href="#services" data-od-id="footer-giveaway">Giveaways</a>
+        </nav>
+      </div>
+      <div>
+        <h4 data-od-id="path-3-0-0-2-0">Company</h4>
+        <nav class="footer__links" aria-label="Legal" data-od-id="path-3-0-0-2-1">
+          <a href="https://subhero-smm.onrender.com/privacy/" data-od-id="footer-privacy">Privacy policy</a>
+          <a href="https://subhero-smm.onrender.com/terms/" data-od-id="footer-terms">Terms of service</a>
+          <a href="https://subhero-smm.onrender.com/auth/register/" data-od-id="footer-signup">Create account</a>
+        </nav>
+      </div>
+      <div>
+        <h4 data-od-id="path-3-0-0-3-0">Connect</h4>
+        <nav class="footer__links" aria-label="Contact" data-od-id="path-3-0-0-3-1">
+          <a href="https://twitter.com/SubHeroNG" rel="noopener" data-od-id="footer-x">X / Twitter</a>
+          <a href="https://instagram.com/subherong" rel="noopener" data-od-id="footer-ig">Instagram</a>
+          <a href="mailto:support@subhero.com.ng" data-od-id="footer-mail">support@subhero.com.ng</a>
+        </nav>
+      </div>
+    </div>
+    <div class="footer__bottom">
+      <span>© 2026 SubHero. Built for Nigeria.</span>
+      <span class="mono">subhero.com.ng</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var tabs = document.querySelectorAll('.tab');
+  tabs.forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      tabs.forEach(function (t) { t.setAttribute('aria-selected', 'false'); t.tabIndex = -1; });
+      tab.setAttribute('aria-selected', 'true');
+      tab.tabIndex = 0;
+      tab.focus();
+    });
+  });
+})();
+</script>
+
+<script data-od-preview-content-size-bridge>(function(){
+  if (window.__odPreviewContentSizeBridge) return;
+  window.__odPreviewContentSizeBridge = true;
+  var pending = false;
+  var lastRequest = null;
+  var documentEpoch = "";
+  function measure(){
+    var root = document.documentElement;
+    var body = document.body || root;
+    if (!root) return null;
+    var scrollValues = [
+      root.scrollWidth,
+      body && body.scrollWidth,
+    ];
+    var clientValues = [
+      root.clientWidth,
+      body && body.clientWidth
+    ];
+    var scrollWidth = 0;
+    var clientWidth = 0;
+    for (var i = 0; i < scrollValues.length; i += 1) {
+      var nextScroll = Number(scrollValues[i] || 0);
+      if (Number.isFinite(nextScroll) && nextScroll > scrollWidth) scrollWidth = nextScroll;
+    }
+    for (var j = 0; j < clientValues.length; j += 1) {
+      var nextClient = Number(clientValues[j] || 0);
+      if (Number.isFinite(nextClient) && nextClient > clientWidth) clientWidth = nextClient;
+    }
+    return {
+      scrollWidth: scrollWidth > 0 ? Math.ceil(scrollWidth) : null,
+      clientWidth: clientWidth > 0 ? Math.ceil(clientWidth) : null
+    };
+  }
+  function post(){
+    if (!lastRequest) return;
+    var size = measure();
+    try {
+      window.parent.postMessage({
+        type: 'od:preview-content-size',
+        measurementId: lastRequest.measurementId,
+        generation: lastRequest.generation,
+        documentEpoch: documentEpoch,
+        scrollWidth: size && size.scrollWidth,
+        clientWidth: size && size.clientWidth
+      }, '*');
+    } catch (_) {}
+  }
+  function schedule(){
+    if (pending) return;
+    pending = true;
+    window.requestAnimationFrame(function(){
+      pending = false;
+      post();
+    });
+  }
+  window.addEventListener('message', function(ev){
+    var data = ev && ev.data;
+    if (!data || data.type !== 'od:preview-content-size-request') return;
+    if (typeof data.measurementId !== 'string' || typeof data.generation !== 'string') return;
+    lastRequest = {
+      measurementId: data.measurementId,
+      generation: data.generation
+    };
+    schedule();
+  });
+  window.addEventListener('resize', schedule);
+  if (typeof ResizeObserver !== 'undefined') {
+    try {
+      var observer = new ResizeObserver(schedule);
+      observer.observe(document.documentElement);
+      if (document.body) observer.observe(document.body);
+    } catch (_) {}
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', schedule);
+  } else {
+    setTimeout(schedule, 0);
+  }
+  setTimeout(schedule, 80);
+  setTimeout(schedule, 260);
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(schedule).catch(function(){});
+  }
+})();</script><script data-od-snapshot-bridge>(function(){
+  var SNAPSHOT_STYLE_PROPS = [
+    'display','position','box-sizing','width','height','min-width','max-width','min-height','max-height',
+    'margin','margin-top','margin-right','margin-bottom','margin-left',
+    'padding','padding-top','padding-right','padding-bottom','padding-left',
+    'border','border-top','border-right','border-bottom','border-left','border-radius',
+    'font','font-family','font-size','font-weight','font-style','line-height','letter-spacing',
+    'color','background-color','opacity','transform','transform-origin','overflow','overflow-x','overflow-y',
+    'white-space','text-align','vertical-align','object-fit','object-position',
+    'flex','flex-direction','flex-wrap','flex-grow','flex-shrink','flex-basis',
+    'grid','grid-template-columns','grid-template-rows','grid-column','grid-row',
+    'gap','row-gap','column-gap','align-items','align-content','align-self',
+    'justify-items','justify-content','justify-self','inset','top','right','bottom','left',
+    'z-index','box-shadow','text-shadow'
+  ];
+  function copyComputedStyle(source, target){
+    if (!source || !target || source.nodeType !== 1 || target.nodeType !== 1) return;
+    var computed = window.getComputedStyle(source);
+    var style = target.getAttribute('style') || '';
+    for (var i = 0; i < SNAPSHOT_STYLE_PROPS.length; i++){
+      var prop = SNAPSHOT_STYLE_PROPS[i];
+      var value = computed.getPropertyValue(prop);
+      if (value) style += prop + ':' + value + ';';
+    }
+    target.setAttribute('style', style);
+  }
+  function syncElementState(source, target){
+    var tag = source.tagName ? source.tagName.toLowerCase() : '';
+    if (tag === 'img' && source.currentSrc) target.setAttribute('src', source.currentSrc);
+    if (tag === 'input' || tag === 'textarea') target.setAttribute('value', source.value || '');
+    if (tag === 'canvas') {
+      try {
+        var img = document.createElement('img');
+        img.setAttribute('src', source.toDataURL('image/png'));
+        img.setAttribute('style', target.getAttribute('style') || '');
+        target.parentNode && target.parentNode.replaceChild(img, target);
+      } catch (_) {}
+    }
+  }
+  function inlineSnapshotStyles(originalRoot, cloneRoot){
+    copyComputedStyle(originalRoot, cloneRoot);
+    syncElementState(originalRoot, cloneRoot);
+    var originals = originalRoot.querySelectorAll('*');
+    var clones = cloneRoot.querySelectorAll('*');
+    var count = Math.min(originals.length, clones.length, 3500);
+    for (var i = 0; i < count; i++){
+      copyComputedStyle(originals[i], clones[i]);
+      syncElementState(originals[i], clones[i]);
+    }
+    var scripts = cloneRoot.querySelectorAll('script');
+    for (var s = scripts.length - 1; s >= 0; s--) scripts[s].remove();
+    var links = cloneRoot.querySelectorAll('link[rel~="stylesheet"], link[rel~="preload"], link[rel~="preconnect"]');
+    for (var l = links.length - 1; l >= 0; l--) links[l].remove();
+    var styles = cloneRoot.querySelectorAll('style');
+    for (var st = 0; st < styles.length; st++) {
+      styles[st].textContent = (styles[st].textContent || '')
+        .replace(/@import[^;]+;/gi, '')
+        .replace(/@font-face\s*\{[^}]*\}/gi, '');
+    }
+  }
+  function pruneHiddenSnapshotNodes(originalRoot, cloneRoot){
+    var originals = originalRoot.querySelectorAll('*');
+    var clones = cloneRoot.querySelectorAll('*');
+    var count = Math.min(originals.length, clones.length);
+    var removals = [];
+    for (var i = 0; i < count; i++){
+      var original = originals[i];
+      var clone = clones[i];
+      if (!original || !clone || !clone.parentNode) continue;
+      var computed = window.getComputedStyle(original);
+      if (computed && (computed.display === 'none' || computed.visibility === 'hidden')) {
+        removals.push(clone);
+      }
+    }
+    for (var r = removals.length - 1; r >= 0; r--){
+      if (removals[r].parentNode) removals[r].parentNode.removeChild(removals[r]);
+    }
+  }
+  function waitForImages(){
+    var imgs = Array.prototype.slice.call(document.images || []);
+    return Promise.all(imgs.map(function(img){
+      if (img.complete) return Promise.resolve();
+      return new Promise(function(resolve){
+        img.addEventListener('load', resolve, { once: true });
+        img.addEventListener('error', resolve, { once: true });
+      });
+    }));
+  }
+  function scrollOffset(){
+    var doc = document.documentElement;
+    var body = document.body;
+    return {
+      x: Math.max(window.scrollX || 0, doc ? doc.scrollLeft || 0 : 0, body ? body.scrollLeft || 0 : 0),
+      y: Math.max(window.scrollY || 0, doc ? doc.scrollTop || 0 : 0, body ? body.scrollTop || 0 : 0)
+    };
+  }
+  function escapeAttribute(value){
+    return String(value || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  }
+  function snapshotBackgroundColor(){
+    try {
+      var probe = window.getComputedStyle(document.body || document.documentElement);
+      var bg = probe && probe.backgroundColor || '';
+      if (!bg || bg === 'transparent' || bg === 'rgba(0, 0, 0, 0)') return '#ffffff';
+      return bg;
+    } catch (_) { return '#ffffff'; }
+  }
+  // After painting, sample the canvas: a uniform (single-color) bitmap means
+  // the foreignObject rasterizer painted nothing — Chromium frequently refuses
+  // to paint <foreignObject> HTML loaded via <img>. Treating that as an honest
+  // 'empty-render' error (instead of shipping the background-only frame) lets
+  // the host fall back / surface a real failure rather than a silent black PNG.
+  function canvasLooksBlank(ctx, cw, ch){
+    try {
+      var data = ctx.getImageData(0, 0, cw, ch).data;
+      var step = Math.max(4, Math.floor((cw * ch) / 4096)) * 4;
+      var first = null, samples = 0;
+      for (var i = 0; i + 3 < data.length; i += step){
+        samples++;
+        if (!first){ first = [data[i], data[i+1], data[i+2], data[i+3]]; continue; }
+        if (Math.abs(data[i]-first[0]) > 6 || Math.abs(data[i+1]-first[1]) > 6 ||
+            Math.abs(data[i+2]-first[2]) > 6 || Math.abs(data[i+3]-first[3]) > 6) return false;
+      }
+      return samples > 8;
+    } catch (_) { return false; }
+  }
+  // Rasterize the current view (or the whole document, when opts.full) via an
+  // SVG <foreignObject>. Returns a Promise so it can be reused by both the
+  // od:snapshot message handler AND the export-capture bridge (image export /
+  // PDF) — the foreignObject path is fast and never blocks on external
+  // image network loads the way a DOM-cloning rasterizer does.
+  function captureSnapshot(opts){
+    opts = opts || {};
+    return new Promise(function(resolve, reject){
+      var w = Math.max(1, window.innerWidth || document.documentElement.clientWidth || 1);
+      var h = Math.max(1, window.innerHeight || document.documentElement.clientHeight || 1);
+      var dpr = window.devicePixelRatio || 1;
+      var bgColor = snapshotBackgroundColor();
+      var docW = Math.max(w, document.documentElement.scrollWidth || 0, document.body ? document.body.scrollWidth : 0);
+      var docH = Math.max(h, document.documentElement.scrollHeight || 0, document.body ? document.body.scrollHeight : 0);
+      var full = !!opts.full;
+      var capW = full ? docW : w;
+      var capH = full ? docH : h;
+      var clone = document.documentElement.cloneNode(true);
+      clone.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
+      inlineSnapshotStyles(document.documentElement, clone);
+      pruneHiddenSnapshotNodes(document.documentElement, clone);
+      var scroll = full ? { x: 0, y: 0 } : scrollOffset();
+      var cloneBody = clone.querySelector('body');
+      var rootStyle = clone.getAttribute('style') || '';
+      var bodyStyle = cloneBody ? cloneBody.getAttribute('style') || '' : '';
+      var bodyContent = cloneBody ? cloneBody.innerHTML : clone.innerHTML;
+      var wrapperStyle = rootStyle + bodyStyle +
+        'margin:0;position:relative;left:' + (-scroll.x) + 'px;top:' + (-scroll.y) + 'px;' +
+        'width:' + docW + 'px;height:' + docH + 'px;overflow:visible;';
+      var html = '<div xmlns="http://www.w3.org/1999/xhtml" style="' + escapeAttribute(wrapperStyle) + '">' + bodyContent + '</div>';
+      var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + capW + '" height="' + capH + '" viewBox="0 0 ' + capW + ' ' + capH + '">' +
+        '<foreignObject x="0" y="0" width="' + docW + '" height="' + docH + '">' +
+        html +
+        '</foreignObject></svg>';
+      var img = new Image();
+      img.onload = function(){
+        try {
+          var canvas = document.createElement('canvas');
+          canvas.width = Math.max(1, Math.floor(capW * dpr));
+          canvas.height = Math.max(1, Math.floor(capH * dpr));
+          var ctx = canvas.getContext('2d');
+          if (!ctx) throw new Error('no 2d context');
+          ctx.scale(dpr, dpr);
+          // Opaque base so a transparent (un-painted) raster never flattens to
+          // pure black in clipboards / PNG viewers.
+          ctx.fillStyle = bgColor;
+          ctx.fillRect(0, 0, capW, capH);
+          ctx.drawImage(img, 0, 0, capW, capH);
+          if (canvasLooksBlank(ctx, canvas.width, canvas.height)) {
+            reject(new Error('empty-render'));
+            return;
+          }
+          resolve({ dataUrl: canvas.toDataURL('image/png'), w: canvas.width, h: canvas.height });
+        } catch (err) {
+          reject(err instanceof Error ? err : new Error(String(err && err.message || err)));
+        }
+      };
+      img.onerror = function(){ reject(new Error('snapshot image failed')); };
+      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    });
+  }
+  // Exposed so the export-capture bridge (same document) can reuse this renderer.
+  window.__odCaptureSnapshot = function(opts){
+    return waitForImages().then(function(){ return captureSnapshot(opts || {}); });
+  };
+  window.addEventListener('message', function(ev){
+    var data = ev && ev.data;
+    if (!data || data.type !== 'od:snapshot' || !data.id) return;
+    window.__odCaptureSnapshot({ full: !!data.full }).then(function(res){
+      window.parent.postMessage({ type: 'od:snapshot:result', id: String(data.id), dataUrl: res.dataUrl, w: res.w, h: res.h }, '*');
+    }, function(err){
+      window.parent.postMessage({ type: 'od:snapshot:result', id: String(data.id), error: String(err && err.message || err) }, '*');
+    });
+  });
+})();</script><script data-od-export-capture-bridge>(function(){
+  function raf(){ return new Promise(function(r){ requestAnimationFrame(function(){ r(); }); }); }
+  function settle(){
+    var fonts = (document.fonts && document.fonts.ready) ? document.fonts.ready.catch(function(){}) : Promise.resolve();
+    var imgs = Promise.all(Array.prototype.slice.call(document.images||[]).map(function(img){
+      if (img.complete) return Promise.resolve();
+      return new Promise(function(r){ img.addEventListener('load', r, {once:true}); img.addEventListener('error', r, {once:true}); });
+    }));
+    return Promise.all([fonts, imgs]).then(raf).then(raf);
+  }
+  function deckState(){
+    try { if (typeof window.__odDeckSlideState === 'function') return window.__odDeckSlideState(); } catch(_){}
+    return { active: 0, count: 1 };
+  }
+  function navTo(index, delay){
+    return new Promise(function(resolve){
+      try { window.postMessage({ type:'od:slide', action:'go', index: index }, '*'); } catch(_){}
+      var tries = 0;
+      function check(){
+        tries++;
+        if (deckState().active === index || tries > 14) { resolve(); return; }
+        setTimeout(check, 80);
+      }
+      setTimeout(check, Math.max(60, delay||0));
+    });
+  }
+  function captureImage(deck){
+    // Reuse the shared SVG-foreignObject renderer (injectSnapshotBridge). For a
+    // deck the active slide fills the viewport, so a viewport capture IS the
+    // slide; a non-deck page captures the full document.
+    if (typeof window.__odCaptureSnapshot !== 'function') {
+      return Promise.reject(new Error('snapshot renderer unavailable'));
+    }
+    return window.__odCaptureSnapshot({ full: !deck });
+  }
+  function notes(){
+    var el = document.getElementById('speaker-notes');
+    if (el) {
+      var t = el.textContent || '';
+      try { var j = JSON.parse(t); if (Array.isArray(j)) return j; } catch(_){}
+      var plain = t.replace(/\s+/g,' ').trim();
+      if (plain) return plain;
+    }
+    var list = [];
+    // Match every .slide in document order — per-slide notes must line up
+    // 1:1 with the slide list regardless of the deck's container nesting.
+    var slideNodes = document.querySelectorAll('.slide');
+    for (var i = 0; i < slideNodes.length; i++) {
+      var noteEl = slideNodes[i].querySelector('.notes');
+      list.push(noteEl ? (noteEl.textContent || '').replace(/\s+/g, ' ').trim() : '');
+    }
+    return list.length ? list : '';
+  }
+  function send(msg){ try { window.parent.postMessage(msg, '*'); } catch(_){} }
+  function run(req){
+    var id = req.id;
+    var deck = !!req.deck;
+    var single = !!req.single;
+    var delay = req.delay || 350;
+    Promise.resolve().then(function(){
+      var st = deckState();
+      var total = (!single && deck && st.count > 1) ? st.count : 1;
+      var notesAll = notes();
+      function noteFor(i){ return Array.isArray(notesAll) ? (notesAll[i]||'') : (i===0 ? notesAll : ''); }
+      var idx = 0;
+      function step(){
+        if (idx >= total){ send({ type:'od:export-capture:done', id:id, total: total }); return; }
+        var i = idx;
+        var navP = (!single && deck && total > 1) ? navTo(i, delay) : Promise.resolve();
+        navP.then(settle).then(function(){
+          try {
+            captureImage(deck).then(function(img){
+              send({ type:'od:export-capture:slide', id:id, index:i, total:total, dataUrl: img.dataUrl, w: img.w, h: img.h, notes: noteFor(i) });
+              idx++; setTimeout(step, 0);
+            }).catch(function(err){ send({ type:'od:export-capture:error', id:id, error: String(err && err.message || err) }); });
+          } catch(err){ send({ type:'od:export-capture:error', id:id, error: String(err && err.message || err) }); }
+        });
+      }
+      step();
+    }).catch(function(err){
+      send({ type:'od:export-capture:error', id:id, error: String(err && err.message || err) });
+    });
+  }
+  window.addEventListener('message', function(ev){
+    var data = ev && ev.data;
+    if (!data || data.type !== 'od:export-capture' || !data.id) return;
+    run(data);
+  });
+})();</script></body></html>

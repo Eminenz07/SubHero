@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block title %}SubHero | Cheap Data, Airtime & Social Media Booster{% endblock %}
-{% block meta_description %}Buy cheap data, instant airtime, cable TV, electricity, host automated giveaways, and boost social media presence in Nigeria with SubHero.{% endblock %}
+{% block meta_description %}Buy cheap data from ₦250/GB, instant airtime, cable TV, electricity, escrow giveaways, and automated social media growth in Nigeria with SubHero.{% endblock %}
 {% block canonical_url %}{{ request.scheme }}://{{ request.get_host }}/{% endblock %}
 
 {% block og_title %}SubHero | Cheap Data, Airtime & Social Media Booster in Nigeria{% endblock %}
@@ -36,1696 +36,825 @@
 
 {% block content %}
 <style>
-    /* =============================================================
-       LANDING PAGE - Full-bleed breakout overrides
-       These styles ONLY affect the landing page. All other pages
-       keep their app-shell boxed layout untouched.
-       ============================================================= */
-
-    /* Break out of the app-shell box */
-    html, body {
-        overflow: auto !important;
-        height: auto !important;
-        background: #060B14 !important;
-    }
-
-    .app-shell {
-        max-width: none !important;
-        max-height: none !important;
-        height: auto !important;
-        border-radius: 0 !important;
-        box-shadow: none !important;
-        margin: 0 !important;
-        background: #060B14 !important;
-        overflow: visible !important;
-    }
-
-    .app-shell .page-content {
-        overflow: visible !important;
-    }
-
-    /* Ring override (Tailwind ring utility) */
-    .app-shell {
-        --tw-ring-shadow: none !important;
-        --tw-ring-offset-shadow: none !important;
-    }
-
-    /* =============================================================
-       DESIGN TOKENS
-       ============================================================= */
-    :root {
-        --landing-bg: #060B14;
-        --landing-surface: #0D1321;
-        --landing-surface-hover: #131B2E;
-        --landing-border: rgba(255, 255, 255, 0.06);
-        --landing-border-hover: rgba(0, 196, 106, 0.2);
-        --landing-text: #FFFFFF;
-        --landing-text-secondary: #8B95A8;
-        --landing-text-muted: #5A6478;
-        --landing-accent: #00C46A;
-        --landing-accent-dim: rgba(0, 196, 106, 0.1);
-        --landing-accent-glow: rgba(0, 196, 106, 0.15);
-    }
-
-    /* =============================================================
-       NAVIGATION
-       ============================================================= */
-    .landing-nav {
-        position: sticky;
-        top: 0;
-        z-index: 100;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 1rem 1.5rem;
-        background: rgba(6, 11, 20, 0.7);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border-bottom: 1px solid var(--landing-border);
-        transition: background 0.3s ease;
-    }
-
-    .landing-nav-logo {
-        font-family: 'Bricolage Grotesque', system-ui, sans-serif;
-        font-size: 22px;
-        font-weight: 800;
-        color: var(--landing-text);
-        text-decoration: none;
-        letter-spacing: -0.5px;
-    }
-
-    .landing-nav-logo span {
-        color: var(--landing-accent);
-    }
-
-    .landing-nav-actions {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-    }
-
-    .nav-link {
-        display: inline-flex;
-        align-items: center;
-        padding: 0.5rem 1.25rem;
-        font-size: 14px;
-        font-weight: 600;
-        border-radius: 100px;
-        text-decoration: none;
-        transition: all 0.2s ease;
-    }
-
-    .nav-link--ghost {
-        color: var(--landing-text-secondary);
-        background: transparent;
-        border: 1px solid var(--landing-border);
-    }
-
-    .nav-link--ghost:hover {
-        color: var(--landing-text);
-        background: rgba(255, 255, 255, 0.05);
-        border-color: rgba(255, 255, 255, 0.12);
-    }
-
-    .nav-link--accent {
-        color: #fff;
-        background: var(--landing-accent);
-        border: 1px solid var(--landing-accent);
-    }
-
-    .nav-link--accent:hover {
-        background: #00D474;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 20px rgba(0, 196, 106, 0.3);
-    }
-
-    /* =============================================================
-       MESH GRADIENT BLOBS
-       ============================================================= */
-    .mesh-blob {
-        position: absolute;
-        border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
-        filter: blur(120px);
-        pointer-events: none;
-        z-index: 0;
-    }
-
-    .mesh-blob--1 {
-        width: 500px;
-        height: 500px;
-        top: -10%;
-        left: -8%;
-        background: rgba(0, 196, 106, 0.08);
-        animation: blob-float 20s ease-in-out infinite;
-    }
-
-    .mesh-blob--2 {
-        width: 400px;
-        height: 400px;
-        top: 20%;
-        right: -12%;
-        background: rgba(0, 107, 62, 0.1);
-        animation: blob-float 25s ease-in-out infinite reverse;
-        border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
-    }
-
-    .mesh-blob--3 {
-        width: 350px;
-        height: 350px;
-        bottom: -5%;
-        left: 30%;
-        background: rgba(0, 196, 106, 0.06);
-        animation: blob-float 18s ease-in-out infinite;
-        border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
-    }
-
-    @keyframes blob-float {
-        0%, 100% { transform: translate(0, 0) scale(1); }
-        25% { transform: translate(30px, -20px) scale(1.05); }
-        50% { transform: translate(-20px, 20px) scale(0.95); }
-        75% { transform: translate(15px, 10px) scale(1.02); }
-    }
-
-    /* =============================================================
-       HERO SECTION
-       ============================================================= */
-    .landing-hero {
-        position: relative;
-        overflow: hidden;
-        padding: 6rem 1.5rem 5rem;
-        text-align: center;
-        min-height: 85vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .landing-hero__content {
-        position: relative;
-        z-index: 1;
-        max-width: 720px;
-        margin: 0 auto;
-    }
-
-    .landing-hero__badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.4rem 1rem;
-        margin-bottom: 1.75rem;
-        font-size: 13px;
-        font-weight: 600;
-        color: var(--landing-accent);
-        background: var(--landing-accent-dim);
-        border: 1px solid rgba(0, 196, 106, 0.15);
-        border-radius: 100px;
-        letter-spacing: 0.5px;
-    }
-
-    .landing-hero__title {
-        font-family: 'Bricolage Grotesque', system-ui, sans-serif;
-        font-size: clamp(2.5rem, 6vw, 4rem);
-        font-weight: 800;
-        color: var(--landing-text);
-        line-height: 1.08;
-        letter-spacing: -1.5px;
-        margin-bottom: 1.5rem;
-    }
-
-    .landing-hero__title .accent {
-        color: var(--landing-accent);
-        position: relative;
-        display: inline-flex;
-        align-items: center;
-    }
-
-    .typing-cursor {
-        display: inline-block;
-        color: var(--landing-accent);
-        font-weight: 700;
-        margin-left: 2px;
-        animation: cursor-blink 0.8s infinite;
-        text-shadow: 0 0 10px rgba(0, 196, 106, 0.6);
-    }
-
-    @keyframes cursor-blink {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0; }
-    }
-
-    .landing-hero__subtitle {
-        font-size: clamp(1rem, 2.5vw, 1.25rem);
-        color: var(--landing-text-secondary);
-        line-height: 1.7;
-        max-width: 540px;
-        margin: 0 auto 2.5rem;
-    }
-
-    .landing-hero__ctas {
-        display: flex;
-        flex-direction: column;
-        gap: 0.875rem;
-        align-items: center;
-    }
-
-    .cta-primary {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.5rem;
-        padding: 0.9rem 2.5rem;
-        font-size: 16px;
-        font-weight: 700;
-        color: #fff;
-        background: var(--landing-accent);
-        border-radius: 14px;
-        border: none;
-        text-decoration: none;
-        cursor: pointer;
-        transition: all 0.25s ease;
-        min-width: 220px;
-    }
-
-    .cta-primary:hover {
-        background: #00D474;
-        transform: translateY(-2px);
-        box-shadow: 0 8px 30px rgba(0, 196, 106, 0.35);
-    }
-
-    .cta-primary:active {
-        transform: translateY(0);
-    }
-
-    .cta-secondary {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.5rem;
-        padding: 0.9rem 2.5rem;
-        font-size: 16px;
-        font-weight: 600;
-        color: var(--landing-text-secondary);
-        background: transparent;
-        border: 1.5px solid rgba(255, 255, 255, 0.1);
-        border-radius: 14px;
-        text-decoration: none;
-        cursor: pointer;
-        transition: all 0.25s ease;
-        min-width: 220px;
-    }
-
-    .cta-secondary:hover {
-        color: var(--landing-text);
-        background: rgba(255, 255, 255, 0.04);
-        border-color: rgba(255, 255, 255, 0.2);
-        transform: translateY(-2px);
-    }
-
-    .landing-hero__stats {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 1rem;
-        max-width: 480px;
-        margin: 3.5rem auto 0;
-        padding-top: 2rem;
-        border-top: 1px solid var(--landing-border);
-    }
-
-    .stat__value {
-        font-family: 'Bricolage Grotesque', system-ui, sans-serif;
-        font-size: 28px;
-        font-weight: 800;
-        color: var(--landing-text);
-    }
-
-    .stat__label {
-        font-size: 13px;
-        color: var(--landing-text-muted);
-        margin-top: 0.25rem;
-    }
-
-    /* =============================================================
-       SECTION COMMON
-       ============================================================= */
-    .landing-section {
-        position: relative;
-        padding: 5rem 1.5rem;
-    }
-
-    .landing-section__inner {
-        max-width: 1080px;
-        margin: 0 auto;
-    }
-
-    .section-label {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.4rem;
-        font-size: 13px;
-        font-weight: 600;
-        color: var(--landing-accent);
-        letter-spacing: 1px;
-        text-transform: uppercase;
-        margin-bottom: 1rem;
-    }
-
-    .section-title {
-        font-family: 'Bricolage Grotesque', system-ui, sans-serif;
-        font-size: clamp(1.75rem, 4vw, 2.5rem);
-        font-weight: 800;
-        color: var(--landing-text);
-        line-height: 1.15;
-        letter-spacing: -0.5px;
-        margin-bottom: 1rem;
-    }
-
-    .section-subtitle {
-        font-size: 1rem;
-        color: var(--landing-text-secondary);
-        line-height: 1.65;
-        max-width: 560px;
-    }
-
-    /* =============================================================
-       SERVICES - BENTO GRID
-       ============================================================= */
-    .bento-grid {
-        display: grid;
-        gap: 1rem;
-        margin-top: 2.5rem;
-    }
-
-    /* Mobile: 2 columns */
-    .bento-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-
-    /* Tablet: 3 columns */
-    @media (min-width: 640px) {
-        .bento-grid {
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1.25rem;
-        }
-    }
-
-    .bento-card {
-        position: relative;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 0.75rem;
-        padding: 1.75rem 1rem;
-        background: var(--landing-surface);
-        border: 1px solid var(--landing-border);
-        border-radius: 20px;
-        text-decoration: none;
-        transition: all 0.3s ease;
-        overflow: hidden;
-    }
-
-    .bento-card::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        border-radius: 20px;
-        background: linear-gradient(135deg, rgba(0, 196, 106, 0.04), transparent 60%);
-        opacity: 0;
-        transition: opacity 0.3s ease;
-    }
-
-    .bento-card:hover {
-        background: var(--landing-surface-hover);
-        border-color: var(--landing-border-hover);
-        transform: translateY(-4px);
-        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
-    }
-
-    .bento-card:hover::before {
-        opacity: 1;
-    }
-
-    .bento-card__icon {
-        position: relative;
-        z-index: 1;
-        width: 52px;
-        height: 52px;
-        border-radius: 16px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-    }
-
-    .bento-card__icon svg,
-    .bento-card__icon i {
-        width: 24px;
-        height: 24px;
-    }
-
-    .bento-card__label {
-        position: relative;
-        z-index: 1;
-        font-size: 15px;
-        font-weight: 600;
-        color: var(--landing-text-secondary);
-        text-align: center;
-        transition: color 0.3s ease;
-    }
-
-    .bento-card:hover .bento-card__label {
-        color: var(--landing-text);
-    }
-
-    /* Icon color themes */
-    .icon--blue    { background: rgba(59, 130, 246, 0.1); color: #3B82F6; }
-    .icon--green   { background: rgba(34, 197, 94, 0.1);  color: #22C55E; }
-    .icon--yellow  { background: rgba(234, 179, 8, 0.1);  color: #EAB308; }
-    .icon--purple  { background: rgba(168, 85, 247, 0.1); color: #A855F7; }
-    .icon--pink    { background: rgba(236, 72, 153, 0.1); color: #EC4899; }
-    .icon--accent  { background: var(--landing-accent-dim); color: var(--landing-accent); }
-
-    /* =============================================================
-       FEATURES - WHY CHOOSE US
-       ============================================================= */
-    .features-grid {
-        display: grid;
-        gap: 1.25rem;
-        margin-top: 2.5rem;
-        grid-template-columns: 1fr;
-    }
-
-    @media (min-width: 640px) {
-        .features-grid {
-            grid-template-columns: repeat(2, 1fr);
-        }
-    }
-
-    @media (min-width: 1024px) {
-        .features-grid {
-            grid-template-columns: repeat(3, 1fr);
-        }
-    }
-
-    .feature-card-v2 {
-        padding: 2rem 1.5rem;
-        background: var(--landing-surface);
-        border: 1px solid var(--landing-border);
-        border-radius: 24px;
-        transition: all 0.3s ease;
-    }
-
-    .feature-card-v2:hover {
-        border-color: var(--landing-border-hover);
-        transform: translateY(-3px);
-        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
-    }
-
-    .feature-card-v2__icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 14px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-bottom: 1.25rem;
-    }
-
-    .feature-card-v2__icon svg,
-    .feature-card-v2__icon i {
-        width: 22px;
-        height: 22px;
-    }
-
-    .feature-card-v2__title {
-        font-family: 'Bricolage Grotesque', system-ui, sans-serif;
-        font-size: 20px;
-        font-weight: 700;
-        color: var(--landing-text);
-        margin-bottom: 0.75rem;
-    }
-
-    .feature-card-v2__desc {
-        font-size: 14px;
-        line-height: 1.7;
-        color: var(--landing-text-secondary);
-    }
-
-    /* =============================================================
-       CTA SECTION
-       ============================================================= */
-    .landing-cta {
-        position: relative;
-        overflow: hidden;
-        padding: 6rem 1.5rem;
-        text-align: center;
-    }
-
-    .landing-cta__content {
-        position: relative;
-        z-index: 1;
-        max-width: 640px;
-        margin: 0 auto;
-    }
-
-    .landing-cta__title {
-        font-family: 'Bricolage Grotesque', system-ui, sans-serif;
-        font-size: clamp(1.75rem, 4vw, 2.75rem);
-        font-weight: 800;
-        color: var(--landing-text);
-        line-height: 1.15;
-        letter-spacing: -0.5px;
-        margin-bottom: 1.5rem;
-    }
-
-    .landing-cta__subtitle {
-        font-size: 1rem;
-        color: var(--landing-text-secondary);
-        line-height: 1.65;
-        max-width: 480px;
-        margin: 0 auto 2rem;
-    }
-
-    .trust-badges {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 0.75rem;
-        margin-top: 2rem;
-    }
-
-    .trust-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.4rem;
-        padding: 0.4rem 0.85rem;
-        font-size: 12px;
-        font-weight: 500;
-        color: var(--landing-text-secondary);
-        background: rgba(255, 255, 255, 0.04);
-        border: 1px solid var(--landing-border);
-        border-radius: 100px;
-    }
-
-    .trust-badge svg {
-        width: 14px;
-        height: 14px;
-        opacity: 0.6;
-    }
-
-    /* =============================================================
-       FOOTER
-       ============================================================= */
-    .landing-footer {
-        padding: 3rem 1.5rem 2rem;
-        border-top: 1px solid var(--landing-border);
-        text-align: center;
-    }
-
-    .landing-footer__logo {
-        font-family: 'Bricolage Grotesque', system-ui, sans-serif;
-        font-size: 18px;
-        font-weight: 800;
-        color: var(--landing-text);
-        margin-bottom: 1rem;
-    }
-
-    .landing-footer__logo span {
-        color: var(--landing-accent);
-    }
-
-    .landing-footer__links {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 1.5rem;
-        margin-bottom: 1.5rem;
-    }
-
-    .landing-footer__links a {
-        font-size: 14px;
-        color: var(--landing-text-muted);
-        text-decoration: none;
-        transition: color 0.2s ease;
-    }
-
-    .landing-footer__links a:hover {
-        color: var(--landing-accent);
-    }
-
-    .landing-footer__copy {
-        font-size: 13px;
-        color: var(--landing-text-muted);
-    }
-
-    /* =============================================================
-       SCROLL REVEAL
-       ============================================================= */
-    .reveal {
-        opacity: 0;
-        transform: translateY(30px);
-        transition: opacity 0.7s ease, transform 0.7s ease;
-    }
-
-    .reveal.visible {
-        opacity: 1;
-        transform: translateY(0);
-    }
-
-    /* Stagger children */
-    .reveal-children > .reveal:nth-child(1) { transition-delay: 0.0s; }
-    .reveal-children > .reveal:nth-child(2) { transition-delay: 0.08s; }
-    .reveal-children > .reveal:nth-child(3) { transition-delay: 0.16s; }
-    .reveal-children > .reveal:nth-child(4) { transition-delay: 0.24s; }
-    .reveal-children > .reveal:nth-child(5) { transition-delay: 0.32s; }
-    .reveal-children > .reveal:nth-child(6) { transition-delay: 0.40s; }
-
-    /* =============================================================
-       RESPONSIVE
-       ============================================================= */
-    @media (min-width: 640px) {
-        .landing-hero__ctas {
-            flex-direction: row;
-            justify-content: center;
-        }
-
-        .landing-nav {
-            padding: 1rem 2.5rem;
-        }
-
-        .landing-section {
-            padding: 6rem 2.5rem;
-        }
-
-        .landing-hero {
-            padding: 8rem 2.5rem 6rem;
-        }
-    }
-
-    @media (min-width: 1024px) {
-        .landing-nav {
-            padding: 1rem 4rem;
-        }
-
-        .landing-section {
-            padding: 7rem 4rem;
-        }
-
-        .landing-hero {
-            padding: 10rem 4rem 7rem;
-        }
-    }
-
-    /* Divider line between sections */
-    .section-divider {
-        border: none;
-        border-top: 1px solid var(--landing-border);
-        margin: 0 auto;
-        max-width: 1080px;
-    }
-
-    /* =============================================================
-       MOVING CHAIN OF SMM SERVICES (INFINITE MARQUEE)
-       ============================================================= */
-    .smm-chain-wrapper {
-        position: relative;
-        overflow: hidden;
-        padding: 3rem 0;
-        background: rgba(13, 19, 33, 0.4);
-        border-top: 1px solid var(--landing-border);
-        border-bottom: 1px solid var(--landing-border);
-        margin: 0 0 1rem;
-    }
-
-    .smm-chain-wrapper::before,
-    .smm-chain-wrapper::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        width: 120px;
-        z-index: 5;
-        pointer-events: none;
-    }
-
-    .smm-chain-wrapper::before {
-        left: 0;
-        background: linear-gradient(to right, #060B14 20%, transparent);
-    }
-
-    .smm-chain-wrapper::after {
-        right: 0;
-        background: linear-gradient(to left, #060B14 20%, transparent);
-    }
-
-    .marquee-container {
-        display: flex;
-        flex-direction: column;
-        gap: 1.25rem;
-    }
-
-    .marquee-row {
-        display: flex;
-        overflow: hidden;
-        user-select: none;
-        width: 100%;
-    }
-
-    .marquee-track {
-        display: flex;
-        align-items: center;
-        gap: 1.25rem;
-        flex-shrink: 0;
-        will-change: transform;
-    }
-
-    .marquee-track--left {
-        animation: marquee-scroll-left 45s linear infinite;
-    }
-
-    .marquee-track--right {
-        animation: marquee-scroll-right 45s linear infinite;
-    }
-
-    .marquee-row:hover .marquee-track {
-        animation-play-state: paused;
-    }
-
-    @keyframes marquee-scroll-left {
-        0% { transform: translateX(0%); }
-        100% { transform: translateX(-50%); }
-    }
-
-    @keyframes marquee-scroll-right {
-        0% { transform: translateX(-50%); }
-        100% { transform: translateX(0%); }
-    }
-
-    .smm-service-card {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.85rem;
-        padding: 0.75rem 1.35rem;
-        background: var(--landing-surface);
-        border: 1px solid var(--landing-border);
-        border-radius: 100px;
-        white-space: nowrap;
-        text-decoration: none;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        cursor: pointer;
-    }
-
-    .smm-service-card:hover {
-        background: var(--landing-surface-hover);
-        border-color: var(--card-brand-color, var(--landing-accent));
-        transform: translateY(-3px) scale(1.03);
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 0 20px var(--card-brand-glow, rgba(0, 196, 106, 0.25));
-    }
-
-    .smm-service-card__icon {
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #FFFFFF;
-        flex-shrink: 0;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    }
-
-    .smm-service-card__icon svg,
-    .smm-service-card__icon i {
-        width: 18px;
-        height: 18px;
-    }
-
-    .smm-service-card__name {
-        font-family: 'Bricolage Grotesque', system-ui, sans-serif;
-        font-size: 15px;
-        font-weight: 700;
-        color: var(--landing-text);
-        letter-spacing: -0.2px;
-    }
-
-    .smm-service-card__badge {
-        font-size: 10px;
-        font-weight: 700;
-        padding: 0.2rem 0.6rem;
-        border-radius: 100px;
-        background: rgba(255, 255, 255, 0.08);
-        color: var(--landing-text-secondary);
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
+/* =============================================================
+   LANDING PAGE — Full-bleed breakout overrides
+   Keeps the landing page full width while other pages stay in app-shell.
+   ============================================================= */
+html, body {
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  height: auto !important;
+  background: #060B14 !important;
+}
+
+.app-shell {
+  max-width: none !important;
+  max-height: none !important;
+  height: auto !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+  background: #060B14 !important;
+  overflow: visible !important;
+  --tw-ring-shadow: none !important;
+  --tw-ring-offset-shadow: none !important;
+}
+
+.app-shell .page-content {
+  overflow: visible !important;
+  padding-bottom: 0 !important;
+}
+
+/* ============================================================
+   DESIGN TOKENS — SubHero (dark navy + signature green)
+   ============================================================ */
+:root {
+  --bg: #060B14;
+  --surface: #0D1321;
+  --surface-2: #111A2C;
+  --fg: #F5F8FF;
+  --fg-2: #C6D0E0;
+  --muted: #8B95A8;
+  --meta: #00C46A;
+  --border: rgba(255,255,255,0.08);
+  --border-soft: rgba(255,255,255,0.05);
+  --border-strong: rgba(255,255,255,0.14);
+  --accent: #00C46A;
+  --accent-on: #03170F;
+  --accent-hover: #00D474;
+  --accent-active: #00B861;
+  --accent-deep: #006B3E;
+  --accent-dim: rgba(0,196,106,0.10);
+  --accent-glow: rgba(0,196,106,0.16);
+  --success: #16a34a;
+  --danger: #ef4444;
+  --font-display: "Bricolage Grotesque", system-ui, sans-serif;
+  --font-body: "Inter", "DM Sans", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "DM Mono", ui-monospace, Menlo, monospace;
+  --text-xs: 12px; --text-sm: 14px; --text-base: 16px; --text-lg: 18px;
+  --text-xl: 24px; --text-2xl: 36px; --text-3xl: 52px; --text-4xl: 72px;
+  --leading-body: 1.55; --leading-tight: 1.05;
+  --tracking-display: -0.03em;
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+  --space-5: 20px; --space-6: 24px; --space-8: 32px; --space-12: 48px; --space-16: 64px;
+  --section-y-desktop: 96px; --section-y-tablet: 64px; --section-y-phone: 48px;
+  --radius-sm: 10px; --radius-md: 16px; --radius-lg: 24px; --radius-pill: 9999px;
+  --elev-flat: none;
+  --elev-raised: 0 24px 60px rgba(0,0,0,0.45);
+  --focus-ring: 0 0 0 4px rgba(0,196,106,0.28);
+  --motion-fast: 150ms; --motion-base: 240ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --container-max: 1180px;
+  --container-gutter-desktop: 36px; --container-gutter-tablet: 24px; --container-gutter-phone: 16px;
+}
+
+.landing-wrap {
+  width: 100%;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: var(--leading-body);
+  position: relative;
+}
+
+.landing-wrap::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(900px 520px at 72% -8%, rgba(0,196,106,0.09), transparent 62%),
+    radial-gradient(760px 460px at 4% 18%, rgba(0,107,62,0.10), transparent 60%),
+    var(--bg);
+  pointer-events: none;
+}
+
+.landing-wrap > * {
+  position: relative;
+  z-index: 1;
+}
+
+.landing-wrap img, .landing-wrap svg { display: block; }
+.landing-wrap a { color: inherit; }
+.landing-wrap h1, .landing-wrap h2, .landing-wrap h3, .landing-wrap p { margin: 0; }
+.landing-wrap ul, .landing-wrap ol { margin: 0; padding: 0; list-style: none; }
+.landing-wrap button { font: inherit; }
+
+.container {
+  width: 100%;
+  max-width: var(--container-max);
+  margin-inline: auto;
+  padding-inline: var(--container-gutter-phone);
+}
+@media (min-width: 640px)  { .container { padding-inline: var(--container-gutter-tablet); } }
+@media (min-width: 1024px) { .container { padding-inline: var(--container-gutter-desktop); } }
+
+section[id] { scroll-margin-top: 96px; }
+
+/* ---------- Typography ---------- */
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.eyebrow::before { content: ""; width: 20px; height: 1px; background: var(--accent); opacity: 0.7; }
+.eyebrow--center { justify-content: center; }
+.eyebrow--center::before { display: none; }
+.eyebrow--center::after  { display: none; }
+
+.landing-wrap h1, .landing-wrap h2, .landing-wrap h3, .display {
+  font-family: var(--font-display);
+  letter-spacing: var(--tracking-display);
+  line-height: var(--leading-tight);
+  color: var(--fg);
+  font-weight: 700;
+}
+.lead { font-size: var(--text-lg); color: var(--fg-2); line-height: 1.6; }
+.mono { font-family: var(--font-mono); }
+
+.section-head { max-width: 640px; margin-bottom: var(--space-12); }
+.section-head--center { margin-inline: auto; text-align: center; }
+.section-head h2 { font-size: clamp(1.75rem, 3.4vw, var(--text-2xl)); font-weight: 800; margin: var(--space-3) 0 var(--space-4); }
+.section-head .lead { font-size: var(--text-base); }
+.section-head--center .eyebrow { justify-content: center; }
+.section-head--center .eyebrow::before { display: none; }
+.section-head.eyebrow-only h2 { margin-top: var(--space-4); }
+
+/* ---------- Buttons ---------- */
+.btn-sh {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 48px;
+  padding: 0.7rem 1.5rem;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  line-height: 1.2;
+  text-decoration: none;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--ease-standard),
+              border-color var(--motion-fast) var(--ease-standard),
+              transform var(--motion-fast) var(--ease-standard),
+              box-shadow var(--motion-fast) var(--ease-standard);
+  white-space: nowrap;
+}
+.btn-sh svg { width: 17px; height: 17px; flex-shrink: 0; }
+.btn-sh-primary { background: var(--accent); color: var(--accent-on); }
+.btn-sh-primary:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 10px 28px rgba(0,196,106,0.28); color: var(--accent-on); }
+.btn-sh-primary:active { background: var(--accent-active); transform: translateY(0); }
+.btn-sh-secondary { color: var(--fg); background: transparent; border-color: var(--border-strong); }
+.btn-sh-secondary:hover { background: rgba(255,255,255,0.06); border-color: var(--accent); color: var(--fg); }
+.btn-sh-ghost { color: var(--fg-2); background: transparent; border-color: transparent; }
+.btn-sh-ghost:hover { color: var(--fg); background: rgba(255,255,255,0.05); }
+.btn-sh-lg { min-height: 54px; padding: 0.85rem 1.9rem; font-size: var(--text-base); }
+
+/* ---------- Nav ---------- */
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  background: rgba(6,11,20,0.72);
+  border-bottom: 1px solid var(--border);
+}
+.nav__inner { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); padding-block: var(--space-3); }
+.brand { font-family: var(--font-display); font-weight: 800; font-size: 22px; letter-spacing: -0.02em; color: var(--fg); text-decoration: none; min-height: 48px; display: inline-flex; align-items: center; }
+.brand span { color: var(--accent); }
+.nav__links { display: none; align-items: center; gap: var(--space-6); }
+.nav__links a { font-size: var(--text-sm); color: var(--fg-2); text-decoration: none; padding: 5px 2px; transition: color var(--motion-fast) var(--ease-standard); }
+.nav__links a:hover { color: var(--fg); }
+.nav__actions { display: flex; align-items: center; gap: var(--space-2); }
+.nav .btn-sh { min-height: 44px; padding: 0.55rem 1.1rem; font-size: var(--text-sm); }
+@media (min-width: 800px) { .nav__links { display: flex; } }
+
+/* ---------- Hero ---------- */
+.hero { padding: var(--space-16) 0 0; }
+.hero__grid { display: grid; gap: var(--space-12); align-items: center; }
+.hero__badge {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  padding: 0.42rem 0.95rem; border-radius: var(--radius-pill);
+  border: 1px solid var(--border-strong);
+  background: rgba(255,255,255,0.03); color: var(--fg-2);
+  font-family: var(--font-mono); font-size: var(--text-xs); font-weight: 600; letter-spacing: 0.08em;
+  margin-bottom: var(--space-6);
+}
+.hero__badge .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.hero h1 {
+  font-size: clamp(2.35rem, 5.4vw, 3.85rem);
+  font-weight: 800;
+}
+.hero h1 .stroke { color: var(--accent); }
+.hero .lead { margin-top: var(--space-6); max-width: 30em; }
+.hero__ctas { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-8); }
+.hero__meta { display: flex; flex-wrap: wrap; gap: var(--space-4) var(--space-8); margin-top: var(--space-8); color: var(--muted); font-size: var(--text-sm); }
+.hero__meta li { display: flex; align-items: center; gap: var(--space-2); }
+.hero__meta svg { width: 15px; height: 15px; color: var(--muted); }
+
+/* Sample app preview */
+.sample {
+  position: relative;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(17,26,44,0.9), rgba(13,19,33,0.96));
+  box-shadow: var(--elev-raised), 0 0 0 1px rgba(0,196,106,0.06), 0 0 90px rgba(0,196,106,0.08);
+  padding: var(--space-5) var(--space-5) var(--space-4);
+}
+.sample__flag {
+  position: absolute; top: -11px; right: var(--space-5);
+  padding: 0.18rem 0.7rem; border-radius: var(--radius-pill);
+  background: var(--surface-2); border: 1px solid var(--border-strong);
+  font-family: var(--font-mono); font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--muted);
+}
+.sample__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-4); }
+.sample__who { font-family: var(--font-display); font-weight: 700; font-size: var(--text-base); }
+.sample__who small { display: block; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.sample__nets { display: flex; gap: var(--space-1); align-items: center; }
+.sample__nets span { font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.04em; color: var(--fg-2); padding: 0.3rem 0.55rem; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: var(--radius-pill); }
+.sample__tabs { display: flex; gap: var(--space-1); padding: 4px; background: rgba(255,255,255,0.04); border: 1px solid var(--border-soft); border-radius: var(--radius-md); margin-bottom: var(--space-4); }
+.tab { flex: 1; min-height: 44px; border: 0; background: transparent; color: var(--muted); border-radius: calc(var(--radius-md) - 4px); font-size: var(--text-sm); font-weight: 600; cursor: pointer; transition: color var(--motion-fast), background-color var(--motion-fast); }
+.tab[aria-selected="true"] { background: var(--accent); color: var(--accent-on); }
+.plan { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4); border: 1px solid var(--border); border-radius: var(--radius-md); margin-bottom: var(--space-2); transition: border-color var(--motion-fast); background: rgba(255,255,255,0.02); }
+.plan:hover { border-color: var(--accent-deep); }
+.plan__name { font-size: var(--text-sm); font-weight: 600; }
+.plan__name small { display: block; font-weight: 400; color: var(--muted); font-size: 12px; }
+.plan__price { font-family: var(--font-mono); font-weight: 700; font-size: var(--text-sm); color: var(--fg); }
+.plan__price .from { color: var(--muted); font-weight: 500; font-size: 12px; }
+.plan--pick { border-color: rgba(0,196,106,0.45); background: rgba(0,196,106,0.06); }
+.plan--pick .plan__pick { color: var(--accent); font-family: var(--font-mono); font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; }
+.sample__divider { border: 0; border-top: 1px dashed var(--border); margin: var(--space-4) 0; }
+.boost { display: flex; align-items: center; gap: var(--space-3); }
+.boost__icon { width: 40px; height: 40px; border-radius: var(--radius-sm); display: grid; place-items: center; background: var(--accent-dim); color: var(--accent); flex-shrink: 0; }
+.boost__icon svg { width: 18px; height: 18px; }
+.boost__info { flex: 1; }
+.boost__info strong { display: block; font-size: var(--text-sm); font-weight: 600; }
+.boost__info span { font-size: var(--text-xs); color: var(--muted); }
+.boost__track { height: 6px; border-radius: var(--radius-pill); background: rgba(255,255,255,0.08); margin-top: var(--space-2); overflow: hidden; }
+.boost__track i { display: block; height: 100%; width: 62%; border-radius: inherit; background: linear-gradient(90deg, var(--accent-deep), var(--accent)); }
+@media (min-width: 1024px) { .hero { padding-top: var(--space-16); } .hero__grid { grid-template-columns: 1.05fr 0.95fr; } }
+
+/* ---------- Marquee ---------- */
+.marquee-band { padding: var(--section-y-desktop) 0 var(--space-12); }
+.marquee-band .section-head { margin-bottom: var(--space-8); }
+.marquee {
+  position: relative;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+}
+.marquee__row { display: flex; width: max-content; padding-block: var(--space-2); }
+.group { display: flex; gap: var(--space-3); flex: none; padding-right: var(--space-3); }
+.marquee__row--a { animation: scroll-l 46s linear infinite; }
+.marquee__row--b { animation: scroll-r 52s linear infinite; }
+.marquee:hover .marquee__row { animation-play-state: paused; }
+@keyframes scroll-l { to { transform: translateX(-50%); } }
+@keyframes scroll-r { from { transform: translateX(-50%); } to { transform: translateX(0); } }
+.chip {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  padding: 0.55rem 1rem; border-radius: var(--radius-pill);
+  background: var(--surface); border: 1px solid var(--border);
+  white-space: nowrap; transition: border-color var(--motion-fast), transform var(--motion-fast), background-color var(--motion-fast);
+}
+.chip:hover { border-color: var(--border-strong); transform: translateY(-2px); background: var(--surface-2); }
+.chip__dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+.chip__name { font-size: var(--text-sm); font-weight: 600; color: var(--fg); }
+.chip__tag { font-family: var(--font-mono); font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: 0.04em; }
+
+/* ---------- Sections ---------- */
+.section { padding-block: var(--section-y-phone); }
+@media (min-width: 640px)  { .section { padding-block: var(--section-y-tablet); } }
+@media (min-width: 1024px) { .section { padding-block: var(--section-y-desktop); } }
+
+/* Bento services grid */
+.bento { display: grid; gap: var(--space-4); grid-template-columns: 1fr; }
+.bento__item {
+  position: relative; overflow: hidden;
+  display: flex; flex-direction: column; gap: var(--space-3);
+  padding: var(--space-6);
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  text-decoration: none; color: inherit;
+  transition: transform var(--motion-base) var(--ease-standard),
+              border-color var(--motion-base) var(--ease-standard),
+              background-color var(--motion-base) var(--ease-standard),
+              box-shadow var(--motion-base) var(--ease-standard);
+}
+.bento__item::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit;
+  background: radial-gradient(340px 160px at 12% -10%, rgba(0,196,106,0.10), transparent 62%);
+  opacity: 0; transition: opacity var(--motion-base);
+}
+.bento__item:hover { transform: translateY(-3px); border-color: rgba(0,196,106,0.35); background: var(--surface-2); box-shadow: 0 18px 44px rgba(0,0,0,0.4); }
+.bento__item:hover::after { opacity: 1; }
+.bento__icon { width: 46px; height: 46px; border-radius: var(--radius-sm); display: grid; place-items: center; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--fg-2); transition: color var(--motion-base), background-color var(--motion-base), border-color var(--motion-base); }
+.bento__icon svg { width: 21px; height: 21px; }
+.bento__item:hover .bento__icon { color: var(--accent); border-color: rgba(0,196,106,0.4); background: var(--accent-dim); }
+.bento__title { font-family: var(--font-display); font-size: var(--text-xl); font-weight: 700; letter-spacing: -0.01em; position: relative; z-index: 1; }
+.bento__copy { font-size: var(--text-sm); color: var(--muted); line-height: 1.6; position: relative; z-index: 1; max-width: 34em; }
+.bento__anchor { display: inline-flex; align-items: center; gap: var(--space-1); font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin-top: auto; position: relative; z-index: 1; transition: color var(--motion-base); }
+.bento__item:hover .bento__anchor { color: var(--accent); }
+.bento__anchor svg { width: 14px; height: 14px; }
+.bento__item--featured { border-color: rgba(0,196,106,0.3); background:
+  radial-gradient(420px 240px at 88% -10%, rgba(0,196,106,0.14), transparent 60%), var(--surface); }
+.bento__item--featured .bento__icon { background: var(--accent); border-color: var(--accent); color: var(--accent-on); }
+.platform-dots { display: flex; flex-wrap: wrap; gap: var(--space-2); position: relative; z-index: 1; }
+.platform-dots span { font-size: var(--text-xs); color: var(--muted); padding: 0.28rem 0.6rem; background: rgba(255,255,255,0.04); border: 1px solid var(--border-soft); border-radius: var(--radius-pill); font-family: var(--font-mono); font-weight: 600; }
+@media (min-width: 700px) { .bento { grid-template-columns: repeat(2, 1fr); } .bento__item--wide { grid-column: 1 / -1; } }
+@media (min-width: 1024px) {
+  .bento { grid-template-columns: repeat(4, 1fr); grid-auto-rows: auto; }
+  .bento__item--data { grid-column: span 2; }
+  .bento__item--smm { grid-column: span 2; }
+  .bento__item--power { grid-column: span 1; }
+  .bento__item--air { grid-column: span 1; }
+  .bento__item--tv { grid-column: span 1; }
+  .bento__item--gift { grid-column: span 1; }
+}
+
+/* Steps */
+.steps { display: grid; gap: var(--space-4); }
+.step { display: flex; gap: var(--space-5); padding: var(--space-6); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); transition: border-color var(--motion-base), transform var(--motion-base); }
+.step:hover { border-color: var(--border-strong); transform: translateY(-2px); }
+.step__num { font-family: var(--font-mono); font-size: var(--text-xl); font-weight: 700; color: var(--accent); line-height: 1; flex-shrink: 0; }
+.step__body h3 { font-family: var(--font-display); font-size: var(--text-xl); font-weight: 700; margin-bottom: var(--space-2); }
+.step__body p { font-size: var(--text-sm); color: var(--muted); max-width: 34em; }
+@media (min-width: 1024px) { .steps { grid-template-columns: repeat(3, 1fr); } }
+
+/* Features */
+.features { display: grid; gap: var(--space-4); }
+.feature { padding: var(--space-6); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); transition: border-color var(--motion-base), transform var(--motion-base); }
+.feature:hover { border-color: var(--border-strong); transform: translateY(-2px); }
+.feature__icon { width: 42px; height: 42px; border-radius: var(--radius-sm); display: grid; place-items: center; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--fg-2); margin-bottom: var(--space-4); }
+.feature__icon svg { width: 19px; height: 19px; }
+.feature h3 { font-family: var(--font-display); font-size: var(--text-lg); font-weight: 700; margin-bottom: var(--space-2); }
+.feature p { font-size: var(--text-sm); color: var(--muted); }
+@media (min-width: 700px)  { .features { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1024px) { .features { grid-template-columns: repeat(3, 1fr); } }
+
+/* Stats Metrics Bar */
+.stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-6); padding: var(--space-8); border: 1px solid var(--border); border-radius: var(--radius-lg); background: linear-gradient(180deg, rgba(17,26,44,0.7), rgba(13,19,33,0.85)); }
+.stat { text-align: center; }
+.stat__value { font-family: var(--font-display); font-size: clamp(1.9rem, 4vw, 2.9rem); font-weight: 800; letter-spacing: -0.02em; color: var(--fg); }
+.stat__value em { font-style: normal; color: var(--accent); }
+.stat__label { margin-top: var(--space-2); font-size: var(--text-sm); color: var(--muted); }
+@media (min-width: 1024px) { .stats { grid-template-columns: repeat(4, 1fr); } }
+
+/* CTA */
+.cta { padding-block: var(--section-y-phone); }
+.cta__panel {
+  position: relative; overflow: hidden;
+  padding: clamp(2.5rem, 6vw, 4.5rem) clamp(1.25rem, 5vw, 4rem);
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(0,196,106,0.3);
+  background: radial-gradient(560px 300px at 50% -20%, rgba(0,196,106,0.18), transparent 62%), var(--surface);
+  text-align: center;
+}
+.cta__panel h2 { font-size: clamp(1.8rem, 4vw, 2.75rem); font-weight: 800; max-width: 18em; margin: var(--space-4) auto 0; }
+.cta__panel .lead { max-width: 34em; margin: var(--space-4) auto 0; }
+.cta__panel .btn-sh { margin-top: var(--space-8); }
+.trust { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-3); margin-top: var(--space-8); }
+.trust__badge { display: inline-flex; align-items: center; gap: var(--space-2); padding: 0.4rem 0.9rem; border-radius: var(--radius-pill); border: 1px solid var(--border); background: rgba(255,255,255,0.03); color: var(--fg-2); font-size: var(--text-sm); }
+.trust__badge svg { width: 14px; height: 14px; color: var(--muted); }
+
+/* Footer */
+.footer { padding: var(--space-12) 0 var(--space-8); border-top: 1px solid var(--border); }
+.footer__grid { display: grid; gap: var(--space-8); }
+.footer__brand p { font-size: var(--text-sm); color: var(--muted); max-width: 30em; margin-top: var(--space-3); }
+.footer h4 { font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); margin-bottom: var(--space-4); }
+.footer__links { display: grid; gap: var(--space-3); }
+.footer__links a { font-size: var(--text-sm); color: var(--fg-2); text-decoration: none; transition: color var(--motion-fast); }
+.footer__links a:hover { color: var(--accent); }
+.footer__bottom { display: flex; flex-wrap: wrap; gap: var(--space-3); justify-content: space-between; align-items: center; margin-top: var(--space-12); padding-top: var(--space-6); border-top: 1px solid var(--border); color: var(--muted); font-size: var(--text-sm); }
+@media (min-width: 700px) { .footer__grid { grid-template-columns: 2fr 1fr 1fr 1fr; } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+  .marquee__row { animation: none !important; }
+  html { scroll-behavior: auto; }
+}
 </style>
 
-<!-- ============================================================= -->
-<!-- NAVIGATION                                                      -->
-<!-- ============================================================= -->
-<nav class="landing-nav" id="landing-nav">
-    <a href="/" class="landing-nav-logo">Sub<span>Hero</span></a>
-    <div class="landing-nav-actions">
+<div class="landing-wrap">
+
+<!-- ============ SVG sprite ============ -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+  <symbol id="i-wifi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"></path><path d="M1.42 9a16 16 0 0 1 21.16 0"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></symbol>
+  <symbol id="i-zap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></symbol>
+  <symbol id="i-tv" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2"></rect><polyline points="17 2 12 7 7 2"></polyline></symbol>
+  <symbol id="i-trend" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></symbol>
+  <symbol id="i-gift" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></symbol>
+  <symbol id="i-percent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="5" x2="5" y2="19"></line><circle cx="6.5" cy="6.5" r="2.5"></circle><circle cx="17.5" cy="17.5" r="2.5"></circle></symbol>
+  <symbol id="i-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path></symbol>
+  <symbol id="i-head" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"></path><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></symbol>
+  <symbol id="i-check-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></symbol>
+</svg>
+
+<!-- ============ NAV ============ -->
+<header class="nav">
+  <div class="container nav__inner">
+    <a class="brand" href="#top">Sub<span>Hero</span></a>
+    <nav class="nav__links" aria-label="Primary">
+      <a href="#services">Services</a>
+      <a href="#how">How it works</a>
+      <a href="#why">Why SubHero</a>
+    </nav>
+    <div class="nav__actions">
+      {% if request.user.is_authenticated %}
+        <a class="btn-sh btn-sh-secondary" href="{% url 'dashboard' %}">Dashboard</a>
+      {% else %}
+        <a class="btn-sh btn-sh-ghost" href="{% url 'accounts:login' %}">Login</a>
+        <a class="btn-sh btn-sh-secondary" href="{% url 'accounts:register' %}">Get started</a>
+      {% endif %}
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ============ HERO ============ -->
+  <section class="hero">
+    <div class="container hero__grid">
+      <div>
+        <h1>Pay bills, buy data,<br>grow your <span class="stroke">socials</span></h1>
+        <p class="lead">The all-in-one platform for smart Nigerians. Instant VTU, affordable data, and automated social media growth — with seamless payments in one secure app.</p>
+        <div class="hero__ctas">
+          {% if request.user.is_authenticated %}
+            <a class="btn-sh btn-sh-primary btn-sh-lg" href="{% url 'dashboard' %}">Go to Dashboard <svg aria-hidden="true"><use href="#i-arrow"></use></svg></a>
+          {% else %}
+            <a class="btn-sh btn-sh-primary btn-sh-lg" href="{% url 'accounts:register' %}">Create free account <svg aria-hidden="true"><use href="#i-arrow"></use></svg></a>
+            <a class="btn-sh btn-sh-secondary btn-sh-lg" href="{% url 'accounts:login' %}">Login to SubHero</a>
+          {% endif %}
+        </div>
+        <ul class="hero__meta">
+          <li><svg aria-hidden="true"><use href="#i-lock"></use></svg> PCI-DSS secure payments</li>
+          <li><svg aria-hidden="true"><use href="#i-check-circle"></use></svg> Escrow giveaways</li>
+          <li><svg aria-hidden="true"><use href="#i-zap"></use></svg> Delivery in seconds</li>
+        </ul>
+      </div>
+
+      <div class="sample">
+        <span class="sample__flag">Data from ₦250/GB</span>
+        <div class="sample__head">
+          <div class="sample__who">SubHero wallet<small>Data plans · sample rates</small></div>
+          <div class="sample__nets"><span>MTN</span><span>GLO</span><span>Airtel</span><span>9mobile</span></div>
+        </div>
+        <div class="sample__tabs" role="tablist" aria-label="Service type">
+          <button class="tab" type="button" role="tab" aria-selected="true" tabindex="0" id="tab-data">Data</button>
+          <button class="tab" type="button" role="tab" aria-selected="false" tabindex="-1" id="tab-airtime">Airtime</button>
+          <button class="tab" type="button" role="tab" aria-selected="false" tabindex="-1" id="tab-power">Power</button>
+        </div>
+        <div class="plan plan--pick">
+          <div class="plan__name">1GB · 30 days<small>MTN · GLO · Airtel · 9mobile</small></div>
+          <div class="plan__price"><span class="from">from </span>₦250</div>
+          <span class="plan__pick">Best deal</span>
+        </div>
+        <div class="plan">
+          <div class="plan__name">3.5GB · 30 days<small>Always-on data</small></div>
+          <div class="plan__price">₦875</div>
+        </div>
+        <div class="plan">
+          <div class="plan__name">5GB · 30 days<small>Streaming &amp; sharing</small></div>
+          <div class="plan__price">₦1,250</div>
+        </div>
+        <hr class="sample__divider">
+        <div class="boost">
+          <div class="boost__icon"><svg aria-hidden="true"><use href="#i-trend"></use></svg></div>
+          <div class="boost__info">
+            <strong>Instagram boost · auto on</strong>
+            <span>Followers + Likes · running now</span>
+            <div class="boost__track"><i></i></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PLATFORM MARQUEE ============ -->
+  <section class="marquee-band" aria-label="Supported platforms">
+    <div class="container section-head section-head--center">
+      <span class="eyebrow eyebrow--center">SMM growth ecosystem</span>
+      <h2>26+ global platforms, one instant boost</h2>
+      <p class="lead">Grow followers, engagement, and reach on every channel you care about.</p>
+    </div>
+    <div class="marquee">
+      <div class="marquee__row marquee__row--a" aria-hidden="true">
+        <span class="group">
+          <span class="chip"><span class="chip__dot" style="background:#E1306C"></span><span class="chip__name">Instagram</span><span class="chip__tag">Followers &amp; Likes</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#00F2EA"></span><span class="chip__name">TikTok</span><span class="chip__tag">Views &amp; Fans</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#FF0000"></span><span class="chip__name">YouTube</span><span class="chip__tag">Subs &amp; Watchtime</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#E7E9EC"></span><span class="chip__name">X / Twitter</span><span class="chip__tag">Retweets &amp; Likes</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#2AABEE"></span><span class="chip__name">Telegram</span><span class="chip__tag">Members &amp; Views</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#1DB954"></span><span class="chip__name">Spotify</span><span class="chip__tag">Streams &amp; Playlist</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#1877F2"></span><span class="chip__name">Facebook</span><span class="chip__tag">Page Likes</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#25D366"></span><span class="chip__name">WhatsApp</span><span class="chip__tag">Channel Members</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#FF4500"></span><span class="chip__name">Reddit</span><span class="chip__tag">Upvotes &amp; Karma</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#0A66C2"></span><span class="chip__name">LinkedIn</span><span class="chip__tag">Connections &amp; Likes</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#00C3FF"></span><span class="chip__name">Boomplay</span><span class="chip__tag">Streams</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#FFA200"></span><span class="chip__name">Audiomack</span><span class="chip__tag">Plays &amp; Reposts</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#C9C9D4"></span><span class="chip__name">Threads</span><span class="chip__tag">Followers</span></span>
+        </span>
+        <span class="group">
+          <span class="chip"><span class="chip__dot" style="background:#E1306C"></span><span class="chip__name">Instagram</span><span class="chip__tag">Followers &amp; Likes</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#00F2EA"></span><span class="chip__name">TikTok</span><span class="chip__tag">Views &amp; Fans</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#FF0000"></span><span class="chip__name">YouTube</span><span class="chip__tag">Subs &amp; Watchtime</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#E7E9EC"></span><span class="chip__name">X / Twitter</span><span class="chip__tag">Retweets &amp; Likes</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#2AABEE"></span><span class="chip__name">Telegram</span><span class="chip__tag">Members &amp; Views</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#1DB954"></span><span class="chip__name">Spotify</span><span class="chip__tag">Streams &amp; Playlist</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#1877F2"></span><span class="chip__name">Facebook</span><span class="chip__tag">Page Likes</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#25D366"></span><span class="chip__name">WhatsApp</span><span class="chip__tag">Channel Members</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#FF4500"></span><span class="chip__name">Reddit</span><span class="chip__tag">Upvotes &amp; Karma</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#0A66C2"></span><span class="chip__name">LinkedIn</span><span class="chip__tag">Connections &amp; Likes</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#00C3FF"></span><span class="chip__name">Boomplay</span><span class="chip__tag">Streams</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#FFA200"></span><span class="chip__name">Audiomack</span><span class="chip__tag">Plays &amp; Reposts</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#C9C9D4"></span><span class="chip__name">Threads</span><span class="chip__tag">Followers</span></span>
+        </span>
+      </div>
+      <div class="marquee__row marquee__row--b" aria-hidden="true">
+        <span class="group">
+          <span class="chip"><span class="chip__dot" style="background:#FA243C"></span><span class="chip__name">Apple Music</span><span class="chip__tag">Streams</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#5865F2"></span><span class="chip__name">Discord</span><span class="chip__tag">Members &amp; Boosts</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#A238FF"></span><span class="chip__name">Deezer</span><span class="chip__tag">Fans &amp; Streams</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#9146FF"></span><span class="chip__name">Twitch</span><span class="chip__tag">Viewers &amp; Followers</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#B92B27"></span><span class="chip__name">Quora</span><span class="chip__tag">Answers &amp; Upvotes</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#8B949E"></span><span class="chip__name">GitHub</span><span class="chip__tag">Stars &amp; Forks</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#53FC18"></span><span class="chip__name">Kick</span><span class="chip__tag">Views &amp; Chatters</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#5000FF"></span><span class="chip__name">Mixcloud</span><span class="chip__tag">Listeners</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#0088FF"></span><span class="chip__name">Shazam</span><span class="chip__tag">Tags &amp; Streams</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#E0A620"></span><span class="chip__name">Roblox</span><span class="chip__tag">Visits</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#66C0F4"></span><span class="chip__name">Steam</span><span class="chip__tag">Wishlists</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#00C46A"></span><span class="chip__name">Website Traffic</span><span class="chip__tag">Real Visits</span></span>
+        </span>
+        <span class="group">
+          <span class="chip"><span class="chip__dot" style="background:#FA243C"></span><span class="chip__name">Apple Music</span><span class="chip__tag">Streams</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#5865F2"></span><span class="chip__name">Discord</span><span class="chip__tag">Members &amp; Boosts</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#A238FF"></span><span class="chip__name">Deezer</span><span class="chip__tag">Fans &amp; Streams</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#9146FF"></span><span class="chip__name">Twitch</span><span class="chip__tag">Viewers &amp; Followers</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#B92B27"></span><span class="chip__name">Quora</span><span class="chip__tag">Answers &amp; Upvotes</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#8B949E"></span><span class="chip__name">GitHub</span><span class="chip__tag">Stars &amp; Forks</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#53FC18"></span><span class="chip__name">Kick</span><span class="chip__tag">Views &amp; Chatters</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#5000FF"></span><span class="chip__name">Mixcloud</span><span class="chip__tag">Listeners</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#0088FF"></span><span class="chip__name">Shazam</span><span class="chip__tag">Tags &amp; Streams</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#E0A620"></span><span class="chip__name">Roblox</span><span class="chip__tag">Visits</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#66C0F4"></span><span class="chip__name">Steam</span><span class="chip__tag">Wishlists</span></span>
+          <span class="chip"><span class="chip__dot" style="background:#00C46A"></span><span class="chip__name">Website Traffic</span><span class="chip__tag">Real Visits</span></span>
+        </span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SERVICES / BENTO ============ -->
+  <section class="section" id="services">
+    <div class="container">
+      <div class="section-head">
+        <span class="eyebrow">Services</span>
+        <h2>Everything you need, one platform</h2>
+        <p class="lead">All your daily digital transactions — from data to social media growth — in one secure place.</p>
+      </div>
+
+      <div class="bento">
+        <a class="bento__item bento__item--data" href="{% if request.user.is_authenticated %}{% url 'vtu:buy_data' %}{% else %}{% url 'accounts:register' %}{% endif %}">
+          <span class="bento__icon"><svg aria-hidden="true"><use href="#i-wifi"></use></svg></span>
+          <span class="bento__title">Data</span>
+          <p class="bento__copy">Instant VTU across MTN, GLO, Airtel and 9mobile — prices start from ₦250/GB.</p>
+          <span class="bento__anchor">From ₦250/GB <svg aria-hidden="true"><use href="#i-arrow"></use></svg></span>
+        </a>
+
+        <a class="bento__item bento__item--air" href="{% if request.user.is_authenticated %}{% url 'vtu:buy_airtime' %}{% else %}{% url 'accounts:register' %}{% endif %}">
+          <span class="bento__icon"><svg aria-hidden="true"><use href="#i-phone"></use></svg></span>
+          <span class="bento__title">Airtime</span>
+          <p class="bento__copy">Top-up any Nigerian number instantly, at a discount.</p>
+          <span class="bento__anchor">Top up now <svg aria-hidden="true"><use href="#i-arrow"></use></svg></span>
+        </a>
+
+        <a class="bento__item bento__item--power" href="{% if request.user.is_authenticated %}{% url 'vtu:buy_electricity' %}{% else %}{% url 'accounts:register' %}{% endif %}">
+          <span class="bento__icon"><svg aria-hidden="true"><use href="#i-zap"></use></svg></span>
+          <span class="bento__title">Power</span>
+          <p class="bento__copy">Pay prepaid electricity meters and never sit in the dark.</p>
+          <span class="bento__anchor">Pay bill <svg aria-hidden="true"><use href="#i-arrow"></use></svg></span>
+        </a>
+
+        <a class="bento__item bento__item--tv" href="{% if request.user.is_authenticated %}{% url 'vtu:buy_cable' %}{% else %}{% url 'accounts:register' %}{% endif %}">
+          <span class="bento__icon"><svg aria-hidden="true"><use href="#i-tv"></use></svg></span>
+          <span class="bento__title">Cable TV</span>
+          <p class="bento__copy">Renew DStv, GOtv and Showmax subscriptions with ease.</p>
+          <span class="bento__anchor">Subscribe <svg aria-hidden="true"><use href="#i-arrow"></use></svg></span>
+        </a>
+
+        <a class="bento__item bento__item--smm bento__item--featured" href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:register' %}{% endif %}">
+          <span class="bento__icon"><svg aria-hidden="true"><use href="#i-trend"></use></svg></span>
+          <span class="bento__title">Social media growth</span>
+          <p class="bento__copy">Boost followers, likes, views and streams across 26+ platforms — Instagram, TikTok, YouTube, Telegram, Spotify and more. Delivered fast, on a safe channel.</p>
+          <span class="platform-dots">
+            <span>Instagram</span><span>TikTok</span><span>YouTube</span><span>X</span><span>Telegram</span><span>Spotify</span><span>Facebook</span><span>LinkedIn</span><span>+18 more</span>
+          </span>
+          <span class="bento__anchor">Start boosting <svg aria-hidden="true"><use href="#i-arrow"></use></svg></span>
+        </a>
+
+        <a class="bento__item bento__item--gift" href="{% if request.user.is_authenticated %}{% url 'giveaway:create' %}{% else %}{% url 'accounts:register' %}{% endif %}">
+          <span class="bento__icon"><svg aria-hidden="true"><use href="#i-gift"></use></svg></span>
+          <span class="bento__title">Giveaways</span>
+          <p class="bento__copy">Host automated giveaways with escrow protection and instant bank transfers to winners.</p>
+          <span class="bento__anchor">Run a giveaway <svg aria-hidden="true"><use href="#i-arrow"></use></svg></span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ HOW IT WORKS ============ -->
+  <section class="section" id="how">
+    <div class="container">
+      <div class="section-head">
+        <span class="eyebrow">How it works</span>
+        <h2>Live in under two minutes</h2>
+        <p class="lead">No paperwork, no waiting. Fund once and buy anything on the platform.</p>
+      </div>
+      <ol class="steps">
+        <li class="step">
+          <span class="step__num">01</span>
+          <div class="step__body">
+            <h3>Create your free account</h3>
+            <p>Sign up with just a phone number and a 4-digit PIN. Most accounts are open in seconds.</p>
+          </div>
+        </li>
+        <li class="step">
+          <span class="step__num">02</span>
+          <div class="step__body">
+            <h3>Fund your wallet</h3>
+            <p>Top up securely by bank transfer or card. Payments are PCI-DSS compliant and encrypted end to end.</p>
+          </div>
+        </li>
+        <li class="step">
+          <span class="step__num">03</span>
+          <div class="step__body">
+            <h3>Buy, pay, or boost</h3>
+            <p>Data, airtime, power, cable TV and social boosts — delivered in seconds with full order tracking.</p>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ============ WHY SUBHERO ============ -->
+  <section class="section" id="why">
+    <div class="container">
+      <div class="section-head section-head--center">
+        <span class="eyebrow eyebrow--center">Why SubHero</span>
+        <h2>Why Nigerians choose SubHero</h2>
+        <p class="lead">Built for the unique needs of Nigeria’s growing digital economy.</p>
+      </div>
+      <div class="features">
+        <article class="feature">
+          <span class="feature__icon"><svg aria-hidden="true"><use href="#i-zap"></use></svg></span>
+          <h3>Lightning fast</h3>
+          <p>Transactions complete in seconds, not minutes. Instant data delivery, immediate airtime top-up, and real-time growth.</p>
+        </article>
+        <article class="feature">
+          <span class="feature__icon"><svg aria-hidden="true"><use href="#i-shield"></use></svg></span>
+          <h3>Bank-level security</h3>
+          <p>Your funds and data are protected with encryption and PCI-DSS compliant payment processing.</p>
+        </article>
+        <article class="feature">
+          <span class="feature__icon"><svg aria-hidden="true"><use href="#i-percent"></use></svg></span>
+          <h3>Best prices</h3>
+          <p>We negotiate directly with providers to eliminate middlemen and pass the savings straight to you.</p>
+        </article>
+        <article class="feature">
+          <span class="feature__icon"><svg aria-hidden="true"><use href="#i-cloud"></use></svg></span>
+          <h3>99.9% uptime</h3>
+          <p>Robust infrastructure keeps services available even at peak hours. Never miss a transaction.</p>
+        </article>
+        <article class="feature">
+          <span class="feature__icon"><svg aria-hidden="true"><use href="#i-head"></use></svg></span>
+          <h3>Local support</h3>
+          <p>A Nigerian-based support team via email and in-app chat. We understand your needs.</p>
+        </article>
+        <article class="feature">
+          <span class="feature__icon"><svg aria-hidden="true"><use href="#i-users"></use></svg></span>
+          <h3>Growing community</h3>
+          <p>Join 50,000+ Nigerians who trust SubHero for their daily digital transactions.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ STATS / METRICS BAR ============ -->
+  <section class="section" aria-label="SubHero by the numbers">
+    <div class="container">
+      <div class="stats">
+        <div class="stat">
+          <div class="stat__value">99.9<em>%</em></div>
+          <div class="stat__label">Service uptime</div>
+        </div>
+        <div class="stat">
+          <div class="stat__value">&lt;2<em>s</em></div>
+          <div class="stat__label">Average delivery time</div>
+        </div>
+        <div class="stat">
+          <div class="stat__value">4<em>+</em></div>
+          <div class="stat__label">Major telecom networks</div>
+        </div>
+        <div class="stat">
+          <div class="stat__value">26<em>+</em></div>
+          <div class="stat__label">SMM platforms supported</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CTA ============ -->
+  <section class="cta" id="cta">
+    <div class="container">
+      <div class="cta__panel">
+        <span class="eyebrow eyebrow--center">Get started</span>
+        <h2>Ready for faster, cheaper and more secure transactions?</h2>
+        <p class="lead">Join thousands of Nigerians already enjoying a better way to handle daily digital payments.</p>
         {% if request.user.is_authenticated %}
-            <a href="{% url 'dashboard' %}" class="nav-link nav-link--accent">Dashboard</a>
+          <a class="btn-sh btn-sh-primary btn-sh-lg" href="{% url 'dashboard' %}">Go to Dashboard <svg aria-hidden="true"><use href="#i-arrow"></use></svg></a>
         {% else %}
-            <a href="{% url 'accounts:login' %}" class="nav-link nav-link--ghost">Login</a>
-            <a href="{% url 'accounts:register' %}" class="nav-link nav-link--accent">Sign up</a>
+          <a class="btn-sh btn-sh-primary btn-sh-lg" href="{% url 'accounts:register' %}">Get started free <svg aria-hidden="true"><use href="#i-arrow"></use></svg></a>
         {% endif %}
+        <div class="trust">
+          <span class="trust__badge"><svg aria-hidden="true"><use href="#i-lock"></use></svg> Secure</span>
+          <span class="trust__badge"><svg aria-hidden="true"><use href="#i-zap"></use></svg> Instant</span>
+          <span class="trust__badge"><svg aria-hidden="true"><use href="#i-shield"></use></svg> Escrow protected</span>
+          <span class="trust__badge"><svg aria-hidden="true"><use href="#i-clock"></use></svg> 24/7</span>
+        </div>
+      </div>
     </div>
-</nav>
+  </section>
+</main>
 
-<!-- ============================================================= -->
-<!-- HERO SECTION                                                    -->
-<!-- ============================================================= -->
-<section class="landing-hero" id="hero">
-    <!-- Mesh gradient blobs -->
-    <div class="mesh-blob mesh-blob--1"></div>
-    <div class="mesh-blob mesh-blob--2"></div>
-    <div class="mesh-blob mesh-blob--3"></div>
-
-    <div class="landing-hero__content">
-        <div class="landing-hero__badge">
-            <i data-feather="zap" style="width:14px;height:14px;"></i>
-            Fast & Reliable
-        </div>
-
-        <h1 class="landing-hero__title">
-            Pay Bills, Buy Data,<br>
-            Grow Your <span class="accent"><span id="typed-text">Socials</span><span class="typing-cursor">|</span></span>
-        </h1>
-
-        <p class="landing-hero__subtitle">
-            The all-in-one platform for smart Nigerians. Instant VTU, affordable data, and automated social media growth with seamless payments all in one secure app.
-        </p>
-
-        <div class="landing-hero__ctas">
-            {% if request.user.is_authenticated %}
-                <a href="{% url 'dashboard' %}" class="cta-primary">
-                    Go to Dashboard
-                    <i data-feather="arrow-right" style="width:18px;height:18px;"></i>
-                </a>
-            {% else %}
-                <a href="{% url 'accounts:register' %}" class="cta-primary">
-                    Create Free Account
-                    <i data-feather="arrow-right" style="width:18px;height:18px;"></i>
-                </a>
-                <a href="{% url 'accounts:login' %}" class="cta-secondary">
-                    Login to SubHero
-                </a>
-            {% endif %}
-        </div>
-
-        <div class="landing-hero__stats">
-            <div class="text-center">
-                <div class="stat__value">4</div>
-                <div class="stat__label">Major Networks</div>
-            </div>
-            <div class="text-center">
-                <div class="stat__value">99.9%</div>
-                <div class="stat__label">Uptime</div>
-            </div>
-            <div class="text-center">
-                <div class="stat__value">&lt;2s</div>
-                <div class="stat__label">Avg. Delivery</div>
-            </div>
-        </div>
+<!-- ============ FOOTER ============ -->
+<footer class="footer" id="footer">
+  <div class="container">
+    <div class="footer__grid">
+      <div class="footer__brand">
+        <a class="brand" href="#top">Sub<span>Hero</span></a>
+        <p>Instant VTU, cheap data, utilities and automated social media growth for Nigeria — all in one secure app.</p>
+      </div>
+      <div>
+        <h4>Platform</h4>
+        <nav class="footer__links" aria-label="Services">
+          <a href="#services">Data &amp; airtime</a>
+          <a href="#services">Bills &amp; utilities</a>
+          <a href="#services">Social boost</a>
+          <a href="#services">Giveaways</a>
+        </nav>
+      </div>
+      <div>
+        <h4>Company</h4>
+        <nav class="footer__links" aria-label="Legal">
+          <a href="{% url 'privacy' %}">Privacy policy</a>
+          <a href="{% url 'terms' %}">Terms of service</a>
+          <a href="{% url 'accounts:register' %}">Create account</a>
+        </nav>
+      </div>
+      <div>
+        <h4>Connect</h4>
+        <nav class="footer__links" aria-label="Contact">
+          <a href="https://twitter.com/SubHeroNG" rel="noopener" target="_blank">X / Twitter</a>
+          <a href="https://instagram.com/subherong" rel="noopener" target="_blank">Instagram</a>
+          <a href="mailto:support@subhero.com.ng">support@subhero.com.ng</a>
+        </nav>
+      </div>
     </div>
-</section>
-
-<!-- ============================================================= -->
-<!-- MOVING CHAIN OF SMM SERVICES (INFINITE MARQUEE)               -->
-<!-- ============================================================= -->
-<div class="smm-chain-wrapper" id="smm-chain">
-    <div class="text-center mb-6 px-4">
-        <div class="section-label justify-center" style="margin-bottom: 0.35rem;">
-            <i data-feather="trending-up" style="width:14px;height:14px;"></i>
-            SMM Growth Ecosystem
-        </div>
-        <h3 class="text-xs font-bold uppercase tracking-[2.5px] text-slate-400">
-            26+ Global Platforms Supported for Instant Boost
-        </h3>
+    <div class="footer__bottom">
+      <span>© 2026 SubHero. Built for Nigeria.</span>
+      <span class="mono">subhero.com.ng</span>
     </div>
-
-    <div class="marquee-container">
-        <!-- Row 1: Leftward Infinite Chain -->
-        <div class="marquee-row">
-            <div class="marquee-track marquee-track--left">
-                <!-- Track 1 Items -->
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #E1306C; --card-brand-glow: rgba(225, 48, 108, 0.25);">
-                    <div class="smm-service-card__icon" style="background: linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);">
-                        <i data-feather="instagram"></i>
-                    </div>
-                    <span class="smm-service-card__name">Instagram</span>
-                    <span class="smm-service-card__badge">Followers & Likes</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #00F2FE; --card-brand-glow: rgba(0, 242, 254, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #000000; border: 1px solid #00F2FE;">
-                        <i data-feather="video"></i>
-                    </div>
-                    <span class="smm-service-card__name">TikTok</span>
-                    <span class="smm-service-card__badge">Views & Fans</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #FF0000; --card-brand-glow: rgba(255, 0, 0, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #FF0000;">
-                        <i data-feather="youtube"></i>
-                    </div>
-                    <span class="smm-service-card__name">YouTube</span>
-                    <span class="smm-service-card__badge">Subs & Watchtime</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #1DA1F2; --card-brand-glow: rgba(29, 161, 242, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #1DA1F2;">
-                        <i data-feather="twitter"></i>
-                    </div>
-                    <span class="smm-service-card__name">Twitter / X</span>
-                    <span class="smm-service-card__badge">Retweets & Likes</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #0088cc; --card-brand-glow: rgba(0, 136, 204, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #0088cc;">
-                        <i data-feather="send"></i>
-                    </div>
-                    <span class="smm-service-card__name">Telegram</span>
-                    <span class="smm-service-card__badge">Members & Views</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #1DB954; --card-brand-glow: rgba(29, 185, 84, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #1DB954;">
-                        <i data-feather="music"></i>
-                    </div>
-                    <span class="smm-service-card__name">Spotify</span>
-                    <span class="smm-service-card__badge">Streams & Playlist</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #1877F2; --card-brand-glow: rgba(24, 119, 242, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #1877F2;">
-                        <i data-feather="facebook"></i>
-                    </div>
-                    <span class="smm-service-card__name">Facebook</span>
-                    <span class="smm-service-card__badge">Page Likes & Followers</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #25D366; --card-brand-glow: rgba(37, 211, 102, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #25D366;">
-                        <i data-feather="message-circle"></i>
-                    </div>
-                    <span class="smm-service-card__name">WhatsApp</span>
-                    <span class="smm-service-card__badge">Channel Members</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #FFFFFF; --card-brand-glow: rgba(255, 255, 255, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #000000; border: 1px solid rgba(255,255,255,0.2);">
-                        <i data-feather="at-sign"></i>
-                    </div>
-                    <span class="smm-service-card__name">Threads</span>
-                    <span class="smm-service-card__badge">Followers & Likes</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #FF4500; --card-brand-glow: rgba(255, 69, 0, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #FF4500;">
-                        <i data-feather="disc"></i>
-                    </div>
-                    <span class="smm-service-card__name">Reddit</span>
-                    <span class="smm-service-card__badge">Upvotes & Karma</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #0A66C2; --card-brand-glow: rgba(10, 102, 194, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #0A66C2;">
-                        <i data-feather="linkedin"></i>
-                    </div>
-                    <span class="smm-service-card__name">LinkedIn</span>
-                    <span class="smm-service-card__badge">Connections & Post Likes</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #00C3FF; --card-brand-glow: rgba(0, 195, 255, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #00C3FF;">
-                        <i data-feather="headphones"></i>
-                    </div>
-                    <span class="smm-service-card__name">Boomplay</span>
-                    <span class="smm-service-card__badge">Streams & Favorites</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #FFA200; --card-brand-glow: rgba(255, 162, 0, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #FFA200;">
-                        <i data-feather="radio"></i>
-                    </div>
-                    <span class="smm-service-card__name">Audiomack</span>
-                    <span class="smm-service-card__badge">Plays & Reposts</span>
-                </a>
-
-                <!-- Duplicate for Seamless Infinite Loop -->
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #E1306C; --card-brand-glow: rgba(225, 48, 108, 0.25);">
-                    <div class="smm-service-card__icon" style="background: linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);">
-                        <i data-feather="instagram"></i>
-                    </div>
-                    <span class="smm-service-card__name">Instagram</span>
-                    <span class="smm-service-card__badge">Followers & Likes</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #00F2FE; --card-brand-glow: rgba(0, 242, 254, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #000000; border: 1px solid #00F2FE;">
-                        <i data-feather="video"></i>
-                    </div>
-                    <span class="smm-service-card__name">TikTok</span>
-                    <span class="smm-service-card__badge">Views & Fans</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #FF0000; --card-brand-glow: rgba(255, 0, 0, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #FF0000;">
-                        <i data-feather="youtube"></i>
-                    </div>
-                    <span class="smm-service-card__name">YouTube</span>
-                    <span class="smm-service-card__badge">Subs & Watchtime</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #1DA1F2; --card-brand-glow: rgba(29, 161, 242, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #1DA1F2;">
-                        <i data-feather="twitter"></i>
-                    </div>
-                    <span class="smm-service-card__name">Twitter / X</span>
-                    <span class="smm-service-card__badge">Retweets & Likes</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #0088cc; --card-brand-glow: rgba(0, 136, 204, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #0088cc;">
-                        <i data-feather="send"></i>
-                    </div>
-                    <span class="smm-service-card__name">Telegram</span>
-                    <span class="smm-service-card__badge">Members & Views</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #1DB954; --card-brand-glow: rgba(29, 185, 84, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #1DB954;">
-                        <i data-feather="music"></i>
-                    </div>
-                    <span class="smm-service-card__name">Spotify</span>
-                    <span class="smm-service-card__badge">Streams & Playlist</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #1877F2; --card-brand-glow: rgba(24, 119, 242, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #1877F2;">
-                        <i data-feather="facebook"></i>
-                    </div>
-                    <span class="smm-service-card__name">Facebook</span>
-                    <span class="smm-service-card__badge">Page Likes & Followers</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #25D366; --card-brand-glow: rgba(37, 211, 102, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #25D366;">
-                        <i data-feather="message-circle"></i>
-                    </div>
-                    <span class="smm-service-card__name">WhatsApp</span>
-                    <span class="smm-service-card__badge">Channel Members</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #FFFFFF; --card-brand-glow: rgba(255, 255, 255, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #000000; border: 1px solid rgba(255,255,255,0.2);">
-                        <i data-feather="at-sign"></i>
-                    </div>
-                    <span class="smm-service-card__name">Threads</span>
-                    <span class="smm-service-card__badge">Followers & Likes</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #FF4500; --card-brand-glow: rgba(255, 69, 0, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #FF4500;">
-                        <i data-feather="disc"></i>
-                    </div>
-                    <span class="smm-service-card__name">Reddit</span>
-                    <span class="smm-service-card__badge">Upvotes & Karma</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #0A66C2; --card-brand-glow: rgba(10, 102, 194, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #0A66C2;">
-                        <i data-feather="linkedin"></i>
-                    </div>
-                    <span class="smm-service-card__name">LinkedIn</span>
-                    <span class="smm-service-card__badge">Connections & Post Likes</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #00C3FF; --card-brand-glow: rgba(0, 195, 255, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #00C3FF;">
-                        <i data-feather="headphones"></i>
-                    </div>
-                    <span class="smm-service-card__name">Boomplay</span>
-                    <span class="smm-service-card__badge">Streams & Favorites</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #FFA200; --card-brand-glow: rgba(255, 162, 0, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #FFA200;">
-                        <i data-feather="radio"></i>
-                    </div>
-                    <span class="smm-service-card__name">Audiomack</span>
-                    <span class="smm-service-card__badge">Plays & Reposts</span>
-                </a>
-            </div>
-        </div>
-
-        <!-- Row 2: Rightward Infinite Chain -->
-        <div class="marquee-row">
-            <div class="marquee-track marquee-track--right">
-                <!-- Track 2 Items -->
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #FA243C; --card-brand-glow: rgba(250, 36, 60, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #FA243C;">
-                        <i data-feather="music"></i>
-                    </div>
-                    <span class="smm-service-card__name">Apple Music</span>
-                    <span class="smm-service-card__badge">Streams & Library</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #5865F2; --card-brand-glow: rgba(88, 101, 242, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #5865F2;">
-                        <i data-feather="message-square"></i>
-                    </div>
-                    <span class="smm-service-card__name">Discord</span>
-                    <span class="smm-service-card__badge">Server Members & Boosts</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #A238FF; --card-brand-glow: rgba(162, 56, 255, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #A238FF;">
-                        <i data-feather="volume-2"></i>
-                    </div>
-                    <span class="smm-service-card__name">Deezer</span>
-                    <span class="smm-service-card__badge">Fans & Streams</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #9146FF; --card-brand-glow: rgba(145, 70, 255, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #9146FF;">
-                        <i data-feather="tv"></i>
-                    </div>
-                    <span class="smm-service-card__name">Twitch</span>
-                    <span class="smm-service-card__badge">Live Viewers & Followers</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #B92B27; --card-brand-glow: rgba(185, 43, 39, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #B92B27;">
-                        <i data-feather="help-circle"></i>
-                    </div>
-                    <span class="smm-service-card__name">Quora</span>
-                    <span class="smm-service-card__badge">Answers & Upvotes</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #F0F6FC; --card-brand-glow: rgba(240, 246, 252, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #24292E;">
-                        <i data-feather="github"></i>
-                    </div>
-                    <span class="smm-service-card__name">GitHub</span>
-                    <span class="smm-service-card__badge">Stars & Forks</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #53FC18; --card-brand-glow: rgba(83, 252, 24, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #000000; border: 1px solid #53FC18; color: #53FC18;">
-                        <i data-feather="play-circle"></i>
-                    </div>
-                    <span class="smm-service-card__name">Kick.com</span>
-                    <span class="smm-service-card__badge">Live Viewers & Chatters</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #5000FF; --card-brand-glow: rgba(80, 0, 255, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #5000FF;">
-                        <i data-feather="cloud"></i>
-                    </div>
-                    <span class="smm-service-card__name">Mixcloud</span>
-                    <span class="smm-service-card__badge">Listeners & Plays</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #FF6600; --card-brand-glow: rgba(255, 102, 0, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #FF6600;">
-                        <i data-feather="download"></i>
-                    </div>
-                    <span class="smm-service-card__name">Turbobit</span>
-                    <span class="smm-service-card__badge">File Downloads</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #00C46A; --card-brand-glow: rgba(0, 196, 106, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #00C46A;">
-                        <i data-feather="globe"></i>
-                    </div>
-                    <span class="smm-service-card__name">Website Traffic</span>
-                    <span class="smm-service-card__badge">Real Web Visits</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #0088FF; --card-brand-glow: rgba(0, 136, 255, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #0088FF;">
-                        <i data-feather="zap"></i>
-                    </div>
-                    <span class="smm-service-card__name">Shazam</span>
-                    <span class="smm-service-card__badge">Track Tags & Streams</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #E0E0E0; --card-brand-glow: rgba(224, 224, 224, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #000000; border: 1px solid #E0E0E0;">
-                        <i data-feather="box"></i>
-                    </div>
-                    <span class="smm-service-card__name">Roblox</span>
-                    <span class="smm-service-card__badge">Game Visits & Favorites</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #66C0F4; --card-brand-glow: rgba(102, 192, 244, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #171A21;">
-                        <i data-feather="gamepad"></i>
-                    </div>
-                    <span class="smm-service-card__name">Steam</span>
-                    <span class="smm-service-card__badge">Wishlists & Reviews</span>
-                </a>
-
-                <!-- Duplicate for Seamless Infinite Loop -->
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #FA243C; --card-brand-glow: rgba(250, 36, 60, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #FA243C;">
-                        <i data-feather="music"></i>
-                    </div>
-                    <span class="smm-service-card__name">Apple Music</span>
-                    <span class="smm-service-card__badge">Streams & Library</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #5865F2; --card-brand-glow: rgba(88, 101, 242, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #5865F2;">
-                        <i data-feather="message-square"></i>
-                    </div>
-                    <span class="smm-service-card__name">Discord</span>
-                    <span class="smm-service-card__badge">Server Members & Boosts</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #A238FF; --card-brand-glow: rgba(162, 56, 255, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #A238FF;">
-                        <i data-feather="volume-2"></i>
-                    </div>
-                    <span class="smm-service-card__name">Deezer</span>
-                    <span class="smm-service-card__badge">Fans & Streams</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #9146FF; --card-brand-glow: rgba(145, 70, 255, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #9146FF;">
-                        <i data-feather="tv"></i>
-                    </div>
-                    <span class="smm-service-card__name">Twitch</span>
-                    <span class="smm-service-card__badge">Live Viewers & Followers</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #B92B27; --card-brand-glow: rgba(185, 43, 39, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #B92B27;">
-                        <i data-feather="help-circle"></i>
-                    </div>
-                    <span class="smm-service-card__name">Quora</span>
-                    <span class="smm-service-card__badge">Answers & Upvotes</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #F0F6FC; --card-brand-glow: rgba(240, 246, 252, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #24292E;">
-                        <i data-feather="github"></i>
-                    </div>
-                    <span class="smm-service-card__name">GitHub</span>
-                    <span class="smm-service-card__badge">Stars & Forks</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #53FC18; --card-brand-glow: rgba(83, 252, 24, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #000000; border: 1px solid #53FC18; color: #53FC18;">
-                        <i data-feather="play-circle"></i>
-                    </div>
-                    <span class="smm-service-card__name">Kick.com</span>
-                    <span class="smm-service-card__badge">Live Viewers & Chatters</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #5000FF; --card-brand-glow: rgba(80, 0, 255, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #5000FF;">
-                        <i data-feather="cloud"></i>
-                    </div>
-                    <span class="smm-service-card__name">Mixcloud</span>
-                    <span class="smm-service-card__badge">Listeners & Plays</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #FF6600; --card-brand-glow: rgba(255, 102, 0, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #FF6600;">
-                        <i data-feather="download"></i>
-                    </div>
-                    <span class="smm-service-card__name">Turbobit</span>
-                    <span class="smm-service-card__badge">File Downloads</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #00C46A; --card-brand-glow: rgba(0, 196, 106, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #00C46A;">
-                        <i data-feather="globe"></i>
-                    </div>
-                    <span class="smm-service-card__name">Website Traffic</span>
-                    <span class="smm-service-card__badge">Real Web Visits</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #0088FF; --card-brand-glow: rgba(0, 136, 255, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #0088FF;">
-                        <i data-feather="zap"></i>
-                    </div>
-                    <span class="smm-service-card__name">Shazam</span>
-                    <span class="smm-service-card__badge">Track Tags & Streams</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #E0E0E0; --card-brand-glow: rgba(224, 224, 224, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #000000; border: 1px solid #E0E0E0;">
-                        <i data-feather="box"></i>
-                    </div>
-                    <span class="smm-service-card__name">Roblox</span>
-                    <span class="smm-service-card__badge">Game Visits & Favorites</span>
-                </a>
-
-                <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="smm-service-card" style="--card-brand-color: #66C0F4; --card-brand-glow: rgba(102, 192, 244, 0.25);">
-                    <div class="smm-service-card__icon" style="background: #171A21;">
-                        <i data-feather="gamepad"></i>
-                    </div>
-                    <span class="smm-service-card__name">Steam</span>
-                    <span class="smm-service-card__badge">Wishlists & Reviews</span>
-                </a>
-            </div>
-        </div>
-    </div>
-</div>
-
-<hr class="section-divider">
-
-<!-- ============================================================= -->
-<!-- SERVICES - BENTO GRID                                          -->
-<!-- ============================================================= -->
-<section class="landing-section" id="services">
-    <div class="landing-section__inner">
-        <div class="reveal">
-            <div class="section-label">
-                <i data-feather="grid" style="width:14px;height:14px;"></i>
-                Services
-            </div>
-            <h2 class="section-title">Everything you need,<br>one platform</h2>
-            <p class="section-subtitle">All your daily digital transactions from data to social media growth in one secure place.</p>
-        </div>
-
-        <div class="bento-grid reveal-children">
-            <!-- Data -->
-            <a href="{% if request.user.is_authenticated %}{% url 'vtu:buy_data' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="bento-card reveal">
-                <div class="bento-card__icon icon--blue">
-                    <i data-feather="wifi"></i>
-                </div>
-                <span class="bento-card__label">Data</span>
-            </a>
-
-            <!-- Airtime -->
-            <a href="{% if request.user.is_authenticated %}{% url 'vtu:buy_airtime' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="bento-card reveal">
-                <div class="bento-card__icon icon--green">
-                    <i data-feather="phone"></i>
-                </div>
-                <span class="bento-card__label">Airtime</span>
-            </a>
-
-            <!-- Electricity -->
-            <a href="{% if request.user.is_authenticated %}{% url 'vtu:buy_electricity' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="bento-card reveal">
-                <div class="bento-card__icon icon--yellow">
-                    <i data-feather="zap"></i>
-                </div>
-                <span class="bento-card__label">Power</span>
-            </a>
-
-            <!-- Cable TV -->
-            <a href="{% if request.user.is_authenticated %}{% url 'vtu:buy_cable' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="bento-card reveal">
-                <div class="bento-card__icon icon--purple">
-                    <i data-feather="tv"></i>
-                </div>
-                <span class="bento-card__label">Cable TV</span>
-            </a>
-
-            <!-- SMM -->
-            <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="bento-card reveal">
-                <div class="bento-card__icon icon--pink">
-                    <i data-feather="thumbs-up"></i>
-                </div>
-                <span class="bento-card__label">SMM</span>
-            </a>
-
-            <!-- Giveaways -->
-            <a href="{% if request.user.is_authenticated %}{% url 'giveaway:create' %}{% else %}{% url 'accounts:login' %}{% endif %}" class="bento-card reveal">
-                <div class="bento-card__icon icon--accent">
-                    <i data-feather="gift"></i>
-                </div>
-                <span class="bento-card__label">Giveaways</span>
-            </a>
-        </div>
-    </div>
-</section>
-
-<hr class="section-divider">
-
-<!-- ============================================================= -->
-<!-- WHY CHOOSE US - FEATURES                                       -->
-<!-- ============================================================= -->
-<section class="landing-section" id="features">
-    <div class="landing-section__inner">
-        <div class="reveal" style="text-align:center;">
-            <div class="section-label" style="justify-content:center;">
-                <i data-feather="star" style="width:14px;height:14px;"></i>
-                Why SubHero
-            </div>
-            <h2 class="section-title">Why Nigerians choose SubHero</h2>
-            <p class="section-subtitle" style="margin:0 auto;">Built for the unique needs of Nigeria's growing digital economy.</p>
-        </div>
-
-        <div class="features-grid reveal-children">
-            <!-- Lightning Fast -->
-            <div class="feature-card-v2 reveal">
-                <div class="feature-card-v2__icon icon--blue">
-                    <i data-feather="zap"></i>
-                </div>
-                <h3 class="feature-card-v2__title">Lightning Fast</h3>
-                <p class="feature-card-v2__desc">
-                    Transactions complete in seconds, not minutes. Instant data delivery, immediate airtime top-up, and real-time growth.
-                </p>
-            </div>
-
-            <!-- Security -->
-            <div class="feature-card-v2 reveal">
-                <div class="feature-card-v2__icon icon--accent">
-                    <i data-feather="shield"></i>
-                </div>
-                <h3 class="feature-card-v2__title">Bank-Level Security</h3>
-                <p class="feature-card-v2__desc">
-                    Your funds and data are protected with military-grade encryption and PCI-DSS compliant payment processing.
-                </p>
-            </div>
-
-            <!-- Best Rates -->
-            <div class="feature-card-v2 reveal">
-                <div class="feature-card-v2__icon icon--yellow">
-                    <i data-feather="percent"></i>
-                </div>
-                <h3 class="feature-card-v2__title">Best Prices</h3>
-                <p class="feature-card-v2__desc">
-                    We negotiate directly with providers to eliminate middlemen and pass the savings directly to you.
-                </p>
-            </div>
-
-            <!-- Uptime -->
-            <div class="feature-card-v2 reveal">
-                <div class="feature-card-v2__icon icon--green">
-                    <i data-feather="cloud"></i>
-                </div>
-                <h3 class="feature-card-v2__title">99.9% Uptime</h3>
-                <p class="feature-card-v2__desc">
-                    Robust infrastructure ensures service availability even during peak hours. Never miss a transaction.
-                </p>
-            </div>
-
-            <!-- Support -->
-            <div class="feature-card-v2 reveal">
-                <div class="feature-card-v2__icon icon--purple">
-                    <i data-feather="headphones"></i>
-                </div>
-                <h3 class="feature-card-v2__title">Local Support</h3>
-                <p class="feature-card-v2__desc">
-                    Nigerian-based support team available via phone, email, and in-app chat. We understand your needs.
-                </p>
-            </div>
-
-            <!-- Community -->
-            <div class="feature-card-v2 reveal">
-                <div class="feature-card-v2__icon icon--pink">
-                    <i data-feather="users"></i>
-                </div>
-                <h3 class="feature-card-v2__title">Growing Community</h3>
-                <p class="feature-card-v2__desc">
-                    Join 50,000+ Nigerians who trust SubHero for their daily digital transactions.
-                </p>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- ============================================================= -->
-<!-- CTA SECTION                                                     -->
-<!-- ============================================================= -->
-<section class="landing-cta" id="cta">
-    <!-- Mesh gradient blobs -->
-    <div class="mesh-blob" style="width:400px;height:400px;top:-20%;left:-5%;background:rgba(0,196,106,0.06);filter:blur(120px);border-radius:50% 60% 40% 70%/50% 40% 60% 50%;"></div>
-    <div class="mesh-blob" style="width:350px;height:350px;bottom:-15%;right:-5%;background:rgba(0,107,62,0.08);filter:blur(100px);border-radius:40% 60% 55% 45%/55% 45% 60% 40%;"></div>
-
-    <div class="landing-cta__content reveal">
-        <div class="section-label" style="justify-content:center;">
-            <i data-feather="trending-up" style="width:14px;height:14px;"></i>
-            Get Started
-        </div>
-        <h2 class="landing-cta__title">
-            Ready for faster, cheaper, and more secure transactions?
-        </h2>
-        <p class="landing-cta__subtitle">
-            Join thousands of Nigerians already enjoying a better way to handle daily digital payments.
-        </p>
-
-        {% if request.user.is_authenticated %}
-            <a href="{% url 'dashboard' %}" class="cta-primary" style="margin:0 auto;">
-                Go to Dashboard
-                <i data-feather="arrow-right" style="width:18px;height:18px;"></i>
-            </a>
-        {% else %}
-            <a href="{% url 'accounts:register' %}" class="cta-primary" style="margin:0 auto;">
-                Get Started Free
-                <i data-feather="arrow-right" style="width:18px;height:18px;"></i>
-            </a>
-        {% endif %}
-
-        <div class="trust-badges">
-            <div class="trust-badge">
-                <i data-feather="lock"></i>
-                <span>Secure</span>
-            </div>
-            <div class="trust-badge">
-                <i data-feather="zap"></i>
-                <span>Instant</span>
-            </div>
-            <div class="trust-badge">
-                <i data-feather="trending-up"></i>
-                <span>Growing</span>
-            </div>
-            <div class="trust-badge">
-                <i data-feather="clock"></i>
-                <span>24/7</span>
-            </div>
-        </div>
-    </div>
-</section>
-
-
-<!-- ============================================================= -->
-<!-- FOOTER                                                          -->
-<!-- ============================================================= -->
-<footer class="landing-footer" id="footer">
-    <div class="landing-footer__logo">Sub<span>Hero</span></div>
-    <div class="landing-footer__links">
-        <a href="{% url 'privacy' %}">Privacy Policy</a>
-        <a href="{% url 'terms' %}">Terms of Service</a>
-        <a href="mailto:support@subhero.com.ng">Contact</a>
-    </div>
-    <p class="landing-footer__copy">
-        &copy; 2026 SubHero. Built for Nigeria 
-    </p>
+  </div>
 </footer>
 
-<!-- ============================================================= -->
-<!-- VANILLA JS - Scroll Reveal & Interactions                       -->
-<!-- ============================================================= -->
+</div>
+
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // ── Scroll Reveal with IntersectionObserver ──
-        const revealElements = document.querySelectorAll('.reveal');
-        const revealObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('visible');
-                    revealObserver.unobserve(entry.target);
-                }
-            });
-        }, {
-            threshold: 0.12,
-            rootMargin: '0px 0px -60px 0px'
-        });
-
-        revealElements.forEach(el => revealObserver.observe(el));
-
-        // ── Navbar background on scroll ──
-        const nav = document.getElementById('landing-nav');
-        if (nav) {
-            let ticking = false;
-            window.addEventListener('scroll', function() {
-                if (!ticking) {
-                    window.requestAnimationFrame(function() {
-                        if (window.scrollY > 60) {
-                            nav.style.background = 'rgba(6, 11, 20, 0.92)';
-                            nav.style.borderBottomColor = 'rgba(255,255,255,0.08)';
-                        } else {
-                            nav.style.background = 'rgba(6, 11, 20, 0.7)';
-                            nav.style.borderBottomColor = 'rgba(255,255,255,0.06)';
-                        }
-                        ticking = false;
-                    });
-                    ticking = true;
-                }
-            }, { passive: true });
-        }
-
-        // ── Magnetic button effect (subtle) ──
-        document.querySelectorAll('.cta-primary, .cta-secondary').forEach(btn => {
-            btn.addEventListener('mousemove', (e) => {
-                const rect = btn.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-                const cx = rect.width / 2;
-                const cy = rect.height / 2;
-                const dx = ((x - cx) / cx) * 3;
-                const dy = ((y - cy) / cy) * 3;
-                btn.style.transform = `translate(${dx}px, ${dy}px)`;
-            });
-
-            btn.addEventListener('mouseleave', () => {
-                btn.style.transform = '';
-            });
-        });
-
-        // ── Prevent elastic overscroll on iOS ──
-        let startY = 0;
-        document.addEventListener('touchstart', (e) => {
-            startY = e.touches[0].clientY;
-        }, { passive: true });
-
-        // ── Typewriter Animation for "Socials" ──
-        const typedTextElement = document.getElementById("typed-text");
-        if (typedTextElement) {
-            const words = ["Socials", "Followers", "Audience", "Presence"];
-            let wordIdx = 0;
-            let charIdx = 0;
-            let isDeleting = false;
-
-            typedTextElement.textContent = "";
-
-            function typeEffect() {
-                const currentWord = words[wordIdx];
-                if (isDeleting) {
-                    charIdx--;
-                    typedTextElement.textContent = currentWord.substring(0, charIdx);
-                } else {
-                    charIdx++;
-                    typedTextElement.textContent = currentWord.substring(0, charIdx);
-                }
-
-                let speed = isDeleting ? 40 : 90;
-
-                if (!isDeleting && charIdx === currentWord.length) {
-                    speed = 2000; // Pause on full word
-                    isDeleting = true;
-                } else if (isDeleting && charIdx === 0) {
-                    isDeleting = false;
-                    wordIdx = (wordIdx + 1) % words.length;
-                    speed = 300; // Pause before typing next word
-                }
-
-                setTimeout(typeEffect, speed);
-            }
-
-            setTimeout(typeEffect, 300);
-        }
-
+(function () {
+  var tabs = document.querySelectorAll('.sample__tabs .tab');
+  tabs.forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      tabs.forEach(function (t) { t.setAttribute('aria-selected', 'false'); t.tabIndex = -1; });
+      tab.setAttribute('aria-selected', 'true');
+      tab.tabIndex = 0;
     });
+  });
+})();
 </script>
 {% endblock %}
 
