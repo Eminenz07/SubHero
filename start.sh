@@ -1,8 +1,10 @@
 #!/bin/bash
 
+PORT="${PORT:-8000}"
+
 # Run database migrations
 echo "Running database migrations..."
-python manage.py migrate --noinput
+python manage.py migrate --noinput || echo "Warning: Migration failed or timed out, continuing..."
 
 # Start Celery worker and beat only if REDIS_URL is configured
 if [ -n "$REDIS_URL" ]; then
@@ -16,5 +18,5 @@ else
 fi
 
 # Start Gunicorn server in the foreground
-echo "Starting Gunicorn..."
-exec gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --threads 2
+echo "Starting Gunicorn on port ${PORT}..."
+exec gunicorn config.wsgi:application --bind "0.0.0.0:${PORT}" --workers 2 --threads 2
