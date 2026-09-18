@@ -256,6 +256,18 @@ section[id] { scroll-margin-top: 96px; }
   font-weight: 800;
 }
 .hero h1 .stroke { color: var(--accent); }
+.typing-cursor {
+  display: inline-block;
+  color: var(--accent);
+  font-weight: 700;
+  margin-left: 2px;
+  animation: cursor-blink 0.8s infinite;
+  text-shadow: 0 0 10px rgba(0, 196, 106, 0.6);
+}
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
 .hero .lead { margin-top: var(--space-6); max-width: 30em; }
 .hero__ctas { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-8); }
 .hero__meta { display: flex; flex-wrap: wrap; gap: var(--space-4) var(--space-8); margin-top: var(--space-8); color: var(--muted); font-size: var(--text-sm); }
@@ -286,6 +298,12 @@ section[id] { scroll-margin-top: 96px; }
 .sample__tabs { display: flex; gap: var(--space-1); padding: 4px; background: rgba(255,255,255,0.04); border: 1px solid var(--border-soft); border-radius: var(--radius-md); margin-bottom: var(--space-4); }
 .tab { flex: 1; min-height: 44px; border: 0; background: transparent; color: var(--muted); border-radius: calc(var(--radius-md) - 4px); font-size: var(--text-sm); font-weight: 600; cursor: pointer; transition: color var(--motion-fast), background-color var(--motion-fast); }
 .tab[aria-selected="true"] { background: var(--accent); color: var(--accent-on); }
+.tab:hover:not([aria-selected="true"]) { color: var(--fg); background: rgba(255,255,255,0.04); }
+.sample__panel { animation: panelFade 0.22s var(--ease-standard); }
+@keyframes panelFade {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 .plan { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4); border: 1px solid var(--border); border-radius: var(--radius-md); margin-bottom: var(--space-2); transition: border-color var(--motion-fast); background: rgba(255,255,255,0.02); }
 .plan:hover { border-color: var(--accent-deep); }
 .plan__name { font-size: var(--text-sm); font-weight: 600; }
@@ -492,7 +510,7 @@ section[id] { scroll-margin-top: 96px; }
   <section class="hero">
     <div class="container hero__grid">
       <div>
-        <h1>Pay bills, buy data,<br>grow your <span class="stroke">socials</span></h1>
+        <h1>Pay bills, buy data,<br>grow your <span class="stroke"><span id="typed-text">Socials</span><span class="typing-cursor">|</span></span></h1>
         <p class="lead">The all-in-one platform for smart Nigerians. Instant VTU, affordable data, and automated social media growth — with seamless payments in one secure app.</p>
         <div class="hero__ctas">
           {% if request.user.is_authenticated %}
@@ -505,36 +523,92 @@ section[id] { scroll-margin-top: 96px; }
       </div>
 
       <div class="sample">
-        <span class="sample__flag">Data from ₦250/GB</span>
+        <span class="sample__flag" id="sample-flag">Data from ₦250/GB</span>
         <div class="sample__head">
-          <div class="sample__who">SubHero wallet<small>Data plans · sample rates</small></div>
-          <div class="sample__nets"><span>MTN</span><span>GLO</span><span>Airtel</span><span>9mobile</span></div>
+          <div class="sample__who">SubHero wallet<small id="sample-sub">Data plans · sample rates</small></div>
+          <div class="sample__nets" id="sample-nets"><span>MTN</span><span>GLO</span><span>Airtel</span><span>9mobile</span></div>
         </div>
         <div class="sample__tabs" role="tablist" aria-label="Service type">
-          <button class="tab" type="button" role="tab" aria-selected="true" tabindex="0" id="tab-data">Data</button>
-          <button class="tab" type="button" role="tab" aria-selected="false" tabindex="-1" id="tab-airtime">Airtime</button>
-          <button class="tab" type="button" role="tab" aria-selected="false" tabindex="-1" id="tab-power">Power</button>
+          <button class="tab" type="button" role="tab" aria-selected="true" tabindex="0" id="tab-data" data-target="panel-data">Data</button>
+          <button class="tab" type="button" role="tab" aria-selected="false" tabindex="-1" id="tab-airtime" data-target="panel-airtime">Airtime</button>
+          <button class="tab" type="button" role="tab" aria-selected="false" tabindex="-1" id="tab-power" data-target="panel-power">Power</button>
         </div>
-        <div class="plan plan--pick">
-          <div class="plan__name">1GB · 30 days<small>MTN · GLO · Airtel · 9mobile</small></div>
-          <div class="plan__price"><span class="from">from </span>₦250</div>
-          <span class="plan__pick">Best deal</span>
+
+        <!-- Data Panel -->
+        <div class="sample__panel" id="panel-data" role="tabpanel" aria-labelledby="tab-data">
+          <div class="plan plan--pick">
+            <div class="plan__name">1GB · 30 days<small>MTN · GLO · Airtel · 9mobile</small></div>
+            <div class="plan__price"><span class="from">from </span>₦250</div>
+            <span class="plan__pick">Best deal</span>
+          </div>
+          <div class="plan">
+            <div class="plan__name">3.5GB · 30 days<small>Instant credit · Never throttled</small></div>
+            <div class="plan__price">₦875</div>
+          </div>
+          <div class="plan">
+            <div class="plan__name">5GB · 30 days<small>Streaming &amp; heavy downloading</small></div>
+            <div class="plan__price">₦1,250</div>
+          </div>
+          <hr class="sample__divider">
+          <div class="boost">
+            <div class="boost__icon"><svg aria-hidden="true"><use href="#i-trend"></use></svg></div>
+            <div class="boost__info">
+              <strong>Instagram boost · auto on</strong>
+              <span>Followers + Likes · running now</span>
+              <div class="boost__track"><i></i></div>
+            </div>
+          </div>
         </div>
-        <div class="plan">
-          <div class="plan__name">3.5GB · 30 days<small>Always-on data</small></div>
-          <div class="plan__price">₦875</div>
+
+        <!-- Airtime Panel -->
+        <div class="sample__panel" id="panel-airtime" role="tabpanel" aria-labelledby="tab-airtime" style="display:none;">
+          <div class="plan plan--pick">
+            <div class="plan__name">₦1,000 Airtime<small>MTN · GLO · Airtel · 9mobile</small></div>
+            <div class="plan__price"><span class="from">pay </span>₦960</div>
+            <span class="plan__pick">4% Off</span>
+          </div>
+          <div class="plan">
+            <div class="plan__name">₦2,500 Airtime<small>Instant wallet bonus · 0% fee</small></div>
+            <div class="plan__price">₦2,400</div>
+          </div>
+          <div class="plan">
+            <div class="plan__name">₦5,000 Airtime<small>VIP cashback rate · Auto-credited</small></div>
+            <div class="plan__price">₦4,750</div>
+          </div>
+          <hr class="sample__divider">
+          <div class="boost">
+            <div class="boost__icon"><svg aria-hidden="true"><use href="#i-percent"></use></svg></div>
+            <div class="boost__info">
+              <strong>Instant airtime cashback · active</strong>
+              <span>Save up to 5% every single time you top up</span>
+              <div class="boost__track"><i style="width:85%;"></i></div>
+            </div>
+          </div>
         </div>
-        <div class="plan">
-          <div class="plan__name">5GB · 30 days<small>Streaming &amp; sharing</small></div>
-          <div class="plan__price">₦1,250</div>
-        </div>
-        <hr class="sample__divider">
-        <div class="boost">
-          <div class="boost__icon"><svg aria-hidden="true"><use href="#i-trend"></use></svg></div>
-          <div class="boost__info">
-            <strong>Instagram boost · auto on</strong>
-            <span>Followers + Likes · running now</span>
-            <div class="boost__track"><i></i></div>
+
+        <!-- Power Panel -->
+        <div class="sample__panel" id="panel-power" role="tabpanel" aria-labelledby="tab-power" style="display:none;">
+          <div class="plan plan--pick">
+            <div class="plan__name">₦2,000 Electricity<small>IKEDC · EKEDC · AEDC · IBEDC + 7 more</small></div>
+            <div class="plan__price"><span class="from">fee </span>₦0</div>
+            <span class="plan__pick">Zero Fee</span>
+          </div>
+          <div class="plan">
+            <div class="plan__name">₦5,000 Electricity<small>Instant token via SMS &amp; WhatsApp</small></div>
+            <div class="plan__price">₦5,000</div>
+          </div>
+          <div class="plan">
+            <div class="plan__name">₦10,000 Electricity<small>Prepaid &amp; postpaid · 100% units</small></div>
+            <div class="plan__price">₦10,000</div>
+          </div>
+          <hr class="sample__divider">
+          <div class="boost">
+            <div class="boost__icon"><svg aria-hidden="true"><use href="#i-zap"></use></svg></div>
+            <div class="boost__info">
+              <strong>Token generated in &lt; 3 seconds</strong>
+              <span>Sent instantly to your phone · 24/7 uptime</span>
+              <div class="boost__track"><i style="width:100%;"></i></div>
+            </div>
           </div>
         </div>
       </div>
@@ -841,12 +915,99 @@ section[id] { scroll-margin-top: 96px; }
 
 <script>
 (function () {
+  // ── 1. Typewriter Animation for "Socials" ──
+  var typedTextElement = document.getElementById("typed-text");
+  if (typedTextElement) {
+    var words = ["Socials", "Followers", "Audience", "Presence"];
+    var wordIdx = 0;
+    var charIdx = words[0].length; // start with 'Socials' already rendered
+    var isDeleting = true; // wait first then delete and cycle
+
+    function typeEffect() {
+      var currentWord = words[wordIdx];
+      if (isDeleting) {
+        charIdx--;
+        typedTextElement.textContent = currentWord.substring(0, charIdx);
+      } else {
+        charIdx++;
+        typedTextElement.textContent = currentWord.substring(0, charIdx);
+      }
+
+      var speed = isDeleting ? 45 : 85;
+
+      if (!isDeleting && charIdx === currentWord.length) {
+        speed = 2200; // Pause on full word
+        isDeleting = true;
+      } else if (isDeleting && charIdx === 0) {
+        isDeleting = false;
+        wordIdx = (wordIdx + 1) % words.length;
+        speed = 350; // Pause before typing next word
+      }
+
+      setTimeout(typeEffect, speed);
+    }
+
+    // Start typing cycle after initial pause on "Socials"
+    setTimeout(typeEffect, 2000);
+  }
+
+  // ── 2. Interactive Sample Card Tabs ──
+  var sampleMeta = {
+    'tab-data': {
+      flag: 'Data from ₦250/GB',
+      sub: 'Data plans · sample rates',
+      nets: ['MTN', 'GLO', 'Airtel', '9mobile']
+    },
+    'tab-airtime': {
+      flag: 'Cashback up to 5%',
+      sub: 'Instant airtime · discounted rates',
+      nets: ['MTN', 'GLO', 'Airtel', '9mobile']
+    },
+    'tab-power': {
+      flag: 'Zero convenience fee',
+      sub: 'Prepaid & postpaid · 0% fee',
+      nets: ['IKEDC', 'EKEDC', 'AEDC', 'IBEDC']
+    }
+  };
+
   var tabs = document.querySelectorAll('.sample__tabs .tab');
+  var panels = document.querySelectorAll('.sample__panel');
+  var flagEl = document.getElementById('sample-flag');
+  var subEl = document.getElementById('sample-sub');
+  var netsEl = document.getElementById('sample-nets');
+
   tabs.forEach(function (tab) {
     tab.addEventListener('click', function () {
-      tabs.forEach(function (t) { t.setAttribute('aria-selected', 'false'); t.tabIndex = -1; });
+      var targetId = tab.getAttribute('data-target');
+      var meta = sampleMeta[tab.id];
+
+      // Update tab buttons
+      tabs.forEach(function (t) {
+        t.setAttribute('aria-selected', 'false');
+        t.tabIndex = -1;
+      });
       tab.setAttribute('aria-selected', 'true');
       tab.tabIndex = 0;
+
+      // Toggle panels
+      panels.forEach(function (panel) {
+        if (panel.id === targetId) {
+          panel.style.display = 'block';
+        } else {
+          panel.style.display = 'none';
+        }
+      });
+
+      // Update card headers
+      if (meta) {
+        if (flagEl) flagEl.textContent = meta.flag;
+        if (subEl) subEl.textContent = meta.sub;
+        if (netsEl) {
+          netsEl.innerHTML = meta.nets.map(function (n) {
+            return '<span>' + n + '</span>';
+          }).join('');
+        }
+      }
     });
   });
 })();
