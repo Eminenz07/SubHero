@@ -37,7 +37,7 @@
 {% block content %}
 <style>
 /* =============================================================
-   LANDING PAGE — Full-bleed breakout overrides
+   LANDING PAGE: Full-bleed breakout overrides
    Keeps the landing page full width while other pages stay in app-shell.
    ============================================================= */
 html, body {
@@ -66,7 +66,7 @@ html, body {
 }
 
 /* ============================================================
-   DESIGN TOKENS — SubHero (dark navy + signature green)
+   DESIGN TOKENS: SubHero (dark navy + signature green)
    ============================================================ */
 :root {
   --bg: #060B14;
@@ -511,7 +511,7 @@ section[id] { scroll-margin-top: 96px; }
     <div class="container hero__grid">
       <div>
         <h1>Pay bills, buy data,<br>grow your <span class="stroke"><span id="typed-text">Socials</span><span class="typing-cursor">|</span></span></h1>
-        <p class="lead">The all-in-one platform for smart Nigerians. Instant VTU, affordable data, and automated social media growth — with seamless payments in one secure app.</p>
+        <p class="lead">The all-in-one platform for smart Nigerians. Instant VTU, affordable data, and automated social media growth, with seamless payments in one secure app.</p>
         <div class="hero__ctas">
           {% if request.user.is_authenticated %}
             <a class="btn-sh btn-sh-primary btn-sh-lg" href="{% url 'dashboard' %}">Go to Dashboard <svg aria-hidden="true"><use href="#i-arrow"></use></svg></a>
@@ -694,14 +694,14 @@ section[id] { scroll-margin-top: 96px; }
       <div class="section-head">
         <span class="eyebrow">Services</span>
         <h2>Everything you need, one platform</h2>
-        <p class="lead">All your daily digital transactions — from data to social media growth — in one secure place.</p>
+        <p class="lead">All your daily digital transactions, from data to social media growth, in one secure place.</p>
       </div>
 
       <div class="bento">
         <a class="bento__item bento__item--data" href="{% if request.user.is_authenticated %}{% url 'vtu:buy_data' %}{% else %}{% url 'accounts:register' %}{% endif %}">
           <span class="bento__icon"><svg aria-hidden="true"><use href="#i-wifi"></use></svg></span>
           <span class="bento__title">Data</span>
-          <p class="bento__copy">Instant VTU across MTN, GLO, Airtel and 9mobile — prices start from ₦250/GB.</p>
+          <p class="bento__copy">Instant VTU across MTN, GLO, Airtel and 9mobile, with prices starting from ₦250/GB.</p>
           <span class="bento__anchor">From ₦250/GB <svg aria-hidden="true"><use href="#i-arrow"></use></svg></span>
         </a>
 
@@ -729,7 +729,7 @@ section[id] { scroll-margin-top: 96px; }
         <a class="bento__item bento__item--smm bento__item--featured" href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:register' %}{% endif %}">
           <span class="bento__icon"><svg aria-hidden="true"><use href="#i-trend"></use></svg></span>
           <span class="bento__title">Social media growth</span>
-          <p class="bento__copy">Boost followers, likes, views and streams across 26+ platforms — Instagram, TikTok, YouTube, Telegram, Spotify and more. Delivered fast, on a safe channel.</p>
+          <p class="bento__copy">Boost followers, likes, views and streams across 26+ platforms including Instagram, TikTok, YouTube, Telegram, Spotify and more. Delivered fast, on a safe channel.</p>
           <span class="platform-dots">
             <span>Instagram</span><span>TikTok</span><span>YouTube</span><span>X</span><span>Telegram</span><span>Spotify</span><span>Facebook</span><span>LinkedIn</span><span>+18 more</span>
           </span>
@@ -773,7 +773,7 @@ section[id] { scroll-margin-top: 96px; }
           <span class="step__num">03</span>
           <div class="step__body">
             <h3>Buy, pay, or boost</h3>
-            <p>Data, airtime, power, cable TV and social boosts — delivered in seconds with full order tracking.</p>
+            <p>Data, airtime, power, cable TV and social boosts, delivered in seconds with full order tracking.</p>
           </div>
         </li>
       </ol>
@@ -876,7 +876,7 @@ section[id] { scroll-margin-top: 96px; }
     <div class="footer__grid">
       <div class="footer__brand">
         <a class="brand" href="#top">Sub<span>Hero</span></a>
-        <p>Instant VTU, cheap data, utilities and automated social media growth for Nigeria — all in one secure app.</p>
+        <p>Instant VTU, cheap data, utilities and automated social media growth for Nigeria, all in one secure app.</p>
       </div>
       <div>
         <h4>Platform</h4>
