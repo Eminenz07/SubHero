@@ -36,6 +36,7 @@ package-lock.json
 .DS_Store
 Thumbs.db
 desktop.ini
+*.stackdump
 
 # PRD / Docs (keep in repo but ignore generated extracts)
 PRD_full.txt
