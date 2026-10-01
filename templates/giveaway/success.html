@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block title %}Claim Successful | {{ giveaway.title }} - SubHero{% endblock %}
 {% block meta_description %}Successfully claimed {{ giveaway.prize_display }} from {{ giveaway.host_display }} on SubHero.{% endblock %}
 {% block canonical_url %}{{ request.scheme }}://{{ request.get_host }}{% url 'giveaway:claim_success' giveaway.slug %}{% endblock %}

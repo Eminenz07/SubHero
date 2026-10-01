@@ -20,7 +20,7 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 
-from apps.wallet.models import Wallet
+from apps.wallet.models import Wallet, WalletTransaction
 from apps.payments.models import WebhookLog
 from apps.payments.services import (
     initialize_card_payment,
