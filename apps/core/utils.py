@@ -36,12 +36,20 @@ def generate_uuid():
 def get_client_ip(request):
     """
     Extract the real client IP from the request.
-    Handles X-Forwarded-For from reverse proxy (Nginx).
+    Handles Cloudflare CF-Connecting-IP, X-Real-IP, and X-Forwarded-For.
     """
+    cf_ip = request.META.get("HTTP_CF_CONNECTING_IP")
+    if cf_ip:
+        return cf_ip.strip()
+
+    x_real_ip = request.META.get("HTTP_X_REAL_IP")
+    if x_real_ip:
+        return x_real_ip.strip()
+
     x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
     if x_forwarded_for:
-        # Take the first IP (client's real IP)
         return x_forwarded_for.split(",")[0].strip()
+
     return request.META.get("REMOTE_ADDR", "0.0.0.0")
 
 

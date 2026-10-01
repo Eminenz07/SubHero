@@ -212,12 +212,16 @@ def get_network_by_prefix(phone: str) -> str:
 import datetime
 
 def get_client_ip(request):
+    cf_ip = request.META.get('HTTP_CF_CONNECTING_IP')
+    if cf_ip:
+        return cf_ip.strip()
+    x_real_ip = request.META.get('HTTP_X_REAL_IP')
+    if x_real_ip:
+        return x_real_ip.strip()
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
     if x_forwarded_for:
-        ip = x_forwarded_for.split(',')[0].strip()
-    else:
-        ip = request.META.get('REMOTE_ADDR')
-    return ip
+        return x_forwarded_for.split(',')[0].strip()
+    return request.META.get('REMOTE_ADDR', '0.0.0.0')
 
 # ================= PUBLIC VIEWS =================
 def claim_page(request, slug):
@@ -272,12 +276,12 @@ def claim_page(request, slug):
                 if not giveaway_locked.is_claimable:
                     return render(request, 'giveaway/closed.html', {'giveaway': giveaway_locked})
                     
-                # Clean up any failed attempts for this number so they can retry
-                GiveawayClaim.objects.filter(giveaway=giveaway_locked, phone_number=normalized_phone, status='FAILED').delete()
+                # Clean up any failed or pending attempts for this number so they can retry
+                GiveawayClaim.objects.filter(giveaway=giveaway_locked, phone_number=normalized_phone, status__in=['FAILED', 'PENDING']).delete()
                 
-                # Check for active or pending claims
-                if GiveawayClaim.objects.filter(giveaway=giveaway_locked, phone_number=normalized_phone).exists():
-                    return render(request, 'giveaway/claim.html', {'giveaway': giveaway_locked, 'error': 'Number already claimed!'})
+                # Check for successfully claimed numbers
+                if GiveawayClaim.objects.filter(giveaway=giveaway_locked, phone_number=normalized_phone, status='SUCCESS').exists():
+                    return render(request, 'giveaway/claim.html', {'giveaway': giveaway_locked, 'error': 'This phone number has already claimed from this giveaway!'})
  
                 giveaway_locked.claimed_slots += 1
                 giveaway_locked.save(update_fields=['claimed_slots'])
@@ -298,6 +302,13 @@ def claim_page(request, slug):
                     process_giveaway_claim.delay(str(claim.id))
                 except Exception as delay_err:
                     logger.error("Celery delay fallback error: %s", delay_err)
+                    # If immediate and delay both failed (e.g. broker error), fail and release slot
+                    with transaction.atomic():
+                        claim.status = 'FAILED'
+                        claim.save(update_fields=['status'])
+                        giveaway_locked.refresh_from_db()
+                        giveaway_locked.claimed_slots = max(0, giveaway_locked.claimed_slots - 1)
+                        giveaway_locked.save(update_fields=['claimed_slots'])
 
             claim.refresh_from_db()
 
