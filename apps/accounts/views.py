@@ -402,9 +402,10 @@ class VerifyOTPView(View):
                                 user.id, str(e),
                             )
 
-                        # Welcome notification
+                        # Welcome notification & email
                         try:
                             from apps.notifications.models import Notification
+                            from django.template.loader import render_to_string
                             Notification.add(
                                 user,
                                 "Welcome to SubHero!",
@@ -413,19 +414,15 @@ class VerifyOTPView(View):
                             )
                             if user.email:
                                 subject = "Welcome to SubHero! 🎉"
-                                email_message = (
-                                    f"Hello {user.full_name or 'SubHero User'},\n\n"
-                                    f"Welcome to SubHero! Your account has been successfully verified.\n\n"
-                                    f"You can now fund your wallet and start purchasing cheap data, airtime, and SMM social booster services.\n\n"
-                                    f"If you have any questions, feel free to contact support.\n\n"
-                                    f"Best regards,\n"
-                                    f"The SubHero Team"
-                                )
+                                context = {
+                                    "user_name": user.full_name or user.username or "there",
+                                    "support_email": getattr(settings, "SUPPORT_EMAIL", "support@subhero.com.ng"),
+                                }
+                                html_content = render_to_string("emails/welcome_email.html", context)
                                 send_async_app_email(
                                     subject=subject,
                                     recipient_email=user.email,
-                                    html_content=f"<p>{email_message.replace(chr(10), '<br>')}</p>",
-                                    text_content=email_message,
+                                    html_content=html_content,
                                 )
                         except Exception as ex:
                             logger.error("Welcome notification/email creation failed: %s", str(ex))

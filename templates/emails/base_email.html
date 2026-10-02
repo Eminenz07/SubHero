@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="x-apple-disable-message-reformatting">
+  <title>{% block title %}SubHero — Instant VTU & Digital Services{% endblock %}</title>
+  <!--[if mso]>
+  <style>
+    * { font-family: sans-serif !important; }
+  </style>
+  <![endif]-->
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #060B14;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      color: #FFFFFF;
+      -webkit-font-smoothing: antialiased;
+    }
+    table {
+      border-spacing: 0;
+      mso-table-lspace: 0pt;
+      mso-table-rspace: 0pt;
+    }
+    td {
+      padding: 0;
+    }
+    img {
+      border: 0;
+      -ms-interpolation-mode: bicubic;
+    }
+    a {
+      text-decoration: none;
+    }
+    @media screen and (max-width: 600px) {
+      .email-container {
+        width: 100% !important;
+        margin: auto !important;
+        border-radius: 12px !important;
+      }
+      .content-padding {
+        padding: 24px 18px !important;
+      }
+      .header-padding {
+        padding: 28px 20px !important;
+      }
+    }
+  </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #060B14; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #FFFFFF;">
+  <div style="background-color: #060B14; width: 100%; table-layout: fixed; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #060B14; padding: 40px 15px;">
+      <tr>
+        <td align="center">
+          <!-- Main Email Container -->
+          <table role="presentation" class="email-container" width="100%" style="max-width: 560px; background-color: #0D1524; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 20px; overflow: hidden; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);" cellspacing="0" cellpadding="0">
+            
+            <!-- Header Banner -->
+            <tr>
+              <td class="header-padding" style="padding: 36px 30px; background: linear-gradient(135deg, #00C46A 0%, #004D2C 100%); text-align: center;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td align="center">
+                      {% block header_logo %}
+                      <a href="https://subhero.com.ng" target="_blank" style="text-decoration: none; display: inline-block;">
+                        <h1 style="margin: 0; font-size: 30px; font-weight: 900; color: #FFFFFF; letter-spacing: -0.5px; line-height: 1.2;">
+                          Sub<span style="color: #A3FFD2;">Hero</span>
+                        </h1>
+                      </a>
+                      {% endblock %}
+
+                      {% block header_subtitle %}
+                      <p style="margin: 6px 0 0 0; font-size: 13px; color: rgba(255, 255, 255, 0.92); font-weight: 600; letter-spacing: 0.3px;">
+                        Fast & Reliable Digital Services
+                      </p>
+                      {% endblock %}
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- Content Area -->
+            <tr>
+              <td class="content-padding" style="padding: 36px 32px; text-align: left;">
+                
+                {% block greeting %}
+                {% if user_name %}
+                <h2 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 700; color: #FFFFFF;">
+                  Hi {{ user_name }},
+                </h2>
+                {% endif %}
+                {% endblock %}
+
+                <!-- Dynamic Email Body -->
+                {% block content %}
+                {% endblock %}
+
+                <!-- Call To Action Slot -->
+                {% block cta %}
+                {% endblock %}
+
+                <!-- Security / Notice Slot -->
+                {% block notice %}
+                {% endblock %}
+
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td style="padding: 26px 30px; background-color: #080D18; border-top: 1px solid rgba(255, 255, 255, 0.05); text-align: center;">
+                
+                {% block footer_support %}
+                <p style="margin: 0 0 10px 0; font-size: 12px; color: #94A3B8; line-height: 1.5;">
+                  Have questions or need assistance? Reach out to our 24/7 support at
+                  <a href="mailto:{{ support_email|default:'support@subhero.com.ng' }}" style="color: #00C46A; text-decoration: none; font-weight: 600;">
+                    {{ support_email|default:'support@subhero.com.ng' }}
+                  </a>
+                </p>
+                {% endblock %}
+
+                <!-- Quick Navigation Links -->
+                <p style="margin: 0 0 12px 0; font-size: 11px; color: #64748B;">
+                  <a href="https://subhero.com.ng/dashboard/" style="color: #64748B; text-decoration: underline; margin: 0 8px;">Dashboard</a> &bull;
+                  <a href="https://subhero.com.ng/wallet/fund/" style="color: #64748B; text-decoration: underline; margin: 0 8px;">Fund Wallet</a> &bull;
+                  <a href="https://subhero.com.ng" style="color: #64748B; text-decoration: underline; margin: 0 8px;">Website</a>
+                </p>
+
+                <!-- Copyright -->
+                <p style="margin: 0; font-size: 11px; color: #475569;">
+                  &copy; 2026 SubHero Nigeria. All rights reserved.
+                </p>
+              </td>
+            </tr>
+
+          </table>
+          <!-- End Main Email Container -->
+        </td>
+      </tr>
+    </table>
+  </div>
+</body>
+</html>

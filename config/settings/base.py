@@ -466,11 +466,11 @@ VAPID_PRIVATE_KEY = config(
 VAPID_ADMIN_EMAIL = config("VAPID_ADMIN_EMAIL", default="mailto:admin@subhero.com.ng")
 
 # =============================================================
-# BREVO EMAIL API — HTTP REST API (Port 443 HTTPS)
+# DIRECT SMTP EMAIL SETTINGS
 # =============================================================
-BREVO_API_KEY = config("BREVO_API_KEY", default="")
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="SubHero <noreply@subhero.com.ng>")
 SERVER_EMAIL = config("SERVER_EMAIL", default=DEFAULT_FROM_EMAIL)
 SUPPORT_EMAIL = config("SUPPORT_EMAIL", default="support@subhero.com.ng")
+BREVO_API_KEY = config("BREVO_API_KEY", default="")
 
 

@@ -1,0 +1,84 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Welcome to SubHero! 🎉{% endblock %}
+
+{% block header_subtitle %}
+<p style="margin: 6px 0 0 0; font-size: 13px; color: rgba(255, 255, 255, 0.95); font-weight: 600; letter-spacing: 0.3px;">
+  Account Activated Successfully
+</p>
+{% endblock %}
+
+{% block content %}
+<p style="margin: 0 0 18px 0; font-size: 15px; line-height: 1.6; color: #E2E8F0;">
+  Welcome to the <strong style="color: #00C46A;">SubHero</strong> family! We're excited to have you on board.
+</p>
+
+<p style="margin: 0 0 24px 0; font-size: 14px; line-height: 1.6; color: #94A3B8;">
+  Your account has been fully verified and your digital wallet is ready. You now have access to Nigeria's fastest platform for automated VTU, utility bills, and social growth services.
+</p>
+
+<!-- Features Grid -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin: 24px 0;">
+  <tr>
+    <td style="padding: 12px; background-color: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 12px; margin-bottom: 10px;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+        <tr>
+          <td width="36" valign="top" style="font-size: 22px;">⚡</td>
+          <td style="padding-left: 12px;">
+            <strong style="color: #FFFFFF; font-size: 14px; display: block;">Instant Data & Airtime</strong>
+            <span style="color: #94A3B8; font-size: 12px; line-height: 1.4;">Unbeatable rates on MTN, Airtel, Glo, and 9mobile with instant 2-second delivery.</span>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+  <tr><td height="10"></td></tr>
+  <tr>
+    <td style="padding: 12px; background-color: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 12px;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+        <tr>
+          <td width="36" valign="top" style="font-size: 22px;">💡</td>
+          <td style="padding-left: 12px;">
+            <strong style="color: #FFFFFF; font-size: 14px; display: block;">Bills & Cable TV</strong>
+            <span style="color: #94A3B8; font-size: 12px; line-height: 1.4;">Instant electricity prepaid tokens (IKEDC, EKEDC, etc.) and DSTV/GOtv/Startimes subscriptions.</span>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+  <tr><td height="10"></td></tr>
+  <tr>
+    <td style="padding: 12px; background-color: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 12px;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+        <tr>
+          <td width="36" valign="top" style="font-size: 22px;">🚀</td>
+          <td style="padding-left: 12px;">
+            <strong style="color: #FFFFFF; font-size: 14px; display: block;">SMM Social Booster</strong>
+            <span style="color: #94A3B8; font-size: 12px; line-height: 1.4;">Accelerate your brand with followers, likes, and engagement across TikTok, Instagram, and X.</span>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<p style="margin: 20px 0 0 0; font-size: 14px; line-height: 1.6; color: #CBD5E1;">
+  To make your first purchase, simply fund your wallet using your dedicated virtual account or direct bank transfer.
+</p>
+{% endblock %}
+
+{% block cta %}
+<div style="text-align: center; margin: 32px 0 20px 0;">
+  <a href="https://subhero.com.ng/wallet/fund/" target="_blank" style="display: inline-block; padding: 15px 36px; background: linear-gradient(135deg, #00C46A 0%, #009E54 100%); color: #FFFFFF; font-size: 15px; font-weight: 700; text-decoration: none; border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 196, 106, 0.35); letter-spacing: 0.3px;">
+    Fund Your Wallet Now &rarr;
+  </a>
+</div>
+{% endblock %}
+
+{% block notice %}
+<div style="margin-top: 28px; padding: 14px 16px; background-color: rgba(0, 196, 106, 0.05); border-radius: 10px; border-left: 3px solid #00C46A;">
+  <p style="margin: 0; font-size: 12px; line-height: 1.5; color: #94A3B8;">
+    🛡️ <strong style="color: #E2E8F0;">Security Tip:</strong> Don't forget to set your 4-digit Transaction PIN in your account settings before making your first transaction. Never share your PIN or OTP with anyone.
+  </p>
+</div>
+{% endblock %}
