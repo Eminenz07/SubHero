@@ -12,7 +12,7 @@ set -eo pipefail
 CONTAINER_NAME="subhero_postgres"
 DB_USER="subhero"
 DB_NAME="subhero_db"
-BACKUP_DIR="${HOME}/backups/postgres"
+BACKUP_DIR="${BACKUP_DIR:-/home/subhero_admin/backups/postgres}"
 RETENTION_DAYS=14
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 BACKUP_FILE="${BACKUP_DIR}/subhero_db_${TIMESTAMP}.sql.gz"
