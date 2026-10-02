@@ -1,0 +1,76 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}🚨 SubHero Error Alert: {{ exc_type }}{% endblock %}
+
+{% block header_subtitle %}
+<p style="margin: 6px 0 0 0; font-size: 13px; color: #FCA5A5; font-weight: 700; letter-spacing: 0.5px;">
+  🚨 CRITICAL SERVER EXCEPTION
+</p>
+{% endblock %}
+
+{% block content %}
+<p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: #E2E8F0;">
+  An unhandled error occurred while a user was browsing <strong>SubHero</strong>. Here are the diagnostics:
+</p>
+
+<!-- Error Details Card -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin: 16px 0 24px 0; background-color: rgba(239, 68, 68, 0.06); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 12px; overflow: hidden;">
+  <tr>
+    <td style="padding: 12px 16px; border-bottom: 1px solid rgba(239, 68, 68, 0.15); font-size: 13px; color: #94A3B8; width: 30%;">
+      <strong>Exception:</strong>
+    </td>
+    <td style="padding: 12px 16px; border-bottom: 1px solid rgba(239, 68, 68, 0.15); font-size: 13px; color: #EF4444; font-weight: 700; font-family: monospace;">
+      {{ exc_type }}: {{ exc_message }}
+    </td>
+  </tr>
+  <tr>
+    <td style="padding: 12px 16px; border-bottom: 1px solid rgba(239, 68, 68, 0.15); font-size: 13px; color: #94A3B8;">
+      <strong>Endpoint:</strong>
+    </td>
+    <td style="padding: 12px 16px; border-bottom: 1px solid rgba(239, 68, 68, 0.15); font-size: 13px; color: #F8FAFC; font-family: monospace;">
+      <span style="display: inline-block; padding: 2px 6px; background-color: rgba(255,255,255,0.1); border-radius: 4px; font-size: 11px; margin-right: 6px;">{{ method }}</span>
+      {{ full_url }}
+    </td>
+  </tr>
+  <tr>
+    <td style="padding: 12px 16px; border-bottom: 1px solid rgba(239, 68, 68, 0.15); font-size: 13px; color: #94A3B8;">
+      <strong>Affected User:</strong>
+    </td>
+    <td style="padding: 12px 16px; border-bottom: 1px solid rgba(239, 68, 68, 0.15); font-size: 13px; color: #F8FAFC;">
+      {{ user_info }}
+    </td>
+  </tr>
+  <tr>
+    <td style="padding: 12px 16px; border-bottom: 1px solid rgba(239, 68, 68, 0.15); font-size: 13px; color: #94A3B8;">
+      <strong>Client IP:</strong>
+    </td>
+    <td style="padding: 12px 16px; border-bottom: 1px solid rgba(239, 68, 68, 0.15); font-size: 13px; color: #F8FAFC; font-family: monospace;">
+      {{ client_ip }}
+    </td>
+  </tr>
+  <tr>
+    <td style="padding: 12px 16px; font-size: 13px; color: #94A3B8;">
+      <strong>Timestamp:</strong>
+    </td>
+    <td style="padding: 12px 16px; font-size: 13px; color: #F8FAFC;">
+      {{ timestamp }}
+    </td>
+  </tr>
+</table>
+
+<!-- Stack Trace Section -->
+<h3 style="margin: 20px 0 8px 0; font-size: 14px; font-weight: 700; color: #FCA5A5;">
+  Python Traceback
+</h3>
+<div style="background-color: #04070E; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 14px; overflow-x: auto; max-height: 380px;">
+  <pre style="margin: 0; font-family: 'Courier New', Courier, monospace; font-size: 11px; line-height: 1.5; color: #F87171; white-space: pre-wrap; word-break: break-all;">{{ traceback }}</pre>
+</div>
+{% endblock %}
+
+{% block cta %}
+<div style="text-align: center; margin: 28px 0 16px 0;">
+  <a href="https://subhero.com.ng" target="_blank" style="display: inline-block; padding: 13px 28px; background: #EF4444; color: #FFFFFF; font-size: 13px; font-weight: 700; text-decoration: none; border-radius: 10px;">
+    Open SubHero &rarr;
+  </a>
+</div>
+{% endblock %}

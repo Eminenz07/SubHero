@@ -118,6 +118,7 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 # =============================================================
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "apps.core.middleware.ErrorAlertMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -471,6 +472,9 @@ VAPID_ADMIN_EMAIL = config("VAPID_ADMIN_EMAIL", default="mailto:admin@subhero.co
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="SubHero <noreply@subhero.com.ng>")
 SERVER_EMAIL = config("SERVER_EMAIL", default=DEFAULT_FROM_EMAIL)
 SUPPORT_EMAIL = config("SUPPORT_EMAIL", default="support@subhero.com.ng")
+ADMIN_ALERT_EMAIL = config("ADMIN_ALERT_EMAIL", default="subherong@gmail.com")
+ADMINS = [("SubHero Admin", ADMIN_ALERT_EMAIL)]
+MANAGERS = ADMINS
 BREVO_API_KEY = config("BREVO_API_KEY", default="")
 
 
