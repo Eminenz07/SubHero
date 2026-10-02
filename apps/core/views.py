@@ -50,3 +50,14 @@ def robots_txt(request):
     ]
     return HttpResponse("\n".join(lines), content_type="text/plain; charset=utf-8")
 
+
+def trigger_test_500(request):
+    """
+    Diagnostic endpoint to deliberately trigger a 500 error and verify
+    that ErrorAlertMiddleware sends an immediate alert to subherong@gmail.com.
+    """
+    raise RuntimeError(
+        "Deliberate 500 Test: Verifying that SubHero ErrorAlertMiddleware catches "
+        "and dispatches an immediate email alert to subherong@gmail.com!"
+    )
+

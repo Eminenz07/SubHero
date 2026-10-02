@@ -26,6 +26,7 @@ urlpatterns = [
     # Zero-overhead healthcheck for UptimeRobot / uptime monitors (0 Redis commands)
     path("healthz/", core_views.healthcheck, name="healthcheck"),
     path("ping/", core_views.healthcheck, name="ping"),
+    path("trigger-test-500/", core_views.trigger_test_500, name="trigger_test_500"),
 
     # PWA files served at root
     path("manifest.json", TemplateView.as_view(template_name="manifest.json", content_type="application/json"), name="manifest_json"),

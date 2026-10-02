@@ -83,9 +83,10 @@ class ErrorAlertMiddleware:
             exc_message = str(exception)
             tb = traceback.format_exc()
 
-            # Anti-spam rate limiting: 1 email per exception type & endpoint per 10 minutes
+            # Anti-spam rate limiting: 1 email per exception type & endpoint per 10 minutes (bypass if ?force=1)
+            is_forced = bool(request.GET.get("force"))
             cache_key = f"err_alert:{exc_type}:{endpoint}"
-            if cache.get(cache_key):
+            if not is_forced and cache.get(cache_key):
                 logger.info("Error alert throttled for %s at %s", exc_type, endpoint)
                 return None
 
