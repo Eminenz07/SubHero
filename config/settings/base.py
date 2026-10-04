@@ -475,6 +475,5 @@ SUPPORT_EMAIL = config("SUPPORT_EMAIL", default="support@subhero.com.ng")
 ADMIN_ALERT_EMAIL = config("ADMIN_ALERT_EMAIL", default="subherong@gmail.com")
 ADMINS = [("SubHero Admin", ADMIN_ALERT_EMAIL)]
 MANAGERS = ADMINS
-BREVO_API_KEY = config("BREVO_API_KEY", default="")
 
 

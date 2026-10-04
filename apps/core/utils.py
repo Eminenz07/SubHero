@@ -220,7 +220,7 @@ def send_email_otp(user, purpose="registration", session=None):
     """
     Generate and dispatch a 6-digit OTP code to user's email address.
     Stores hashed OTP in cache and optional session fallback.
-    Dispatches styled HTML email asynchronously via Brevo HTTP API / fallback.
+    Dispatches styled HTML email asynchronously via direct SMTP.
     Returns the generated OTP code.
     """
     import time

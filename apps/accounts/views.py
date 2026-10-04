@@ -97,7 +97,7 @@ class RegisterView(View):
                 is_active=True,
             )
 
-            # Dispatch email verification OTP via Brevo HTTP API
+            # Dispatch email verification OTP via direct SMTP
             clean_email = user.email.strip().lower()
             send_email_otp(user, purpose="registration", session=request.session)
             try:
