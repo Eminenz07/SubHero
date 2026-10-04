@@ -44,22 +44,16 @@ logger = logging.getLogger(__name__)
 
 def _send_async_email(subject, message, from_email, recipient_list):
     """
-    Spawns a background thread to send emails asynchronously so HTTP login/auth responses return instantly.
+    Spawns a background thread to send emails asynchronously using send_async_app_email.
     """
-    def _target():
-        try:
-            send_mail(
-                subject=subject,
-                message=message,
-                from_email=from_email,
-                recipient_list=recipient_list,
-                fail_silently=True,
-            )
-        except Exception as e:
-            logger.error("Async email dispatch error: %s", str(e))
-
-    thread = threading.Thread(target=_target, daemon=True)
-    thread.start()
+    for recipient in (recipient_list or []):
+        send_async_app_email(
+            subject=subject,
+            recipient_email=recipient,
+            html_content=f"<p>{message.replace(chr(10), '<br>')}</p>",
+            text_content=message,
+            from_email=from_email or getattr(settings, "DEFAULT_FROM_EMAIL", "SubHero <noreply@subhero.com.ng>"),
+        )
 
 
 class RegisterView(View):
