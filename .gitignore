@@ -52,3 +52,11 @@ htmlcov/
 
 # Unused/Archive Assets
 junk_img/
+IMG_*.jpg
+brag-output/
+.agents/
+.claude/
+skills-lock.json
+scripts/temp_*
+scripts/*_binary.*
+scripts/build_logo_assets.py

@@ -446,11 +446,15 @@ def giveaway_receipt_card(request, slug):
     img = Image.new("RGB", (width, height), (255, 255, 255))
     draw = ImageDraw.Draw(img)
 
-    NAVY = (15, 23, 42)          # #0F172A
-    GREEN = (0, 176, 88)         # #00B058 brand green
-    LABEL_GREEN = (5, 150, 105)   # #059669
-    GRAY = (100, 116, 139)       # #64748B
-    LIGHT_GRAY = (226, 232, 240) # #E2E8F0
+    # Brand Colors (Matching Deep Royal Purple & Electric Lavender identity)
+    PURPLE_DARK = (30, 10, 48)     # #1E0A30 Main Value Text
+    PURPLE_BRAND = (42, 15, 66)    # #2A0F42 Primary Brand Purple
+    VIOLET = (124, 58, 237)        # #7C3AED Vibrant Violet Accent
+    LAVENDER = (200, 147, 255)     # #C893FF Electric Lavender Highlight
+    LAVENDER_LIGHT = (245, 238, 255) # Pill background
+    LABEL_COLOR = (125, 105, 150)  # Soft violet gray for labels
+    BORDER_COLOR = (228, 218, 240) # Divider dashed line
+    GRAY = (140, 125, 160)
 
     def get_font(size, bold=False):
         if bold:
@@ -478,25 +482,35 @@ def giveaway_receipt_card(request, slug):
                     pass
         return ImageFont.load_default()
 
-    font_hero = get_font(64, bold=True)
-    font_sub = get_font(32, bold=False)
-    font_date = get_font(24, bold=False)
+    font_hero = get_font(66, bold=True)
+    font_sub = get_font(30, bold=True)
+    font_date = get_font(23, bold=False)
     font_label = get_font(28, bold=False)
-    font_val = get_font(28, bold=False)
-    font_footer = get_font(22, bold=False)
+    font_val = get_font(28, bold=True)
+    font_footer = get_font(23, bold=False)
+
+    # Top decorative gradient ribbon
+    for x in range(width):
+        ratio = x / float(width)
+        r = int(124 + (42 - 124) * ratio)
+        g = int(58 + (15 - 58) * ratio)
+        b = int(237 + (66 - 237) * ratio)
+        draw.line([(x, 0), (x, 14)], fill=(r, g, b))
 
     top_y = 70
     qr_size = 145
 
-    # 1. Top Left Branded Logo (far left, aligned with QR code)
-    logo_path = os.path.join(settings.BASE_DIR, 'static', 'img', 'sh-logo.png')
+    # 1. Top Left Branded Logo (Horizontal Lockup preferred)
+    logo_path = os.path.join(settings.BASE_DIR, 'static', 'img', 'sh-logo-horizontal.png')
+    if not os.path.exists(logo_path):
+        logo_path = os.path.join(settings.BASE_DIR, 'static', 'img', 'sh-logo.png')
     if not os.path.exists(logo_path):
         logo_path = os.path.join(settings.BASE_DIR, 'static', 'favicon.png')
 
     if os.path.exists(logo_path):
         try:
             logo = Image.open(logo_path).convert("RGBA")
-            target_w = 210
+            target_w = 300
             w_percent = (target_w / float(logo.width))
             h_size = int((float(logo.height) * float(w_percent)))
             logo = logo.resize((target_w, h_size), Image.LANCZOS)
@@ -505,7 +519,7 @@ def giveaway_receipt_card(request, slug):
         except Exception:
             pass
 
-    # 2. Top Right Branded QRCode Monkey QR (leading to homepage, aligned at top_y)
+    # 2. Top Right Branded QRCode Monkey QR
     try:
         site_url = f"{request.scheme}://{request.get_host()}"
         qr_b64 = generate_qr_code_base64(site_url) or giveaway.qr_code_base64
@@ -521,40 +535,41 @@ def giveaway_receipt_card(request, slug):
     # 3. Hero Amount
     total_val = giveaway.claimed_slots * giveaway.amount_per_slot if giveaway.claimed_slots > 0 else giveaway.total_locked
     total_val_str = f"₦ {int(total_val):,}.00"
-    draw.text((width // 2, 230), total_val_str, fill=NAVY, font=font_hero, anchor="mm")
+    draw.text((width // 2, 260), total_val_str, fill=PURPLE_DARK, font=font_hero, anchor="mm")
 
-    # 4. Status Text + Drawn Checkmark Icon
+    # 4. Status Pill Badge + Drawn Checkmark Icon
     status_text = "Giveaway Successful"
     bbox = draw.textbbox((0, 0), status_text, font=font_sub)
     text_w = bbox[2] - bbox[0]
 
-    center_x = width // 2
-    status_y = 315
+    pill_w = text_w + 90
+    pill_h = 56
+    pill_x0 = (width - pill_w) // 2
+    pill_y0 = 328
+    draw.rounded_rectangle([pill_x0, pill_y0, pill_x0 + pill_w, pill_y0 + pill_h], radius=28, fill=LAVENDER_LIGHT, outline=BORDER_COLOR, width=2)
 
-    text_x = center_x - 18
-    draw.text((text_x, status_y), status_text, fill=NAVY, font=font_sub, anchor="mm")
+    check_cx = pill_x0 + 35
+    check_cy = pill_y0 + 28
+    draw.ellipse([check_cx - 14, check_cy - 14, check_cx + 14, check_cy + 14], fill=VIOLET)
+    draw.line([(check_cx - 6, check_cy), (check_cx - 2, check_cy + 4)], fill=(255, 255, 255), width=3)
+    draw.line([(check_cx - 2, check_cy + 4), (check_cx + 6, check_cy - 4)], fill=(255, 255, 255), width=3)
 
-    icon_x = text_x + (text_w // 2) + 20
-    icon_y = status_y
-    r = 16
-    draw.ellipse([icon_x - r, icon_y - r, icon_x + r, icon_y + r], fill=GREEN)
-    draw.line([(icon_x - 7, icon_y), (icon_x - 2, icon_y + 5)], fill=(255, 255, 255), width=3)
-    draw.line([(icon_x - 2, icon_y + 5), (icon_x + 7, icon_y - 5)], fill=(255, 255, 255), width=3)
+    draw.text((check_cx + 25, check_cy), status_text, fill=PURPLE_BRAND, font=font_sub, anchor="lm")
 
     # 5. Date
     date_str = giveaway.created_at.strftime("%B %d, %Y %I:%M:%S %p")
-    draw.text((width // 2, 375), date_str, fill=LABEL_GREEN, font=font_date, anchor="mm")
+    draw.text((width // 2, 425), date_str, fill=LABEL_COLOR, font=font_date, anchor="mm")
 
     # 6. Top Dashed Line
     def draw_dashed_line(y):
-        dash_len = 16
-        gap_len = 10
+        dash_len = 14
+        gap_len = 8
         x = 80
         while x < width - 80:
-            draw.line([(x, y), (min(x + dash_len, width - 80), y)], fill=LIGHT_GRAY, width=2)
+            draw.line([(x, y), (min(x + dash_len, width - 80), y)], fill=BORDER_COLOR, width=2)
             x += dash_len + gap_len
 
-    draw_dashed_line(440)
+    draw_dashed_line(475)
 
     # 7. Key-Value Rows
     type_label = "Data Top up" if giveaway.giveaway_type == 'DATA' else "Airtime Top up"
@@ -569,16 +584,16 @@ def giveaway_receipt_card(request, slug):
         ("Host Name:", host_name),
     ]
 
-    start_y = 510
-    row_height = 90
+    start_y = 550
+    row_height = 92
 
     for i, (label, val) in enumerate(rows):
         y = start_y + (i * row_height)
-        draw.text((80, y), label, fill=LABEL_GREEN, font=font_label, anchor="lm")
-        draw.text((width - 80, y), val, fill=NAVY, font=font_val, anchor="rm")
+        draw.text((80, y), label, fill=LABEL_COLOR, font=font_label, anchor="lm")
+        draw.text((width - 80, y), val, fill=PURPLE_DARK, font=font_val, anchor="rm")
 
     # 8. Bottom Dashed Line
-    draw_dashed_line(start_y + (len(rows) * row_height) + 10)
+    draw_dashed_line(start_y + (len(rows) * row_height) + 15)
 
     # 9. Footer
     footer_prefix = "Host your own giveaway at "
@@ -590,11 +605,11 @@ def giveaway_receipt_card(request, slug):
         w_link = bbox_link[2] - bbox_link[0]
         total_w = w_pref + w_link
         start_x = (width - total_w) // 2
-        footer_y = 1310
+        footer_y = 1320
         draw.text((start_x, footer_y), footer_prefix, fill=GRAY, font=font_footer, anchor="lm")
-        draw.text((start_x + w_pref, footer_y), footer_link, fill=GREEN, font=font_footer, anchor="lm")
+        draw.text((start_x + w_pref, footer_y), footer_link, fill=VIOLET, font=font_footer, anchor="lm")
     except Exception:
-        draw.text((width // 2, 1310), "Host your own giveaway at subhero.com.ng", fill=GREEN, font=font_footer, anchor="mm")
+        draw.text((width // 2, 1320), "Host your own giveaway at subhero.com.ng", fill=VIOLET, font=font_footer, anchor="mm")
 
     response = HttpResponse(content_type="image/png")
     response['Content-Disposition'] = f'attachment; filename="giveaway_receipt_{giveaway.slug}.png"'

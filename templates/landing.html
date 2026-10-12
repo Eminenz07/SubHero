@@ -44,7 +44,7 @@ html, body {
   overflow-x: hidden !important;
   overflow-y: auto !important;
   height: auto !important;
-  background: #060B14 !important;
+  background: #0B0414 !important;
 }
 
 .app-shell {
@@ -54,7 +54,7 @@ html, body {
   border-radius: 0 !important;
   box-shadow: none !important;
   margin: 0 !important;
-  background: #060B14 !important;
+  background: #0B0414 !important;
   overflow: visible !important;
   --tw-ring-shadow: none !important;
   --tw-ring-offset-shadow: none !important;
@@ -66,27 +66,27 @@ html, body {
 }
 
 /* ============================================================
-   DESIGN TOKENS: SubHero (dark navy + signature green)
+   DESIGN TOKENS: SubHero (Obsidian Royal Purple + Electric Lavender)
    ============================================================ */
 :root {
-  --bg: #060B14;
-  --surface: #0D1321;
-  --surface-2: #111A2C;
-  --fg: #F5F8FF;
-  --fg-2: #C6D0E0;
-  --muted: #8B95A8;
-  --meta: #00C46A;
-  --border: rgba(255,255,255,0.08);
-  --border-soft: rgba(255,255,255,0.05);
-  --border-strong: rgba(255,255,255,0.14);
-  --accent: #00C46A;
-  --accent-on: #03170F;
-  --accent-hover: #00D474;
-  --accent-active: #00B861;
-  --accent-deep: #006B3E;
-  --accent-dim: rgba(0,196,106,0.10);
-  --accent-glow: rgba(0,196,106,0.16);
-  --success: #16a34a;
+  --bg: #0B0414;
+  --surface: #140824;
+  --surface-2: #1F0D36;
+  --fg: #FAF5FF;
+  --fg-2: #E9D5FF;
+  --muted: #A89AB8;
+  --meta: #C893FF;
+  --border: rgba(200,147,255,0.12);
+  --border-soft: rgba(200,147,255,0.07);
+  --border-strong: rgba(200,147,255,0.24);
+  --accent: #C893FF;
+  --accent-on: #1B072E;
+  --accent-hover: #D8B2FF;
+  --accent-active: #B770FF;
+  --accent-deep: #2A0F42;
+  --accent-dim: rgba(200,147,255,0.14);
+  --accent-glow: rgba(200,147,255,0.28);
+  --success: #10b981;
   --danger: #ef4444;
   --font-display: "Bricolage Grotesque", system-ui, sans-serif;
   --font-body: "Inter", "DM Sans", system-ui, sans-serif;
@@ -124,8 +124,9 @@ html, body {
   inset: 0;
   z-index: 0;
   background:
-    radial-gradient(900px 520px at 72% -8%, rgba(0,196,106,0.09), transparent 62%),
-    radial-gradient(760px 460px at 4% 18%, rgba(0,107,62,0.10), transparent 60%),
+    radial-gradient(900px 520px at 72% -8%, rgba(200,147,255,0.14), transparent 62%),
+    radial-gradient(760px 460px at 4% 18%, rgba(42,15,66,0.45), transparent 60%),
+    radial-gradient(600px 400px at 50% 85%, rgba(124,58,237,0.12), transparent 50%),
     var(--bg);
   pointer-events: none;
 }
@@ -210,8 +211,8 @@ section[id] { scroll-margin-top: 96px; }
   white-space: nowrap;
 }
 .btn-sh svg { width: 17px; height: 17px; flex-shrink: 0; }
-.btn-sh-primary { background: var(--accent); color: var(--accent-on); }
-.btn-sh-primary:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 10px 28px rgba(0,196,106,0.28); color: var(--accent-on); }
+.btn-sh-primary { background: var(--accent); color: var(--accent-on); font-weight: 700; }
+.btn-sh-primary:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 10px 28px rgba(200,147,255,0.35); color: var(--accent-on); }
 .btn-sh-primary:active { background: var(--accent-active); transform: translateY(0); }
 .btn-sh-secondary { color: var(--fg); background: transparent; border-color: var(--border-strong); }
 .btn-sh-secondary:hover { background: rgba(255,255,255,0.06); border-color: var(--accent); color: var(--fg); }
@@ -226,7 +227,7 @@ section[id] { scroll-margin-top: 96px; }
   z-index: 50;
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
-  background: rgba(6,11,20,0.72);
+  background: rgba(11,4,20,0.85);
   border-bottom: 1px solid var(--border);
 }
 .nav__inner { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); padding-block: var(--space-3); }
@@ -271,7 +272,7 @@ section[id] { scroll-margin-top: 96px; }
   font-weight: 700;
   margin-left: 2px;
   animation: cursor-blink 0.8s infinite;
-  text-shadow: 0 0 10px rgba(0, 196, 106, 0.6);
+  text-shadow: 0 0 10px rgba(200, 147, 255, 0.7);
 }
 @keyframes cursor-blink {
   0%, 100% { opacity: 1; }
@@ -291,8 +292,8 @@ section[id] { scroll-margin-top: 96px; }
   margin-left: auto;
   border-radius: var(--radius-lg);
   border: 1px solid var(--border);
-  background: linear-gradient(180deg, rgba(17,26,44,0.9), rgba(13,19,33,0.96));
-  box-shadow: var(--elev-raised), 0 0 0 1px rgba(0,196,106,0.06), 0 0 90px rgba(0,196,106,0.08);
+  background: linear-gradient(180deg, rgba(31,13,54,0.92), rgba(20,8,36,0.98));
+  box-shadow: var(--elev-raised), 0 0 0 1px rgba(200,147,255,0.12), 0 0 90px rgba(200,147,255,0.15);
   padding: 1rem 1.15rem 0.85rem;
 }
 .sample__flag {
@@ -322,7 +323,7 @@ section[id] { scroll-margin-top: 96px; }
 .plan__name small { display: block; font-weight: 400; color: var(--muted); font-size: 12px; }
 .plan__price { font-family: var(--font-mono); font-weight: 700; font-size: var(--text-sm); color: var(--fg); }
 .plan__price .from { color: var(--muted); font-weight: 500; font-size: 12px; }
-.plan--pick { border-color: rgba(0,196,106,0.45); background: rgba(0,196,106,0.06); }
+.plan--pick { border-color: rgba(200,147,255,0.45); background: rgba(200,147,255,0.08); }
 .plan--pick .plan__pick { color: var(--accent); font-family: var(--font-mono); font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; }
 .sample__divider { border: 0; border-top: 1px dashed var(--border); margin: var(--space-3) 0; }
 .boost { display: flex; align-items: center; gap: var(--space-3); }
@@ -383,21 +384,21 @@ section[id] { scroll-margin-top: 96px; }
 }
 .bento__item::after {
   content: ""; position: absolute; inset: 0; border-radius: inherit;
-  background: radial-gradient(340px 160px at 12% -10%, rgba(0,196,106,0.10), transparent 62%);
+  background: radial-gradient(340px 160px at 12% -10%, rgba(200,147,255,0.12), transparent 62%);
   opacity: 0; transition: opacity var(--motion-base);
 }
-.bento__item:hover { transform: translateY(-3px); border-color: rgba(0,196,106,0.35); background: var(--surface-2); box-shadow: 0 18px 44px rgba(0,0,0,0.4); }
+.bento__item:hover { transform: translateY(-3px); border-color: rgba(200,147,255,0.4); background: var(--surface-2); box-shadow: 0 18px 44px rgba(0,0,0,0.5); }
 .bento__item:hover::after { opacity: 1; }
 .bento__icon { width: 46px; height: 46px; border-radius: var(--radius-sm); display: grid; place-items: center; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--fg-2); transition: color var(--motion-base), background-color var(--motion-base), border-color var(--motion-base); }
 .bento__icon svg { width: 21px; height: 21px; }
-.bento__item:hover .bento__icon { color: var(--accent); border-color: rgba(0,196,106,0.4); background: var(--accent-dim); }
+.bento__item:hover .bento__icon { color: var(--accent); border-color: rgba(200,147,255,0.45); background: var(--accent-dim); }
 .bento__title { font-family: var(--font-display); font-size: var(--text-xl); font-weight: 700; letter-spacing: -0.01em; position: relative; z-index: 1; }
 .bento__copy { font-size: var(--text-sm); color: var(--muted); line-height: 1.6; position: relative; z-index: 1; max-width: 34em; }
 .bento__anchor { display: inline-flex; align-items: center; gap: var(--space-1); font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin-top: auto; position: relative; z-index: 1; transition: color var(--motion-base); }
 .bento__item:hover .bento__anchor { color: var(--accent); }
 .bento__anchor svg { width: 14px; height: 14px; }
-.bento__item--featured { border-color: rgba(0,196,106,0.3); background:
-  radial-gradient(420px 240px at 88% -10%, rgba(0,196,106,0.14), transparent 60%), var(--surface); }
+.bento__item--featured { border-color: rgba(200,147,255,0.35); background:
+  radial-gradient(420px 240px at 88% -10%, rgba(200,147,255,0.16), transparent 60%), var(--surface); }
 .bento__item--featured .bento__icon { background: var(--accent); border-color: var(--accent); color: var(--accent-on); }
 .platform-dots { display: flex; flex-wrap: wrap; gap: var(--space-2); position: relative; z-index: 1; }
 .platform-dots span { font-size: var(--text-xs); color: var(--muted); padding: 0.28rem 0.6rem; background: rgba(255,255,255,0.04); border: 1px solid var(--border-soft); border-radius: var(--radius-pill); font-family: var(--font-mono); font-weight: 600; }
@@ -446,8 +447,8 @@ section[id] { scroll-margin-top: 96px; }
   position: relative; overflow: hidden;
   padding: clamp(2.5rem, 6vw, 4.5rem) clamp(1.25rem, 5vw, 4rem);
   border-radius: var(--radius-lg);
-  border: 1px solid rgba(0,196,106,0.3);
-  background: radial-gradient(560px 300px at 50% -20%, rgba(0,196,106,0.18), transparent 62%), var(--surface);
+  border: 1px solid rgba(200,147,255,0.35);
+  background: radial-gradient(560px 300px at 50% -20%, rgba(200,147,255,0.18), transparent 62%), var(--surface);
   text-align: center;
 }
 .cta__panel h2 { font-size: clamp(1.8rem, 4vw, 2.75rem); font-weight: 800; max-width: 18em; margin: var(--space-4) auto 0; }
@@ -499,7 +500,10 @@ section[id] { scroll-margin-top: 96px; }
 <!-- ============ NAV ============ -->
 <header class="nav">
   <div class="container nav__inner">
-    <a class="brand" href="#top">Sub<span>Hero</span></a>
+    <a class="brand" href="#top">
+      <img src="{% static 'img/logo-icon.svg' %}" alt="SubHero" style="width: 28px; height: 28px; object-fit: contain; margin-right: 8px; display: inline-block;" />
+      Sub<span>Hero</span>
+    </a>
     <nav class="nav__links" aria-label="Primary">
       <a href="#services">Services</a>
       <a href="#how">How it works</a>
@@ -887,7 +891,10 @@ section[id] { scroll-margin-top: 96px; }
   <div class="container">
     <div class="footer__grid">
       <div class="footer__brand">
-        <a class="brand" href="#top">Sub<span>Hero</span></a>
+        <a class="brand" href="#top">
+          <img src="{% static 'img/logo-icon.svg' %}" alt="SubHero" style="width: 26px; height: 26px; object-fit: contain; margin-right: 8px; display: inline-block;" />
+          Sub<span>Hero</span>
+        </a>
         <p>Instant VTU, cheap data, utilities and automated social media growth for Nigeria, all in one secure app.</p>
       </div>
       <div>

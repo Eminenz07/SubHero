@@ -3,7 +3,7 @@
 {% block top_bar %}
 <header class="top-bar border-none bg-surface-page">
     <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-full bg-brand-accent text-white flex items-center justify-center font-display text-lg font-bold">
+        <div class="w-10 h-10 rounded-full bg-brand-primary text-[#C893FF] border border-[#C893FF]/30 flex items-center justify-center font-display text-lg font-bold">
             {{ request.user.full_name|slice:":1"|upper|default:"U" }}
         </div>
         <div>
@@ -25,10 +25,10 @@
 
 {% block content %}
 <!-- Wallet Hero Card -->
-<div class="bg-gradient-to-br from-brand-primary via-[#004D2C] to-brand-dark rounded-card p-6 mx-4 mb-6 relative overflow-hidden shadow-elevated">
+<div class="bg-gradient-to-br from-brand-primary via-[#1D0831] to-brand-dark rounded-card p-6 mx-4 mb-6 relative overflow-hidden shadow-elevated">
     <!-- Decorative overlays -->
     <div class="absolute -top-10 -right-10 w-[180px] h-[180px] rounded-full bg-white/5"></div>
-    <div class="absolute -bottom-14 -left-5 w-[220px] h-[220px] rounded-full bg-brand-accent/10"></div>
+    <div class="absolute -bottom-14 -left-5 w-[220px] h-[220px] rounded-full bg-brand-accent/15"></div>
     
     <div class="relative z-10">
         <div class="text-[12px] font-medium text-white/65 tracking-[0.5px] mb-1.5">Total Balance</div>
@@ -43,7 +43,7 @@
         </div>
         
         <div class="flex gap-2.5">
-            <a href="{% url 'wallet:fund' %}" class="flex-1 h-[42px] rounded-[10px] bg-brand-accent text-white text-[14px] font-semibold flex items-center justify-center gap-1.5 border-none no-underline">
+            <a href="{% url 'wallet:fund' %}" class="flex-1 h-[42px] rounded-[10px] bg-brand-violet hover:bg-[#6D28D9] text-white text-[14px] font-semibold flex items-center justify-center gap-1.5 border-none no-underline shadow-sm">
                 <i data-feather="plus" class="w-4 h-4"></i> Fund
             </a>
             <a href="{% url 'wallet:transfer' %}" class="flex-1 h-[42px] rounded-[10px] bg-white/10 text-white border border-white/25 text-[14px] font-semibold flex items-center justify-center gap-1.5 no-underline">

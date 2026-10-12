@@ -31,10 +31,10 @@ def generate_qr_code_base64(url: str) -> str:
             "body": "circular",
             "eye": "frame5",
             "eyeBall": "ball13",
-            "bodyColor": "#00B058",
+            "bodyColor": "#2A0F42",
             "bgColor": "#FFFFFF",
-            "gradientColor1": "#00B058",
-            "gradientColor2": "#0F172A",
+            "gradientColor1": "#7C3AED",
+            "gradientColor2": "#2A0F42",
             "gradientType": "linear",
             "gradientOnEyes": True,
             "logoMode": "default"
@@ -70,8 +70,8 @@ def generate_qr_code_base64(url: str) -> str:
         img = Image.new("RGBA", (img_size, img_size), (255, 255, 255, 255))
         draw = ImageDraw.Draw(img)
 
-        top_color = (0, 176, 88)
-        bottom_color = (15, 23, 42)
+        top_color = (124, 58, 237)   # Vibrant Violet #7C3AED
+        bottom_color = (42, 15, 66)  # Deep Purple #2A0F42
 
         def get_gradient_color(y_ratio):
             r = int(top_color[0] + (bottom_color[0] - top_color[0]) * y_ratio)

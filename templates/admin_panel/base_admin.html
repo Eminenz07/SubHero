@@ -77,8 +77,9 @@
     <aside id="admin-sidebar" class="fixed inset-y-0 left-0 z-50 w-64 admin-sidebar flex flex-col shrink-0 h-full transition-transform duration-300 -translate-x-full md:translate-x-0">
         <!-- Logo and Header -->
         <div class="h-16 flex items-center px-6 border-b border-white/[0.06]">
-            <a href="{% url 'admin_panel:dashboard' %}" class="text-lg font-extrabold tracking-tight text-white font-display no-underline hover:opacity-95 transition-all">
-                Sub<span class="text-emerald-500">Hero</span> <span class="text-xs font-semibold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 ml-1.5">HQ</span>
+            <a href="{% url 'admin_panel:dashboard' %}" class="flex items-center gap-2.5 text-lg font-extrabold tracking-tight text-white font-display no-underline hover:opacity-95 transition-all">
+                <img src="{% static 'img/logo-icon.svg' %}" alt="SubHero" class="w-6 h-6 object-contain" />
+                Sub<span class="text-[#C893FF]">Hero</span> <span class="text-xs font-semibold px-1.5 py-0.5 rounded bg-[#C893FF]/10 text-[#C893FF] border border-[#C893FF]/20 ml-1.5">HQ</span>
             </a>
         </div>
 

@@ -93,7 +93,7 @@
   }
   
   .form-input:focus {
-    box-shadow: 0 0 0 3px rgba(0,196,106,0.12);
+    box-shadow: 0 0 0 3px rgba(200, 147, 255, 0.25);
   }
 
   .form-input:disabled {
@@ -132,15 +132,15 @@
   }
 
   .btn-primary {
-    @apply btn bg-brand-accent text-white;
+    @apply btn bg-brand-violet hover:bg-[#6D28D9] text-white shadow-sm;
   }
 
   .btn-secondary {
-    @apply btn bg-brand-accent/10 text-brand-primary;
+    @apply btn bg-brand-accent/15 text-brand-primary hover:bg-brand-accent/25;
   }
   
   .btn-outline {
-    @apply btn bg-transparent text-brand-primary border-[1.5px] border-brand-primary;
+    @apply btn bg-transparent text-brand-primary border-[1.5px] border-brand-primary hover:bg-brand-primary/5;
   }
   
   .btn-ghost {
@@ -224,8 +224,8 @@
 
   .nav-item.active {
     @apply text-brand-primary font-semibold;
-    background: rgba(0, 107, 62, 0.08) !important;
-    border: 1.5px solid rgba(0, 107, 62, 0.15) !important;
+    background: rgba(42, 15, 66, 0.08) !important;
+    border: 1.5px solid rgba(42, 15, 66, 0.15) !important;
   }
   
   .nav-dot {
@@ -246,7 +246,7 @@
     border-radius: 50%;
     transform: scale(0);
     animation: ripple 0.5s ease-out;
-    background: rgba(0, 107, 62, 0.15);
+    background: rgba(42, 15, 66, 0.12);
     pointer-events: none;
   }
 
@@ -350,7 +350,7 @@
   }
 
   .auth-top {
-    @apply bg-gradient-to-br from-brand-primary to-[#004D2C]
+    @apply bg-gradient-to-br from-brand-primary to-brand-dark
            pt-12 px-6 pb-9 rounded-b-[32px];
   }
 
@@ -456,8 +456,8 @@ html.dark .form-select:focus,
 html.dark input:focus,
 html.dark select:focus,
 html.dark textarea:focus {
-  border-color: var(--brand-primary, #006B3E) !important;
-  box-shadow: 0 0 0 3px rgba(0, 107, 62, 0.15) !important;
+  border-color: #C893FF !important;
+  box-shadow: 0 0 0 3px rgba(200, 147, 255, 0.25) !important;
 }
 
 /* ------- Select dropdown arrow fix ------- */
@@ -472,9 +472,9 @@ html.dark .bottom-nav a {
 }
 
 html.dark .bottom-nav a.active {
-  color: #00c46a !important;
-  background: rgba(0, 196, 106, 0.12) !important;
-  border: 1.5px solid rgba(0, 196, 106, 0.2) !important;
+  color: #C893FF !important;
+  background: rgba(200, 147, 255, 0.15) !important;
+  border: 1.5px solid rgba(200, 147, 255, 0.25) !important;
 }
 
 html.dark .nav-ripple {
@@ -562,13 +562,14 @@ html.dark .alert-error {
 html.dark .bg-brand-primary\/10,
 html.dark .bg-brand-accent\/10,
 html.dark .bg-brand-accent\/15 {
-  background-color: rgba(0, 107, 62, 0.2) !important;
+  background-color: rgba(200, 147, 255, 0.15) !important;
+  color: #C893FF !important;
 }
 
 /* ------- Plan price badges ------- */
 html.dark .plan-price {
-  background-color: rgba(0, 196, 106, 0.15) !important;
-  color: #00c46a !important;
+  background-color: rgba(200, 147, 255, 0.15) !important;
+  color: #C893FF !important;
 }
 
 /* ------- Bottom sheet backdrop ------- */

@@ -9,14 +9,19 @@
       "sizes": "any"
     },
     {
+      "src": "/static/img/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
       "src": "/static/favicon.png",
       "type": "image/png",
       "sizes": "512x512"
     }
   ],
   "start_url": "/",
-  "background_color": "#060B14",
-  "theme_color": "#00C46A",
+  "background_color": "#160824",
+  "theme_color": "#2A0F42",
   "display": "standalone",
   "orientation": "portrait"
 }

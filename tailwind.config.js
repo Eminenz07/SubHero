@@ -10,10 +10,12 @@ module.exports = {
     extend: {
       colors: {
         brand: {
-          primary: "#006B3E",
-          "primary-light": "#007A46",
-          accent: "#00C46A",
-          dark: "#0A1628",
+          primary: "#2A0F42",
+          "primary-light": "#3E1763",
+          accent: "#C893FF",
+          "accent-hover": "#D8AEFF",
+          violet: "#7C3AED",
+          dark: "#160824",
         },
         surface: {
           page: "#F5F7FA",
