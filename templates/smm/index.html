@@ -123,6 +123,24 @@
     background: rgba(200, 147, 255, 0.16) !important;
     color: #C893FF !important;
   }
+  .smm-rules-btn {
+    color: #7C3AED;
+    transition: color 0.2s ease;
+  }
+  .smm-rules-btn:hover {
+    color: #6D28D9;
+  }
+  html.dark .smm-rules-btn {
+    color: #C893FF !important;
+  }
+  html.dark .smm-rules-btn:hover {
+    color: #E9D5FF !important;
+  }
+  html.dark .smm-rules-desc {
+    background: #11071F !important;
+    color: #FAF5FF !important;
+    border-color: #C893FF !important;
+  }
 </style>
 
 <div class="platform-tabs">
@@ -240,9 +258,9 @@
         <label class="form-label" for="smm-quantity-input">Quantity</label>
         <input class="form-input" type="number" id="smm-quantity-input" placeholder="500" inputmode="numeric">
       </div>
-      <div class="flex justify-between items-center bg-[#F5F7FA] rounded-xl p-4">
-        <span class="text-sm font-semibold text-text-muted">Estimated Cost</span>
-        <span class="text-lg font-bold text-brand-primary" id="smm-cost-display">₦0.00</span>
+      <div class="flex justify-between items-center bg-[#F3EDFA] dark:bg-[#130824] border border-[#E8DEF5] dark:border-[#2E174D] rounded-xl p-4">
+        <span class="text-sm font-semibold text-text-secondary dark:text-[#C4B5D8]">Estimated Cost</span>
+        <span class="text-lg font-bold text-brand-primary dark:text-[#C893FF]" id="smm-cost-display">₦0.00</span>
       </div>
       
       <div class="pt-2 flex gap-3">
