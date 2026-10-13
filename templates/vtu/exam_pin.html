@@ -9,11 +9,11 @@
 {% block content %}
 <style>
   .exam-card { display: flex; align-items: center; gap: 12px; background: #FFF; border: 1.5px solid #E5E7EB; border-radius: 16px; padding: 14px 16px; cursor: pointer; transition: all 0.15s ease; }
-  .exam-card.selected { border: 2px solid var(--brand-accent, #00C46A); background: rgba(0,196,106,0.04); }
+  .exam-card.selected { border: 2px solid var(--brand-accent, #C893FF); background: rgba(200, 147, 255, 0.08); box-shadow: 0 4px 12px rgba(200, 147, 255, 0.15); }
   .exam-card:active { transform: scale(0.98); }
   .exam-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 800; flex-shrink: 0; }
   .qty-chip { flex: 1; padding: 10px; text-align: center; border: 1.5px solid #E5E7EB; border-radius: 10px; font-weight: 700; font-size: 14px; cursor: pointer; transition: all 0.15s; }
-  .qty-chip.selected { border-color: var(--brand-accent, #00C46A); background: rgba(0,196,106,0.08); color: #059669; }
+  .qty-chip.selected { border-color: var(--brand-accent, #C893FF); background: rgba(200, 147, 255, 0.12); color: var(--brand-primary, #2A0F42); }
 </style>
 
 <div class="px-4 py-4">

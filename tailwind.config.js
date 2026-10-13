@@ -18,14 +18,15 @@ module.exports = {
           dark: "#160824",
         },
         surface: {
-          page: "#F5F7FA",
+          page: "#F8F5FC",
           card: "#FFFFFF",
-          border: "#E8ECF4",
+          "card-sub": "#F3EDFA",
+          border: "#E8DEF5",
         },
         text: {
-          primary: "#0A1628",
-          secondary: "#6B7A99",
-          muted: "#A0AABF",
+          primary: "#1A092A",
+          secondary: "#6B5580",
+          muted: "#9D88B3",
         },
         status: {
           danger: "#E53E3E",

@@ -181,14 +181,14 @@
 
         .pwa-btn--install {
             color: #FFFFFF;
-            background: #00C46A;
-            box-shadow: 0 4px 15px rgba(0, 196, 106, 0.2);
+            background: #7C3AED;
+            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
         }
 
         .pwa-btn--install:hover {
-            background: #00D474;
+            background: #8B5CF6;
             transform: translateY(-1px);
-            box-shadow: 0 6px 20px rgba(0, 196, 106, 0.3);
+            box-shadow: 0 6px 20px rgba(124, 58, 237, 0.4);
         }
 
         /* Desktop positioning */
@@ -252,7 +252,7 @@
     </style>
     {% block extra_head %}{% endblock %}
 </head>
-<body class="bg-slate-200 text-text-primary antialiased font-body flex justify-center items-start md:items-center min-h-[100dvh]" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+<body class="bg-[#F8F5FC] text-text-primary antialiased font-body flex justify-center items-start md:items-center min-h-[100dvh]" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
     
     <div class="app-shell">
         {% block top_bar %}
