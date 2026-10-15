@@ -590,10 +590,18 @@ def sync_smm_catalogue():
                 clean_subcategory = clean_subcategory.replace(old_branding, "SubHero")
 
             rate_naira = Decimal(str(s["rate"]))
-            if rate_naira > Decimal("50000.00"):
-                continue
-            # Dynamic SMM profit markup
+            
+            # Dynamic SMM service rate cap (0 or empty means unlimited)
             from apps.admin_panel.models import SystemSetting
+            try:
+                max_smm_price_cap = Decimal(SystemSetting.get("max_smm_service_price", "150000.00"))
+            except Exception:
+                max_smm_price_cap = Decimal("150000.00")
+
+            if max_smm_price_cap > 0 and rate_naira > max_smm_price_cap:
+                continue
+
+            # Dynamic SMM profit markup
             try:
                 smm_margin_pct = Decimal(SystemSetting.get("smm_profit_margin", "50.00"))
             except Exception:

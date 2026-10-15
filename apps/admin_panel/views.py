@@ -1193,6 +1193,7 @@ def system_settings(request):
             "disable_registrations",
             "max_vtu_amount",
             "max_p2p_amount",
+            "max_smm_service_price",
         ]
         
         changes = []
@@ -1276,6 +1277,7 @@ def system_settings(request):
         "disable_registrations": SystemSetting.get("disable_registrations", "False") == "True",
         "max_vtu_amount": SystemSetting.get("max_vtu_amount", "10000.00"),
         "max_p2p_amount": SystemSetting.get("max_p2p_amount", "50000.00"),
+        "max_smm_service_price": SystemSetting.get("max_smm_service_price", "150000.00"),
         "vtu_profit_margin": SystemSetting.get("vtu_profit_margin", "10.00"),
         "smm_profit_margin": SystemSetting.get("smm_profit_margin", "50.00"),
     }
