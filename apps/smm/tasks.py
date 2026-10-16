@@ -80,12 +80,34 @@ def process_smm_order(self, order_id):
             error_msg = response_data.get("error", response_data.get("message", "Gateway declined request"))
             logger.error("SMM order %s encountered definitive gateway application error. Failing immediately. Reason: %s", order_id, error_msg)
             
+            # If upstream provider removed or changed this service ID, auto-deactivate so no other user hits it
+            if "Incorrect service ID" in str(error_msg) or "not found" in str(error_msg).lower():
+                try:
+                    order.service.is_active = False
+                    order.service.save(update_fields=["is_active"])
+                    logger.warning("Auto-deactivated defunct SMM service %s (Provider ID: %s)", order.service.name, order.service.provider_service_id)
+                except Exception as deact_err:
+                    logger.error("Failed to auto-deactivate defunct service: %s", str(deact_err))
+
             order.status = SMMOrder.Status.FAILED
             order.provider_order_id = f"Failed: {error_msg}"[:100]
             order.save(update_fields=["status", "provider_order_id"])
             # Update WalletTransaction to FAILED before triggering refund
             WalletTransaction.objects.filter(reference=order.reference).update(status=WalletTransaction.Status.FAILED)
             refund_smm_order.delay(order_id)
+
+            # Instantly alert admin via email
+            try:
+                from apps.notifications.services import send_admin_order_failure_alert
+                send_admin_order_failure_alert(
+                    order_type="SMM",
+                    order_reference=order.reference,
+                    user=order.user,
+                    error_reason=error_msg,
+                    details=f"Service: {order.service.name} (Provider ID: {order.service.provider_service_id}, Quantity: {order.quantity})"
+                )
+            except Exception as mail_err:
+                logger.error("Failed to send admin order failure email: %s", str(mail_err))
             return
 
     except (requests.exceptions.Timeout, requests.exceptions.ConnectionError, Exception) as exc:

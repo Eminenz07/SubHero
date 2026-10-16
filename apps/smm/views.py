@@ -165,10 +165,22 @@ class SmmIndexView(LoginRequiredMixin, PinRequiredMixin, View):
                 messages.error(request, "SSRF Threat Detected: Target URL is not within whitelisted social media domains.")
                 return render(request, self.template_name, context)
 
-        # 6. Fetch Service strictly from database
-        try:
-            service = SMMService.objects.get(name=service_name, category__iexact=platform, is_active=True)
-        except SMMService.DoesNotExist:
+        # 6. Fetch Service strictly from database (prioritize unique service_id, with fallback)
+        service_id = request.POST.get("service_id", "").strip()
+        service = None
+        if service_id:
+            try:
+                service = SMMService.objects.get(id=service_id, is_active=True)
+            except (SMMService.DoesNotExist, ValueError):
+                service = None
+
+        if not service:
+            try:
+                service = SMMService.objects.get(name=service_name, category__iexact=platform, is_active=True)
+            except (SMMService.DoesNotExist, SMMService.MultipleObjectsReturned):
+                service = SMMService.objects.filter(name=service_name, category__iexact=platform, is_active=True).first()
+
+        if not service:
             messages.error(request, "Selected SMM service is invalid or currently inactive.")
             return render(request, self.template_name, context)
 

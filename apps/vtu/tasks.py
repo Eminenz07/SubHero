@@ -214,6 +214,19 @@ def refund_vtu_order(order_id):
             except Exception as e:
                 logger.error("Notification creation failed: %s", str(e))
 
+            # Send instant admin failure alert email
+            try:
+                from apps.notifications.services import send_admin_order_failure_alert
+                send_admin_order_failure_alert(
+                    order_type="VTU Data",
+                    order_reference=order.reference,
+                    user=order.user,
+                    error_reason=order.provider_ref or "Vending gateway declined request",
+                    details=f"Plan: {order.plan_name}, Recipient: {order.recipient}, Network: {order.network}"
+                )
+            except Exception as mail_err:
+                logger.error("Failed to trigger admin VTU failure alert email: %s", str(mail_err))
+
             logger.info("VTU Refund success: ₦%s restored to User %s", order.amount, order.user.id)
 
     except Exception as err:

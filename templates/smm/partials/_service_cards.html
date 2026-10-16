@@ -1,9 +1,10 @@
 {% for service in services %}
 <div class="smm-card" 
+     data-id="{{ service.id }}"
      data-platform="{{ service.category }}"
      data-service="{{ service.name }}"
      data-rate="{{ service.unit_price }}"
-     onclick="selectService('{{ service.category }}', '{{ service.name|escapejs }}', '{{ service.unit_price }}')">
+     onclick="selectService('{{ service.id }}', '{{ service.category }}', '{{ service.name|escapejs }}', '{{ service.unit_price }}')">
   
   {% if "Follower" in service.name %}
     <div class="smm-icon-bg" style="background: {% if service.category == 'instagram' %}linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888){% elif service.category == 'tiktok' %}#000000{% elif service.category == 'twitter' %}#1DA1F2{% else %}#1DB954{% endif %};">👥</div>

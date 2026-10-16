@@ -108,3 +108,44 @@ def broadcast_push_notification(title, body, action_url="/dashboard/"):
     for user in users_with_subs:
         total_sent += send_push_notification(user, title, body, action_url=action_url, level="info")
     return total_sent
+
+
+def send_admin_order_failure_alert(order_type, order_reference, user, error_reason, details=""):
+    """
+    Sends an immediate email notification to the SubHero Administrator whenever an order
+    (SMM or VTU) encounters a failure or rejection from upstream providers.
+    """
+    try:
+        from apps.admin_panel.models import AlertConfig
+        from django.core.mail import send_mail
+
+        alert_config = AlertConfig.objects.first()
+        admin_email = alert_config.alert_email if (alert_config and alert_config.alert_email) else getattr(settings, "ADMIN_ALERT_EMAIL", "subherong@gmail.com")
+        if not admin_email:
+            return
+
+        subject = f"🚨 [SubHero Alert] {order_type} Order Failed ({order_reference})"
+        customer_name = getattr(user, 'full_name', '') or 'Customer'
+        customer_contact = getattr(user, 'phone_number', '') or getattr(user, 'email', '') or 'N/A'
+        
+        message = (
+            f"Dear Admin,\n\n"
+            f"An automated {order_type} order encountered an error and was refunded to the user's wallet.\n\n"
+            f"Order Reference: {order_reference}\n"
+            f"Customer: {customer_name} ({customer_contact})\n"
+            f"Error Reason: {error_reason}\n"
+            f"Details: {details}\n\n"
+            f"Please check your provider dashboard or API float balance immediately to address this issue.\n\n"
+            f"— SubHero System Daemon"
+        )
+
+        send_mail(
+            subject=subject,
+            message=message,
+            from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "admin@subhero.com.ng"),
+            recipient_list=[admin_email],
+            fail_silently=True,
+        )
+        logger.info("Sent admin order failure alert for %s to %s", order_reference, admin_email)
+    except Exception as e:
+        logger.error("Failed to send admin order failure alert: %s", str(e))

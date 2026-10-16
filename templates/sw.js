@@ -1,5 +1,5 @@
 // Service Worker with Web Push Notification Support for SubHero PWA
-const CACHE_NAME = 'subhero-v2';
+const CACHE_NAME = 'subhero-v3';
 
 self.addEventListener('install', (event) => {
     self.skipWaiting();

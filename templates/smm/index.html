@@ -231,6 +231,7 @@
 <form id="smm-checkout-form" method="post">
   {% csrf_token %}
   <input type="hidden" name="platform" id="id_platform" value="instagram">
+  <input type="hidden" name="service_id" id="id_service_id">
   <input type="hidden" name="service_name" id="id_service_name">
   <input type="hidden" name="url" id="id_hidden_url">
   <input type="hidden" name="quantity" id="id_hidden_quantity">
@@ -363,11 +364,12 @@
   }
   
   // Service selection
-  function selectService(platform, serviceName, rate) {
+  function selectService(serviceId, platform, serviceName, rate) {
     activeServiceName = serviceName;
     activeRate = parseFloat(rate);
     
     // Populate form fields
+    document.getElementById('id_service_id').value = serviceId || '';
     document.getElementById('id_service_name').value = serviceName;
     
     // Set placeholder URL depending on platform
