@@ -132,10 +132,8 @@ def dashboard(request):
     
     new_users_today = User.objects.filter(date_joined__date=timezone.now().date()).count()
     
-    # Active orders count (excluding mock orders before July 4th, 2026)
-    import datetime
-    cutoff_date = datetime.datetime(2026, 7, 4, tzinfo=datetime.timezone.utc)
-    valid_refs = WalletTransaction.objects.filter(created_at__gte=cutoff_date).values('reference')
+    # Active orders count across all operational services
+    valid_refs = WalletTransaction.objects.values('reference')
     active_orders = (
         VTUOrder.objects.filter(status__in=["PENDING", "PROCESSING"], reference__in=valid_refs).count() +
         SMMOrder.objects.filter(status__in=["PENDING", "PROCESSING"], reference__in=valid_refs).count() +
@@ -155,9 +153,9 @@ def dashboard(request):
         alert_config = AlertConfig.objects.create(alert_email="admin@subhero.com.ng")
         
     # Threshold checks
-    if sabuss_balance <= alert_config.cdh_critical_threshold:
+    if sabuss_balance <= alert_config.sabuss_critical_threshold:
         sabuss_status = "critical"
-    elif sabuss_balance <= alert_config.cdh_warning_threshold:
+    elif sabuss_balance <= alert_config.sabuss_warning_threshold:
         sabuss_status = "warning"
     else:
         sabuss_status = "healthy"
@@ -169,9 +167,9 @@ def dashboard(request):
     else:
         cdh_status = "healthy"
         
-    if ogaviral_balance <= alert_config.jap_critical_threshold:
+    if ogaviral_balance <= alert_config.ogaviral_critical_threshold:
         ogaviral_status = "critical"
-    elif ogaviral_balance <= alert_config.jap_warning_threshold:
+    elif ogaviral_balance <= alert_config.ogaviral_warning_threshold:
         ogaviral_status = "warning"
     else:
         ogaviral_status = "healthy"
@@ -1057,11 +1055,9 @@ def test_alert_email(request):
             send_mail(
                 subject="SubHero HQ: API Wallet Alert (TEST)",
                 message=f"This is a test notification from SubHero HQ.\n\n"
-                        f"Current Alert Thresholds:\n"
-                        f"- Sabuss / CheapDataHub Warning: ₦{alert_config.cdh_warning_threshold:,.2f}\n"
-                        f"- Sabuss / CheapDataHub Critical: ₦{alert_config.cdh_critical_threshold:,.2f}\n"
-                        f"- Ogaviral Warning: ₦{alert_config.jap_warning_threshold:,.2f}\n"
-                        f"- Ogaviral Critical: ₦{alert_config.jap_critical_threshold:,.2f}\n",
+                        f"- Sabuss Warning: ₦{alert_config.sabuss_warning_threshold:,.2f} | Critical: ₦{alert_config.sabuss_critical_threshold:,.2f}\n"
+                        f"- CheapDataHub Warning: ₦{alert_config.cdh_warning_threshold:,.2f} | Critical: ₦{alert_config.cdh_critical_threshold:,.2f}\n"
+                        f"- Ogaviral Warning: ₦{alert_config.ogaviral_warning_threshold:,.2f} | Critical: ₦{alert_config.ogaviral_critical_threshold:,.2f}\n",
                 from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@subhero.com.ng"),
                 recipient_list=[alert_config.alert_email],
                 fail_silently=False
@@ -1296,9 +1292,7 @@ def transactions_list(request):
     status_filter = request.GET.get("status", "").strip()
     q = request.GET.get("q", "").strip()
     
-    import datetime
-    cutoff_date = datetime.datetime(2026, 7, 4, tzinfo=datetime.timezone.utc)
-    txns = WalletTransaction.objects.filter(created_at__gte=cutoff_date).select_related("wallet__user")
+    txns = WalletTransaction.objects.all().select_related("wallet__user")
     
     if type_filter:
         txns = txns.filter(txn_type=type_filter)

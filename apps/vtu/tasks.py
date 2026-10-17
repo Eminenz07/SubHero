@@ -409,19 +409,19 @@ def check_api_wallet_balance():
     alert_messages = []
     
     # Sabuss
-    if sabuss_balance <= alert_config.cdh_critical_threshold:
-        alert_messages.append(f"CRITICAL: Sabuss balance has dropped to ₦{sabuss_balance:,.2f} (Threshold: ₦{alert_config.cdh_critical_threshold:,.2f})!")
+    if sabuss_balance <= alert_config.sabuss_critical_threshold:
+        alert_messages.append(f"CRITICAL: Sabuss balance has dropped to ₦{sabuss_balance:,.2f} (Threshold: ₦{alert_config.sabuss_critical_threshold:,.2f})!")
         syslog("ERROR", "VTU", f"Sabuss balance CRITICAL: ₦{sabuss_balance:,.2f}")
-    elif sabuss_balance <= alert_config.cdh_warning_threshold:
-        alert_messages.append(f"WARNING: Sabuss balance is low at ₦{sabuss_balance:,.2f} (Threshold: ₦{alert_config.cdh_warning_threshold:,.2f})")
+    elif sabuss_balance <= alert_config.sabuss_warning_threshold:
+        alert_messages.append(f"WARNING: Sabuss balance is low at ₦{sabuss_balance:,.2f} (Threshold: ₦{alert_config.sabuss_warning_threshold:,.2f})")
         syslog("WARNING", "VTU", f"Sabuss balance low: ₦{sabuss_balance:,.2f}")
         
     # Ogaviral
-    if ogaviral_balance <= alert_config.jap_critical_threshold:
-        alert_messages.append(f"CRITICAL: Ogaviral SMM balance has dropped to ₦{ogaviral_balance:,.2f} (Threshold: ₦{alert_config.jap_critical_threshold:,.2f})!")
+    if ogaviral_balance <= alert_config.ogaviral_critical_threshold:
+        alert_messages.append(f"CRITICAL: Ogaviral SMM balance has dropped to ₦{ogaviral_balance:,.2f} (Threshold: ₦{alert_config.ogaviral_critical_threshold:,.2f})!")
         syslog("ERROR", "SMM", f"Ogaviral balance CRITICAL: ₦{ogaviral_balance:,.2f}")
-    elif ogaviral_balance <= alert_config.jap_warning_threshold:
-        alert_messages.append(f"WARNING: Ogaviral SMM balance is low at ₦{ogaviral_balance:,.2f} (Threshold: ₦{alert_config.jap_warning_threshold:,.2f})")
+    elif ogaviral_balance <= alert_config.ogaviral_warning_threshold:
+        alert_messages.append(f"WARNING: Ogaviral SMM balance is low at ₦{ogaviral_balance:,.2f} (Threshold: ₦{alert_config.ogaviral_warning_threshold:,.2f})")
         syslog("WARNING", "SMM", f"Ogaviral balance low: ₦{ogaviral_balance:,.2f}")
 
     if alert_messages:

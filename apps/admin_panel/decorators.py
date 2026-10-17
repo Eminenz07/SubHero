@@ -11,6 +11,7 @@ from django.shortcuts import redirect
 from django.urls import reverse
 from django.http import HttpResponseForbidden
 
+from apps.core.utils import get_client_ip
 from .models import SystemSetting
 
 
@@ -44,12 +45,8 @@ def ip_whitelist(view_func):
             # Whitelist is empty — developer mode, allow all
             return view_func(request, *args, **kwargs)
             
-        # Get client IP address
-        ip_addr = request.META.get("HTTP_X_FORWARDED_FOR", request.META.get("REMOTE_ADDR", ""))
-        if ip_addr and "," in ip_addr:
-            ip_addr = ip_addr.split(",")[0].strip()
-        else:
-            ip_addr = ip_addr.strip()
+        # Get client IP address securely (supports CF-Connecting-IP, X-Real-IP, and X-Forwarded-For)
+        ip_addr = get_client_ip(request)
             
         # Parse allowed IPs
         allowed_ips = [ip.strip() for ip in whitelist_str.split(",") if ip.strip()]

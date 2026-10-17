@@ -279,7 +279,7 @@ if REDIS_URL.startswith("rediss://"):
 # =============================================================
 # TERMII — SMS / OTP (PRD Section 10)
 # =============================================================
-TERMII_API_KEY = config("TERMII_API_KEY", default="REDACTED_TERMII_KEY")
+TERMII_API_KEY = config("TERMII_API_KEY", default="")
 TERMII_SECRET_KEY = config("TERMII_SECRET_KEY", default="")
 TERMII_SENDER_ID = config("TERMII_SENDER_ID", default="SubHero")
 TERMII_MOCK = config("TERMII_MOCK", default=False, cast=bool)
@@ -405,8 +405,8 @@ CHEAPDATAHUB_BASE_URL = config("CHEAPDATAHUB_BASE_URL", default="https://www.che
 # =============================================================
 # SABUSS — Outbound Data & Airtime API
 # =============================================================
-SABUSS_API_KEY = config("SABUSS_API_KEY", default="REDACTED_SABUSS_KEY")
-SABUSS_PIN = config("SABUSS_PIN", default="1282")
+SABUSS_API_KEY = config("SABUSS_API_KEY", default="")
+SABUSS_PIN = config("SABUSS_PIN", default="")
 SABUSS_BASE_URL = config("SABUSS_BASE_URL", default="https://sabuss.com")
 SABUSS_PROFIT_MARGIN = config("SABUSS_PROFIT_MARGIN", default=0.10, cast=float)
 
@@ -414,7 +414,7 @@ SABUSS_PROFIT_MARGIN = config("SABUSS_PROFIT_MARGIN", default=0.10, cast=float)
 # =============================================================
 # OGAVIRAL — Outbound SMM API
 # =============================================================
-OGAVIRAL_API_KEY = config("OGAVIRAL_API_KEY", default="REDACTED_OGAVIRAL_KEY")
+OGAVIRAL_API_KEY = config("OGAVIRAL_API_KEY", default="")
 OGAVIRAL_API_URL = config("OGAVIRAL_API_URL", default="https://ogaviral.com/api/v2")
 
 # =============================================================
@@ -456,14 +456,8 @@ CELERY_BEAT_SCHEDULE = {
 # =============================================================
 # WEB PUSH NOTIFICATIONS — VAPID KEYS
 # =============================================================
-VAPID_PUBLIC_KEY = config(
-    "VAPID_PUBLIC_KEY",
-    default="REDACTED_VAPID_PUBLIC_KEY"
-)
-VAPID_PRIVATE_KEY = config(
-    "VAPID_PRIVATE_KEY",
-    default="-----BEGIN PRIVATE KEY-----\nREDACTED_VAPID_KEY_L1\nREDACTED_VAPID_KEY_L2\nREDACTED_VAPID_KEY_L3\n-----END PRIVATE KEY-----"
-)
+VAPID_PUBLIC_KEY = config("VAPID_PUBLIC_KEY", default="")
+VAPID_PRIVATE_KEY = config("VAPID_PRIVATE_KEY", default="")
 VAPID_ADMIN_EMAIL = config("VAPID_ADMIN_EMAIL", default="mailto:admin@subhero.com.ng")
 
 # =============================================================
