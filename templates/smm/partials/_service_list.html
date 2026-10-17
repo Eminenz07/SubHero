@@ -1,0 +1,19 @@
+{% comment %}Service list partial for a platform+tier combo — used in the service picker sheet{% endcomment %}
+{% for service in services %}
+<div class="smm-service-item flex items-center justify-between p-3 rounded-xl border border-surface-border hover:border-brand-accent/40 cursor-pointer active:scale-[0.98] transition-all"
+     onclick="selectServiceFromList('{{ service.id }}', '{{ platform }}', '{{ service.name|escapejs }}', {{ service.unit_price }}, {{ service.provider_min }}, {{ service.provider_max }}, {{ service.subhero_price_per_1k }}, '{{ tier }}')">
+  <div class="flex-1 min-w-0 mr-3">
+    <div class="text-text-primary font-bold text-[12px] leading-tight">{{ service.name }}</div>
+    <div class="text-text-muted text-[10px] mt-0.5">Min: {{ service.provider_min|floatformat:0 }} · Max: {{ service.provider_max|floatformat:0 }}</div>
+    {% if service.description %}
+    <div class="text-text-muted text-[10px] mt-0.5 leading-relaxed line-clamp-2">{{ service.description|truncatechars:100 }}</div>
+    {% endif %}
+  </div>
+  <div class="text-right flex-shrink-0">
+    <div class="font-mono font-bold text-sm {% if tier == 'premium' %}text-amber-400{% elif tier == 'standard' %}text-violet-400{% else %}text-blue-400{% endif %}">₦{{ service.unit_price|floatformat:2 }}</div>
+    <div class="text-text-muted text-[9px]">per unit</div>
+  </div>
+</div>
+{% empty %}
+<div class="text-center py-6 text-text-muted text-sm">No services available in this tier for this platform.</div>
+{% endfor %}

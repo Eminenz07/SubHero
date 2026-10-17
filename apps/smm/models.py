@@ -26,6 +26,27 @@ class SMMService(models.Model):
         decimal_places=2,
         default=0.00
     )
+    TIER_CHOICES = [
+        ("basic", "Basic (Quick Boost)"),
+        ("standard", "Standard (Growth Boost)"),
+        ("premium", "Premium (Elite Boost)"),
+    ]
+
+    tier = models.CharField(
+        max_length=20,
+        choices=TIER_CHOICES,
+        blank=True,
+        null=True,
+        db_index=True,
+        help_text="Confirmed tier classification (basic, standard, premium). Null means unclassified."
+    )
+    suggested_tier = models.CharField(
+        max_length=20,
+        choices=TIER_CHOICES,
+        blank=True,
+        null=True,
+        help_text="Auto-suggested tier based on description keywords and category price banding"
+    )
     description = models.TextField(blank=True, default="", help_text="Full service details, rules, and start time fetched from gateway")
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -34,6 +55,55 @@ class SMMService(models.Model):
     class Meta:
         db_table = "smm_service"
         ordering = ["category", "subhero_price_per_1k"]
+
+    @property
+    def tier_title(self):
+        if self.tier == "basic":
+            return "Quick Boost"
+        elif self.tier == "standard":
+            return "Growth Boost"
+        elif self.tier == "premium":
+            return "Elite Boost"
+        return "Unclassified"
+
+    @property
+    def tier_tag(self):
+        if self.tier == "standard":
+            return "Most Popular"
+        elif self.tier == "premium":
+            return "Recommended"
+        return None
+
+    @property
+    def retention_label(self):
+        if self.tier == "basic":
+            return "Short-term spike · Lower retention"
+        elif self.tier == "standard":
+            return "30-Day Refill Guarantee · ~70-85% retention"
+        elif self.tier == "premium":
+            return "Permanent / Non-Drop · 95%+ high retention"
+        return "Standard retention"
+
+    @property
+    def delivery_speed(self):
+        if self.tier == "basic":
+            return "Instant (Starts in 5–15 mins)"
+        elif self.tier == "standard":
+            return "Steady Delivery (Starts in 15–30 mins)"
+        elif self.tier == "premium":
+            return "Natural Paced (Starts in 20–45 mins)"
+        return "Starts in ~15 mins"
+
+    @property
+    def tier_honest_description(self):
+        if self.tier == "basic":
+            return "Fast & affordable — best for quick visibility, engagement may drop over time."
+        elif self.tier == "standard":
+            return "Balanced speed and retention — reliable momentum with refill protection."
+        elif self.tier == "premium":
+            return "Real, active engagement, highest retention, slower natural-paced delivery."
+        return ""
+
 
     def __str__(self):
         return f"{self.category} - {self.name} (₦{self.subhero_price_per_1k})"

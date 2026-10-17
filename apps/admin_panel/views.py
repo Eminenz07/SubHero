@@ -581,28 +581,34 @@ def smm_pricing_manager(request):
     alert_config = AlertConfig.objects.first()
     if not alert_config:
         alert_config = AlertConfig.objects.create(alert_email="admin@subhero.com.ng")
-        
-    usd_rate = alert_config.usd_ngn_rate
+
     categories = list(SMMService.objects.order_by("category").values_list("category", flat=True).distinct())
-    
+
     selected_category = request.GET.get("category", "").strip()
     q = request.GET.get("q", "").strip()
-    
-    if not selected_category and not q and categories:
+    # pending_only=1 shows only unclassified (tier is null) services
+    pending_only = request.GET.get("pending_only", "0") == "1"
+
+    if not selected_category and not q and not pending_only and categories:
         selected_category = categories[0]
-        
+
     services_qs = SMMService.objects.all()
     if selected_category:
         services_qs = services_qs.filter(category=selected_category)
     if q:
         services_qs = services_qs.filter(Q(name__icontains=q) | Q(provider_service_id__icontains=q))
-        
+    if pending_only:
+        services_qs = services_qs.filter(tier__isnull=True)
+
     services = list(services_qs.order_by("provider_rate"))
     for s in services:
         s.estimated_profit = s.subhero_price_per_1k - s.provider_rate
-        
+
+    # Count pending (unclassified) services globally
+    pending_count = SMMService.objects.filter(tier__isnull=True).count()
+
     smm_profit_margin = SystemSetting.get("smm_profit_margin", "50.00")
-        
+
     context = {
         "active_nav": "smm_pricing",
         "alert_config": alert_config,
@@ -611,6 +617,9 @@ def smm_pricing_manager(request):
         "services": services,
         "q": q,
         "smm_profit_margin": smm_profit_margin,
+        "pending_only": pending_only,
+        "pending_count": pending_count,
+        "tier_choices": [("basic", "Quick Boost (Basic)"), ("standard", "Growth Boost (Standard)"), ("premium", "Elite Boost (Premium)")],
     }
     return render(request, "admin_panel/smm_pricing.html", context)
 
@@ -622,15 +631,17 @@ def smm_pricing_save(request):
         markup_type = request.POST.get("markup_type")
         markup_value_str = request.POST.get("markup_value", "0").strip()
         is_active = request.POST.get("is_active") == "on" or request.POST.get("is_active") == "true"
-        
+        # Tier classification: "" means admin left it unclassified intentionally
+        tier_value = request.POST.get("tier", "").strip() or None
+
         try:
             markup_value = Decimal(markup_value_str)
         except InvalidOperation:
             return HttpResponse("Invalid format", status=400)
-            
+
         service = get_object_or_404(SMMService, id=service_id)
         cost_ngn = service.provider_rate
-        
+
         # If markup_value is 0, revert to global profit margin
         if markup_value == 0:
             smm_margin_pct = Decimal(SystemSetting.get("smm_profit_margin", "50.00"))
@@ -644,15 +655,21 @@ def smm_pricing_save(request):
                 sell = cost_ngn + markup_value
             service.markup_type = markup_type
             service.markup_value = markup_value
-            
+
         service.subhero_price_per_1k = sell
         service.is_active = is_active
+        service.tier = tier_value  # Admin-confirmed tier (None = still unclassified)
         service.save()
-        
-        detail = f"Updated SMM service={service.name}: type={markup_type}, value={markup_value}, sell={sell}, active={is_active}"
+
+        detail = f"Updated SMM service={service.name}: tier={tier_value}, type={markup_type}, value={markup_value}, sell={sell}, active={is_active}"
         log_admin_action(request.user, "PRICING_UPDATE", "SMM_SERVICE", service.id, detail, request)
-        
-        return HttpResponse('<button type="submit" class="px-2.5 py-1 rounded bg-slate-800 border border-white/[0.04] text-[10px] font-bold text-white hover:bg-slate-700 transition-colors">Save</button><span class="text-emerald-500 text-[10px] font-bold block mt-1 animate-pulse">✓ Saved</span>')
+
+        tier_badge = ""
+        if tier_value:
+            tier_label = {"basic": "Quick", "standard": "Growth", "premium": "Elite"}.get(tier_value, tier_value)
+            tier_badge = f'<span class="ml-1 text-[9px] px-1.5 py-0.5 rounded font-bold {"bg-blue-900 text-blue-300" if tier_value == "basic" else "bg-violet-900 text-violet-300" if tier_value == "standard" else "bg-amber-900 text-amber-300"}">{tier_label}</span>'
+
+        return HttpResponse(f'<button type="submit" class="px-2.5 py-1 rounded bg-slate-800 border border-white/[0.04] text-[10px] font-bold text-white hover:bg-slate-700 transition-colors">Save</button><span class="text-emerald-500 text-[10px] font-bold block mt-1 animate-pulse">✓ Saved{tier_badge}</span>')
     return HttpResponse("Invalid request", status=400)
 
 

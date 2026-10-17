@@ -1,499 +1,539 @@
 {% extends 'base.html' %}
+{% load static humanize %}
 
 {% block title %}Social Media Booster | SubHero{% endblock %}
-
 {% block top_bar %}
 {% include 'partials/_top_bar.html' with page_title="Social Media Growth" show_back=True %}
 {% endblock %}
 
 {% block content %}
 <style>
-  .platform-tabs {
+  /* ─── Platform Icon Grid ─── */
+  .platform-grid {
     display: flex;
     gap: 8px;
     overflow-x: auto;
-    padding: 12px 16px;
+    padding: 12px 16px 8px;
     scrollbar-width: none;
-    background: #F5F7FA;
-    border-bottom: 1px solid #E5E7EB;
+    -webkit-overflow-scrolling: touch;
   }
-  .platform-tabs::-webkit-scrollbar {
-    display: none;
-  }
-  .platform-tab {
+  .platform-grid::-webkit-scrollbar { display: none; }
+  .platform-btn {
     flex-shrink: 0;
-    padding: 8px 16px;
-    background: #FFFFFF;
-    border: 1px solid #E5E7EB;
-    border-radius: 20px;
-    font-size: 13px;
-    font-weight: 600;
-    color: #4B5563;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-  .platform-tab.active {
-    background: var(--brand-primary, #2A0F42);
-    border-color: var(--brand-primary, #2A0F42);
-    color: #FFFFFF;
-  }
-  .smm-card {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 12px;
-    background: #FFFFFF;
-    border: 1px solid #E5E7EB;
+    gap: 5px;
+    padding: 10px 12px;
     border-radius: 16px;
-    padding: 14px;
+    border: 2px solid transparent;
+    background: rgba(30, 20, 50, 0.6);
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+    min-width: 68px;
+    position: relative;
+    backdrop-filter: blur(4px);
   }
-  .smm-card.hidden {
-    display: none !important;
+  .platform-btn:active { transform: scale(0.93); }
+  .platform-btn.active {
+    transform: translateY(-3px) scale(1.04);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.06);
   }
-  .smm-card:active {
-    transform: scale(0.98);
-  }
-  .smm-icon-bg {
-    width: 44px;
-    height: 44px;
+  .platform-icon {
+    width: 42px;
+    height: 42px;
     border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 20px;
-    color: #FFFFFF;
-    flex-shrink: 0;
+    font-size: 22px;
+    line-height: 1;
   }
-  .smm-info {
-    flex-grow: 1;
-    min-width: 0;
-  }
-  .smm-name {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text-primary, #1A092A);
-    margin-bottom: 2px;
-  }
-  .smm-desc {
-    font-size: 11px;
-    color: var(--text-muted, #9D88B3);
+  .platform-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    color: rgba(200, 185, 220, 0.8);
+    text-align: center;
     white-space: nowrap;
+    max-width: 64px;
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  .smm-price {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--brand-primary, #2A0F42);
-    flex-shrink: 0;
-    background: rgba(42, 15, 66, 0.08);
-    padding: 4px 8px;
-    border-radius: 8px;
+  .platform-btn.active .platform-label { color: #fff; }
+
+  /* ─── Wallet Balance Strip ─── */
+  .wallet-strip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(135deg, #110728 0%, #1A0D38 100%);
+    border: 1px solid rgba(124, 58, 237, 0.25);
+    border-radius: 16px;
+    padding: 12px 16px;
+    margin: 0 16px 12px;
   }
 
-  /* =============================================================
-     Dark Mode Theme Overrides
-     ============================================================= */
-  html.dark .platform-tabs {
-    background: #11071F !important;
-    border-bottom-color: #2E174D !important;
+  /* ─── Insufficient Balance Nudge ─── */
+  .topup-nudge {
+    margin: 0 16px 12px;
+    padding: 12px 14px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #2D1010 0%, #1A0A0A 100%);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    animation: pulse-border 2s ease-in-out infinite;
   }
-  html.dark .platform-tab {
-    background: #1A0D2E !important;
-    border-color: #2E174D !important;
-    color: #C4B5D8 !important;
+  @keyframes pulse-border {
+    0%, 100% { border-color: rgba(239, 68, 68, 0.3); }
+    50% { border-color: rgba(239, 68, 68, 0.6); }
   }
-  html.dark .platform-tab.active {
-    background: #7C3AED !important;
-    border-color: #7C3AED !important;
-    color: #FFFFFF !important;
+
+  /* ─── Tier Cards ─── */
+  .tier-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+  .tier-card:active { transform: scale(0.98); }
+
+  /* ─── Sheet styles ─── */
+  .numpad-key {
+    height: 52px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 18px;
+    color: white;
+    transition: all 0.12s ease;
+    cursor: pointer;
   }
-  html.dark .smm-card {
-    background: #1A0D2E !important;
-    border-color: #2E174D !important;
+  .numpad-key:active {
+    background: rgba(124, 58, 237, 0.3);
+    transform: scale(0.95);
   }
-  html.dark .smm-name {
-    color: #FAF5FF !important;
-  }
-  html.dark .smm-desc {
-    color: #C4B5D8 !important;
-  }
-  html.dark .smm-price {
-    background: rgba(200, 147, 255, 0.16) !important;
-    color: #C893FF !important;
-  }
-  .smm-rules-btn {
-    color: #7C3AED;
-    transition: color 0.2s ease;
-  }
-  .smm-rules-btn:hover {
-    color: #6D28D9;
-  }
-  html.dark .smm-rules-btn {
-    color: #C893FF !important;
-  }
-  html.dark .smm-rules-btn:hover {
-    color: #E9D5FF !important;
-  }
-  html.dark .smm-rules-desc {
-    background: #11071F !important;
-    color: #FAF5FF !important;
-    border-color: #C893FF !important;
-  }
+  html.dark .numpad-key { color: #FAF5FF; }
+  html.dark .numpad-key:active { background: rgba(200, 147, 255, 0.2); }
+
+  /* ─── Tier Label Colours in Sheets ─── */
+  .tier-label-basic { background: rgba(59,130,246,0.15); color: #93c5fd; }
+  .tier-label-standard { background: rgba(139,92,246,0.15); color: #c4b5fd; }
+  .tier-label-premium { background: rgba(245,158,11,0.15); color: #fcd34d; }
 </style>
 
-<div class="platform-tabs">
-  <div class="platform-tab active" data-platform="instagram" onclick="filterPlatform('instagram')">📸 Instagram</div>
-  <div class="platform-tab" data-platform="tiktok" onclick="filterPlatform('tiktok')">🎵 TikTok</div>
-  <div class="platform-tab" data-platform="youtube" onclick="filterPlatform('youtube')">▶️ YouTube</div>
-  <div class="platform-tab" data-platform="twitter" onclick="filterPlatform('twitter')">🐦 Twitter</div>
-  <div class="platform-tab" data-platform="telegram" onclick="filterPlatform('telegram')">✈️ Telegram</div>
-  <div class="platform-tab" data-platform="spotify" onclick="filterPlatform('spotify')">🎧 Spotify</div>
-  <div class="platform-tab" data-platform="other" onclick="filterPlatform('other')">🌐 Other</div>
+<!-- ═══ WALLET BALANCE STRIP (always visible) ═══ -->
+<div class="wallet-strip">
+  <div>
+    <div class="text-[10px] font-medium text-purple-300/70 tracking-wide uppercase">Wallet Balance</div>
+    <div class="font-mono text-xl font-bold text-white mt-0.5">
+      ₦<span id="wallet-balance-display" data-raw="{{ wallet.balance|floatformat:2 }}">{{ wallet.balance|floatformat:2 }}</span>
+    </div>
+  </div>
+  <a href="/wallet/fund/" class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-purple-700/30 hover:bg-purple-700/50 border border-purple-600/30 transition-colors text-xs font-bold text-purple-300">
+    <i data-feather="plus" class="w-3.5 h-3.5"></i> Top Up
+  </a>
 </div>
 
-<div class="px-4 py-4 space-y-3">
-  <!-- Messages Alert -->
-  {% if messages %}
-  <div class="space-y-2 mb-5">
-    {% for message in messages %}
-    <div class="alert{% if message.tags == 'error' %}-error{% elif message.tags == 'success' %}-success{% else %}-info{% endif %}">
-      {{ message }}
+<!-- ═══ MESSAGES ═══ -->
+{% if messages %}
+<div class="px-4 space-y-2 mb-3">
+  {% for message in messages %}
+  {% if "INSUFFICIENT_BALANCE|" in message.message %}
+    {# Structured insufficient balance → parse for top-up nudge #}
+    {% with parts=message.message|cut:"INSUFFICIENT_BALANCE|"|split:"|" %}
+    <div class="topup-nudge" id="topup-nudge-banner">
+      <div class="flex items-start gap-2.5">
+        <span class="text-red-400 text-xl mt-0.5">💳</span>
+        <div class="flex-1">
+          <div class="text-red-300 font-bold text-xs mb-0.5">Insufficient Balance</div>
+          <div class="text-red-200/80 text-[11px] leading-relaxed">
+            This boost costs <strong class="text-white">₦{{ parts.0 }}</strong>.
+            You have <strong class="text-white">₦{{ parts.1 }}</strong>.
+            Top up <strong class="text-emerald-400">₦{{ parts.4 }}</strong> to unlock &amp; continue.
+          </div>
+          <a href="/wallet/fund/?amount={{ parts.4 }}&return_to=/smm/?platform={{ parts.5 }}&tier={{ parts.6 }}"
+             class="mt-2 flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white font-bold text-xs transition-all">
+            <i data-feather="zap" class="w-3.5 h-3.5"></i>
+            Top Up ₦{{ parts.4 }} &amp; Continue Boosting
+          </a>
+        </div>
+      </div>
     </div>
-    {% endfor %}
-  </div>
+    {% endwith %}
+  {% else %}
+  <div class="alert{% if message.tags == 'error' %}-error{% elif message.tags == 'success' %}-success{% else %}-info{% endif %}">{{ message }}</div>
   {% endif %}
+  {% endfor %}
+</div>
+{% endif %}
 
-  {% if show_duplicate_confirm %}
-  <form method="post" class="mb-5">
+<!-- ═══ DUPLICATE ORDER CONFIRM ═══ -->
+{% if show_duplicate_confirm %}
+<div class="px-4 mb-3">
+  <form method="post">
     {% csrf_token %}
     <input type="hidden" name="platform" value="{{ form_data.platform }}">
+    <input type="hidden" name="service_id" value="{{ form_data.service_id }}">
     <input type="hidden" name="service_name" value="{{ form_data.service_name }}">
     <input type="hidden" name="url" value="{{ form_data.url }}">
     <input type="hidden" name="quantity" value="{{ form_data.quantity }}">
-    <input type="hidden" name="pin" value="{{ request.POST.pin }}">
     <input type="hidden" name="confirm_duplicate" value="1">
-    <div class="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-left">
-      <div class="text-xs font-bold text-amber-900 dark:text-amber-300 mb-1 flex items-center gap-1.5">
-        <i data-feather="alert-triangle" class="w-4 h-4 text-amber-600"></i> Duplicate Order Notice
-      </div>
-      <div class="text-[11px] text-amber-800 dark:text-amber-400 mb-3 leading-relaxed">
-        An identical social boost order was placed less than a minute ago. Tap below to confirm and process this second order.
-      </div>
-      <button type="submit" class="w-full py-3 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs active:scale-95 transition-all outline-none border-none cursor-pointer">
-        Confirm & Process Duplicate Order
-      </button>
+    <div class="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30">
+      <div class="text-xs font-bold text-amber-300 mb-1 flex items-center gap-1.5">⚠️ Duplicate Order Notice</div>
+      <div class="text-[11px] text-amber-200/80 mb-3">An identical boost order was placed less than a minute ago.</div>
+      <button class="w-full py-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs transition-all">Confirm &amp; Process Duplicate</button>
     </div>
   </form>
-  {% endif %}
+</div>
+{% endif %}
 
-  <!-- Balance Header -->
-  <div class="card card-padding mb-4">
-    <div class="flex items-center justify-between">
-      <div>
-        <div class="text-[11px] font-medium text-text-muted tracking-[0.3px]">Available Balance</div>
-        <div class="font-mono text-xl font-bold text-text-primary mt-0.5"><span class="mr-0.5">₦</span><span class="balance-display-amount" data-raw-balance="{{ wallet.balance|floatformat:2 }}">{{ wallet.balance|floatformat:2 }}</span></div>
-      </div>
-      <div class="w-[46px] h-[46px] rounded-xl bg-brand-accent/15 text-brand-primary flex items-center justify-center">
-        <i data-feather="zap" class="w-[22px] h-[22px]"></i>
-      </div>
+<!-- ═══ PLATFORM ICON GRID ═══ -->
+<div class="platform-grid" id="platform-grid">
+  {% for p in platforms_meta %}
+  <button class="platform-btn {% if forloop.first or p.slug == prefill_platform %}active{% endif %}"
+          id="platform-btn-{{ p.slug }}"
+          data-platform="{{ p.slug }}"
+          data-color="{{ p.brand_color }}"
+          data-bg="{{ p.brand_bg }}"
+          onclick="selectPlatform('{{ p.slug }}', '{{ p.brand_color }}', `{{ p.brand_bg }}`)"
+          style="{% if forloop.first or p.slug == prefill_platform %}border-color: {{ p.brand_color }}40; background: linear-gradient(135deg, {{ p.brand_color }}18 0%, rgba(20,10,40,0.9) 100%);{% endif %}">
+    <div class="platform-icon" style="background: {{ p.brand_bg }};">
+      <span>{{ p.emoji }}</span>
     </div>
+    <span class="platform-label">{{ p.name }}</span>
+  </button>
+  {% empty %}
+  <div class="px-4 py-3 text-text-muted text-xs italic">
+    No classified services yet — admin needs to set tiers in the Pricing Manager.
   </div>
+  {% endfor %}
+</div>
 
-
-  <!-- Category Selector -->
-  <div class="card card-padding mb-4">
-    <div class="form-group">
-      <label class="form-label" for="smm-category-select">Select Category</label>
-      <select class="form-select bg-white border border-surface-border rounded-xl px-4 py-3 text-sm font-semibold w-full" 
-              id="smm-category-select"
-              name="subcategory"
-              hx-get="{% url 'smm:ajax_services' %}"
-              hx-trigger="change"
-              hx-vals="js:{platform: activePlatform}"
-              hx-target="#smm-cards-container"
-              hx-swap="innerHTML">
-        <option value="" disabled selected>-- Select SMM Category --</option>
-      </select>
-    </div>
-  </div>
-
-  <!-- SMM Platform Services Card List -->
-  <div class="space-y-3" id="smm-cards-container">
-    <div class="text-center py-8 text-text-muted">
-      Select a category from the dropdown above to view services.
-    </div>
+<!-- ═══ TIER CARDS CONTAINER (HTMX target) ═══ -->
+<div id="smm-tier-cards"
+     hx-get="{% url 'smm:ajax_tier_services' %}"
+     hx-trigger="load"
+     hx-vals='{"platform": "{{ platforms_meta.0.slug|default:"instagram" }}"}'
+     hx-swap="innerHTML"
+     hx-indicator="#tier-loading">
+  <div class="text-center py-10 text-text-muted text-sm" id="tier-loading">
+    <div class="w-6 h-6 border-2 border-brand-accent border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+    Loading services…
   </div>
 </div>
 
-<!-- Main Checkout Form -->
+<!-- ─── Hidden checkout form ─── -->
 <form id="smm-checkout-form" method="post">
   {% csrf_token %}
-  <input type="hidden" name="platform" id="id_platform" value="instagram">
+  <input type="hidden" name="platform" id="id_platform">
   <input type="hidden" name="service_id" id="id_service_id">
   <input type="hidden" name="service_name" id="id_service_name">
   <input type="hidden" name="url" id="id_hidden_url">
   <input type="hidden" name="quantity" id="id_hidden_quantity">
   <input type="hidden" name="pin" id="id_hidden_pin">
 </form>
+
 {% endblock %}
 
 {% block modals %}
-<!-- Bottom Sheets -->
-<div class="sheet-backdrop" id="custom-backdrop" onclick="closeCustomSheets()"></div>
+<!-- ═══ BOTTOM SHEETS ═══ -->
+<div class="sheet-backdrop" id="custom-backdrop" onclick="closeAllSheets()"></div>
 
-<!-- SMM Order Sheet -->
+<!-- SERVICE PICKER SHEET (for "View all N services") -->
+<div class="bottom-sheet shadow-2xl" id="sheet-tier-services">
+  <div class="sheet-handle"></div>
+  <div class="p-5 pb-2">
+    <h2 class="sheet-title" id="tier-services-modal-title">Choose a Service</h2>
+    <p class="sheet-subtitle">Select the service that matches your goal</p>
+  </div>
+  <div id="tier-services-modal-body" class="px-4 pb-6 space-y-2 overflow-y-auto max-h-[60vh]">
+    <div class="text-center py-6 text-text-muted text-sm">Loading…</div>
+  </div>
+</div>
+
+<!-- ORDER DETAIL SHEET -->
 <div class="bottom-sheet shadow-2xl" id="sheet-smm-order">
   <div class="sheet-handle"></div>
-  <div class="p-5 pb-6">
-    <h2 class="sheet-title" id="smm-sheet-title">Order Service</h2>
-    <p class="sheet-subtitle">Enter your profile link and quantity</p>
-    
-    <div class="space-y-4">
-      <div class="form-group">
-        <label class="form-label" for="smm-url-input">Profile / Post URL</label>
-        <input class="form-input" type="url" id="smm-url-input" placeholder="https://instagram.com/username">
+  <div class="p-5 pb-4">
+    <div class="flex items-center gap-3 mb-1">
+      <div id="sheet-tier-badge" class="text-[10px] font-bold px-2 py-0.5 rounded-full"></div>
+      <h2 class="sheet-title mb-0" id="smm-sheet-title">Boost Order</h2>
+    </div>
+    <p class="sheet-subtitle" id="smm-sheet-subtitle">Enter your profile link and quantity</p>
+
+    <div class="space-y-3">
+      <!-- Delivery promise -->
+      <div id="sheet-delivery-label" class="flex items-center gap-1.5 text-[11px] text-emerald-400 font-semibold bg-emerald-950/30 border border-emerald-900/30 rounded-xl px-3 py-2">
+        <span>⏱</span> <span id="sheet-delivery-text">Starts within 15 mins</span>
       </div>
+
+      <div class="form-group">
+        <label class="form-label" for="smm-url-input">Profile / Post URL or Username</label>
+        <input class="form-input" type="text" id="smm-url-input" placeholder="https://instagram.com/username" autocomplete="off">
+      </div>
+
       <div class="form-group">
         <label class="form-label" for="smm-quantity-input">Quantity</label>
-        <input class="form-input" type="number" id="smm-quantity-input" placeholder="500" inputmode="numeric">
+        <div class="relative">
+          <input class="form-input pr-24" type="number" id="smm-quantity-input" placeholder="500" inputmode="numeric">
+          <div class="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted text-[10px]" id="sheet-qty-limits">min / max</div>
+        </div>
       </div>
-      <div class="flex justify-between items-center bg-[#F3EDFA] dark:bg-[#130824] border border-[#E8DEF5] dark:border-[#2E174D] rounded-xl p-4">
-        <span class="text-sm font-semibold text-text-secondary dark:text-[#C4B5D8]">Estimated Cost</span>
-        <span class="text-lg font-bold text-brand-primary dark:text-[#C893FF]" id="smm-cost-display">₦0.00</span>
+
+      <!-- Live cost preview -->
+      <div class="flex justify-between items-center bg-[#1A0D38] border border-[#2E174D] rounded-xl p-4">
+        <span class="text-sm font-semibold text-purple-200/80">Estimated Cost</span>
+        <span class="text-lg font-bold text-purple-300 font-mono" id="smm-cost-display">₦0.00</span>
       </div>
-      
-      <div class="pt-2 flex gap-3">
-        <button type="button" class="btn btn-secondary flex-1" onclick="closeCustomSheets()">Cancel</button>
-        <button type="button" class="btn btn-primary flex-1" onclick="proceedToPin()">Proceed to PIN →</button>
+
+      <!-- Insufficient balance inline nudge -->
+      <div id="sheet-balance-nudge" class="hidden p-3 rounded-xl bg-red-950/40 border border-red-800/40 text-[11px] leading-relaxed">
+        <div class="text-red-300 font-bold mb-1">💳 Wallet balance insufficient</div>
+        <div class="text-red-200/80">You need <strong id="nudge-cost">₦0</strong> but have <strong id="nudge-balance">₦0</strong>.
+          Top up <strong id="nudge-topup" class="text-emerald-400">₦0</strong> to continue.
+        </div>
+        <a id="nudge-topup-link" href="/wallet/fund/" class="mt-2 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-bold transition-all">
+          <i data-feather="zap" class="w-3.5 h-3.5"></i> Top Up &amp; Continue
+        </a>
+      </div>
+
+      <div class="pt-1 flex gap-3">
+        <button type="button" class="btn btn-secondary flex-1" onclick="closeAllSheets()">Cancel</button>
+        <button type="button" class="btn btn-primary flex-1" id="proceed-to-pin-btn" onclick="proceedToPin()">
+          Boost Now →
+        </button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- PIN Confirmation Modal Bottom Sheet (Numpad) -->
+<!-- PIN CONFIRMATION SHEET -->
 <div class="bottom-sheet shadow-2xl" id="custom-sheet-pin">
   <div class="sheet-handle"></div>
   <div class="p-5 pb-6">
     <h2 class="sheet-title">Confirm Transaction</h2>
-    <p class="sheet-subtitle" id="custom-sheet-pin-subtitle">Enter your 4-digit PIN to confirm purchase</p>
-    
-    <div class="flex justify-center gap-3 mb-6">
-      <div class="w-12 h-14 text-center text-2xl font-bold flex items-center justify-center border-2 border-surface-border rounded-xl" id="pin-box-0"></div>
-      <div class="w-12 h-14 text-center text-2xl font-bold flex items-center justify-center border-2 border-surface-border rounded-xl" id="pin-box-1"></div>
-      <div class="w-12 h-14 text-center text-2xl font-bold flex items-center justify-center border-2 border-surface-border rounded-xl" id="pin-box-2"></div>
-      <div class="w-12 h-14 text-center text-2xl font-bold flex items-center justify-center border-2 border-surface-border rounded-xl" id="pin-box-3"></div>
+    <p class="sheet-subtitle" id="custom-sheet-pin-subtitle">Enter your 4-digit PIN to confirm</p>
+    <div class="flex justify-center gap-3 mb-5">
+      {% for i in "0123" %}
+      <div class="w-12 h-14 text-center text-2xl font-bold flex items-center justify-center border-2 border-surface-border rounded-xl transition-colors" id="pin-box-{{ i }}"></div>
+      {% endfor %}
     </div>
-    
-    <!-- Custom Numpad Grid -->
-    <div class="grid grid-cols-3 gap-2.5 max-w-[320px] mx-auto">
+    <div class="grid grid-cols-3 gap-2 max-w-[300px] mx-auto mb-4">
       {% for num in "123456789"|make_list %}
-        <button type="button" class="h-14 bg-[#F5F7FA] active:bg-surface-border font-bold text-xl rounded-xl transition-colors" onclick="pressPinKey('{{ num }}')">{{ num }}</button>
+      <button type="button" class="numpad-key" onclick="pressPinKey('{{ num }}')">{{ num }}</button>
       {% endfor %}
       <div></div>
-      <button type="button" class="h-14 bg-[#F5F7FA] active:bg-surface-border font-bold text-xl rounded-xl transition-colors" onclick="pressPinKey('0')">0</button>
-      <button type="button" class="h-14 bg-[#F5F7FA] active:bg-surface-border font-bold text-xl rounded-xl flex items-center justify-center transition-colors" onclick="pressPinBackspace()">⌫</button>
+      <button type="button" class="numpad-key" onclick="pressPinKey('0')">0</button>
+      <button type="button" class="numpad-key flex items-center justify-center" onclick="pressPinBackspace()">⌫</button>
     </div>
-    
-    <div class="pt-4">
-      <button type="button" class="btn btn-outline btn-block" onclick="closeCustomSheets()">Cancel</button>
-    </div>
+    <button type="button" class="btn btn-outline btn-block" onclick="closeAllSheets()">Cancel</button>
   </div>
 </div>
 
 <script>
-  let activePlatform = 'instagram';
+  // ─── State ───────────────────────────────────────────────────
+  let activePlatform = '{{ platforms_meta.0.slug|default:"instagram"|escapejs }}';
+  let activeServiceId = '';
   let activeServiceName = '';
-  let activeRate = 0.0;
-  
-  const backdrop = document.getElementById('custom-backdrop');
-  const orderSheet = document.getElementById('sheet-smm-order');
-  const pinSheet = document.getElementById('custom-sheet-pin');
-  
-  const urlInput = document.getElementById('smm-url-input');
-  const quantityInput = document.getElementById('smm-quantity-input');
-  const costDisplay = document.getElementById('smm-cost-display');
+  let activeUnitRate = 0.0;
+  let activeMin = 0;
+  let activeMax = 0;
+  let activePricePer1k = 0.0;
+  let activeTier = '';
+  let pinDigits = [];
+  const walletBalance = parseFloat('{{ wallet.balance|floatformat:2 }}');
 
-  // Auto-filter based on query parameters on load
-  document.addEventListener('DOMContentLoaded', () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    let platform = urlParams.get('platform');
-    if (!platform) {
-      platform = 'instagram';
-    }
-    filterPlatform(platform.toLowerCase());
-    
-    // Smoothly scroll active tab into view
-    const activeTab = document.querySelector(`.platform-tab[data-platform="${platform.toLowerCase()}"]`);
-    if (activeTab) {
-      activeTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-    }
-  });
-  
-  // Platform Filter tabs
-  function filterPlatform(platform) {
-    activePlatform = platform;
-    
-    // Update active tab style
-    document.querySelectorAll('.platform-tab').forEach(tab => {
-      if (tab.getAttribute('data-platform') === platform) {
-        tab.classList.add('active');
-      } else {
-        tab.classList.remove('active');
-      }
+  // ─── Platform Selection ───────────────────────────────────────
+  function selectPlatform(slug, color, bg) {
+    activePlatform = slug;
+    document.getElementById('id_platform').value = slug;
+
+    // Update button active states
+    document.querySelectorAll('.platform-btn').forEach(btn => {
+      const isActive = btn.dataset.platform === slug;
+      btn.classList.toggle('active', isActive);
+      btn.style.borderColor = isActive ? color + '60' : 'transparent';
+      btn.style.background = isActive
+        ? `linear-gradient(135deg, ${color}18 0%, rgba(20,10,40,0.9) 100%)`
+        : 'rgba(30, 20, 50, 0.6)';
     });
-    
-    // Update hidden form
-    document.getElementById('id_platform').value = platform;
-    
-    const selectEl = document.getElementById('smm-category-select');
-    const containerEl = document.getElementById('smm-cards-container');
-    
-    // Reset container and select options
-    containerEl.innerHTML = '<div class="text-center py-8 text-text-muted">Select a category from the dropdown above to view services.</div>';
-    selectEl.innerHTML = '<option value="" disabled selected>Loading categories...</option>';
-    
-    fetch(`/smm/ajax/categories/?platform=${platform}`)
-      .then(response => response.text())
-      .then(html => {
-        selectEl.innerHTML = html;
-        // Process new elements with HTMX
-        htmx.process(selectEl);
-      });
+
+    // HTMX fetch new tier cards
+    htmx.ajax('GET', '{% url "smm:ajax_tier_services" %}?platform=' + slug, {
+      target: '#smm-tier-cards',
+      swap: 'innerHTML'
+    });
   }
-  
-  // Service selection
-  function selectService(serviceId, platform, serviceName, rate) {
+
+  // ─── Open order sheet from a tier card ───────────────────────
+  function openTierSheet(tier, platform, serviceId, serviceName, unitRate, min, max, pricePer1k) {
+    activeTier = tier;
+    activePlatform = platform;
+    activeServiceId = serviceId;
     activeServiceName = serviceName;
-    activeRate = parseFloat(rate);
-    
-    // Populate form fields
-    document.getElementById('id_service_id').value = serviceId || '';
+    activeUnitRate = parseFloat(unitRate);
+    activeMin = parseInt(min);
+    activeMax = parseInt(max);
+    activePricePer1k = parseFloat(pricePer1k);
+
+    document.getElementById('id_platform').value = platform;
+    document.getElementById('id_service_id').value = serviceId;
     document.getElementById('id_service_name').value = serviceName;
-    
-    // Set placeholder URL depending on platform
-    if (platform === 'instagram') {
-      urlInput.placeholder = 'https://instagram.com/username';
-    } else if (platform === 'tiktok') {
-      urlInput.placeholder = 'https://tiktok.com/@username';
-    } else if (platform === 'youtube') {
-      urlInput.placeholder = 'https://youtube.com/c/channelname';
-    } else if (platform === 'twitter') {
-      urlInput.placeholder = 'https://twitter.com/username';
-    } else {
-      urlInput.placeholder = 'https://link-to-profile-or-post';
-    }
-    
-    // Reset fields
-    urlInput.value = '';
-    quantityInput.value = '';
-    costDisplay.textContent = '₦0.00';
-    
+
+    // Set tier badge
+    const badgeEl = document.getElementById('sheet-tier-badge');
+    const tierConfig = {
+      basic: { label: '⚡ Quick Boost', cls: 'tier-label-basic' },
+      standard: { label: '📈 Growth Boost', cls: 'tier-label-standard' },
+      premium: { label: '👑 Elite Boost', cls: 'tier-label-premium' },
+    };
+    const tc = tierConfig[tier] || { label: tier, cls: '' };
+    badgeEl.textContent = tc.label;
+    badgeEl.className = `text-[10px] font-bold px-2 py-0.5 rounded-full ${tc.cls}`;
+
+    // Set sheet labels
+    document.getElementById('smm-sheet-title').textContent = serviceName.length > 30 ? serviceName.substring(0, 30) + '…' : serviceName;
+    document.getElementById('sheet-qty-limits').textContent = `${min.toLocaleString()} – ${max.toLocaleString()}`;
+
+    const deliveryMap = {
+      basic: 'Starts within 5–15 minutes',
+      standard: 'Starts within 15–30 minutes',
+      premium: 'Starts within 20–45 minutes',
+    };
+    document.getElementById('sheet-delivery-text').textContent = deliveryMap[tier] || 'Starts within ~15 minutes';
+
+    // Reset inputs
+    document.getElementById('smm-url-input').value = '';
+    document.getElementById('smm-quantity-input').value = '';
+    document.getElementById('smm-cost-display').textContent = '₦0.00';
+    document.getElementById('sheet-balance-nudge').classList.add('hidden');
+    document.getElementById('proceed-to-pin-btn').disabled = false;
+
     // Open sheet
-    document.getElementById('smm-sheet-title').textContent = serviceName;
-    backdrop.classList.add('active');
-    orderSheet.classList.add('active');
-    document.body.style.overflow = 'hidden';
+    document.getElementById('sheet-smm-order').classList.add('open');
+    document.getElementById('custom-backdrop').classList.add('open');
   }
-  
-  // Dynamic Cost Calculation
-  quantityInput.addEventListener('input', () => {
-    const qty = parseInt(quantityInput.value) || 0;
-    const cost = qty * activeRate;
-    costDisplay.textContent = '₦' + cost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  // ─── Select service from list in service picker sheet ────────
+  function selectServiceFromList(serviceId, platform, serviceName, unitRate, min, max, pricePer1k, tier) {
+    // Close service picker, open order sheet
+    document.getElementById('sheet-tier-services').classList.remove('open');
+    setTimeout(() => openTierSheet(tier, platform, serviceId, serviceName, unitRate, min, max, pricePer1k), 100);
+  }
+
+  // ─── Live cost calculation & balance check ─────────────────
+  document.addEventListener('input', function(e) {
+    if (e.target.id === 'smm-quantity-input') {
+      updateCostDisplay();
+    }
   });
-  
-  function closeCustomSheets() {
-    backdrop.classList.remove('active');
-    orderSheet.classList.remove('active');
-    pinSheet.classList.remove('active');
-    document.body.style.overflow = '';
-    pinState = [];
-    refreshPinBoxes();
+
+  function updateCostDisplay() {
+    const qty = parseInt(document.getElementById('smm-quantity-input').value) || 0;
+    const cost = qty * activeUnitRate;
+    document.getElementById('smm-cost-display').textContent = '₦' + cost.toFixed(2);
+
+    const nudge = document.getElementById('sheet-balance-nudge');
+    const btn = document.getElementById('proceed-to-pin-btn');
+
+    if (qty > 0 && cost > walletBalance) {
+      const shortfall = cost - walletBalance;
+      const roundTo = 500;
+      const topup = Math.ceil(shortfall / roundTo) * roundTo;
+      document.getElementById('nudge-cost').textContent = '₦' + cost.toFixed(2);
+      document.getElementById('nudge-balance').textContent = '₦' + walletBalance.toFixed(2);
+      document.getElementById('nudge-topup').textContent = '₦' + topup.toLocaleString();
+      const returnUrl = encodeURIComponent('/smm/?platform=' + activePlatform + '&tier=' + activeTier);
+      document.getElementById('nudge-topup-link').href = '/wallet/fund/?amount=' + topup + '&return_to=' + returnUrl;
+      nudge.classList.remove('hidden');
+      btn.disabled = true;
+      btn.classList.add('opacity-50');
+    } else {
+      nudge.classList.add('hidden');
+      btn.disabled = false;
+      btn.classList.remove('opacity-50');
+    }
   }
-  
+
+  // ─── Proceed to PIN ───────────────────────────────────────────
   function proceedToPin() {
-    const url = urlInput.value.trim();
-    const qty = quantityInput.value.trim();
-    
-    if (!url) {
-      alert('Please enter a profile or post URL link.');
-      return;
-    }
-    if (!qty || parseInt(qty) <= 0) {
-      alert('Please enter a valid order quantity.');
-      return;
-    }
-    
-    // Copy inputs to hidden form
+    const url = document.getElementById('smm-url-input').value.trim();
+    const qty = document.getElementById('smm-quantity-input').value.trim();
+
+    if (!url) { alert('Please enter your profile URL or username.'); return; }
+    if (!qty || parseInt(qty) <= 0) { alert('Please enter a valid quantity.'); return; }
+    if (parseInt(qty) < activeMin) { alert(`Minimum quantity is ${activeMin.toLocaleString()}.`); return; }
+    if (parseInt(qty) > activeMax) { alert(`Maximum quantity is ${activeMax.toLocaleString()}.`); return; }
+
     document.getElementById('id_hidden_url').value = url;
     document.getElementById('id_hidden_quantity').value = qty;
-    
-    // Open PIN sheet
-    orderSheet.classList.remove('active');
-    pinState = [];
-    refreshPinBoxes();
-    pinSheet.classList.add('active');
-    document.getElementById('custom-sheet-pin-subtitle').textContent = `Enter your PIN to confirm ₦${((parseInt(qty) || 0) * activeRate).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+    // Summary in PIN sheet
+    const cost = parseInt(qty) * activeUnitRate;
+    document.getElementById('custom-sheet-pin-subtitle').textContent =
+      `Boosting ×${parseInt(qty).toLocaleString()} for ₦${cost.toFixed(2)} · Enter PIN to confirm`;
+
+    // Reset PIN boxes
+    pinDigits = [];
+    for (let i = 0; i < 4; i++) {
+      const box = document.getElementById('pin-box-' + i);
+      box.textContent = '';
+      box.classList.remove('border-brand-accent', 'bg-brand-accent/10');
+      box.classList.add('border-surface-border');
+    }
+
+    document.getElementById('sheet-smm-order').classList.remove('open');
+    setTimeout(() => {
+      document.getElementById('custom-sheet-pin').classList.add('open');
+    }, 120);
   }
-  
-  // Custom Numpad Logic
-  let pinState = [];
-  
+
+  // ─── PIN Entry ────────────────────────────────────────────────
   function pressPinKey(digit) {
-    if (pinState.length >= 4) return;
-    pinState.push(digit);
-    refreshPinBoxes();
-    
-    if (pinState.length === 4) {
-      setTimeout(() => {
-        // Set PIN and submit
-        const pinCode = pinState.join('');
-        document.getElementById('id_hidden_pin').value = pinCode;
-        
-        // Visually dismiss keypad before showing global loader
-        closeCustomSheets();
-        
-        // Show premium glassmorphic loader
-        const overlay = document.getElementById('global-loading-overlay');
-        if (overlay) {
-            document.getElementById('loading-overlay-title').textContent = "Placing SMM Booster Request...";
-            document.getElementById('loading-overlay-subtitle').textContent = "Submitting social media booster request to our secure network. Please do not close or refresh this page.";
-            overlay.style.display = 'flex';
-        }
-        
-        // Disable numpad buttons to prevent duplicate submits
-        document.querySelectorAll('#custom-sheet-pin button').forEach(b => b.disabled = true);
-        
-        // Show spinner / submit
-        document.getElementById('smm-checkout-form').submit();
-      }, 250);
+    if (pinDigits.length >= 4) return;
+    pinDigits.push(digit);
+    const idx = pinDigits.length - 1;
+    const box = document.getElementById('pin-box-' + idx);
+    box.textContent = '●';
+    box.classList.add('border-brand-accent', 'bg-brand-accent/10');
+    box.classList.remove('border-surface-border');
+
+    if (pinDigits.length === 4) {
+      document.getElementById('id_hidden_pin').value = pinDigits.join('');
+      document.getElementById('smm-checkout-form').submit();
     }
   }
-  
+
   function pressPinBackspace() {
-    pinState.pop();
-    refreshPinBoxes();
+    if (pinDigits.length === 0) return;
+    const idx = pinDigits.length - 1;
+    pinDigits.pop();
+    const box = document.getElementById('pin-box-' + idx);
+    box.textContent = '';
+    box.classList.remove('border-brand-accent', 'bg-brand-accent/10');
+    box.classList.add('border-surface-border');
   }
-  
-  function refreshPinBoxes() {
-    for (let i = 0; i < 4; i++) {
-      const box = document.getElementById(`pin-box-${i}`);
-      box.textContent = '';
-      box.className = "w-12 h-14 text-center text-2xl font-bold flex items-center justify-center border-2 border-surface-border rounded-xl transition-all";
-      
-      if (i < pinState.length) {
-        box.textContent = '•';
-        box.classList.add('border-brand-primary', 'bg-brand-primary/5', 'text-brand-primary');
-      } else if (i === pinState.length) {
-        box.classList.add('border-brand-accent');
+
+  // ─── Close sheets ─────────────────────────────────────────────
+  function closeAllSheets() {
+    document.querySelectorAll('.bottom-sheet.open').forEach(s => s.classList.remove('open'));
+    document.getElementById('custom-backdrop').classList.remove('open');
+  }
+
+  // ─── Auto-select platform from URL params (return after funding) ──
+  document.addEventListener('DOMContentLoaded', () => {
+    const params = new URLSearchParams(window.location.search);
+    const pfSlug = params.get('platform');
+    const pfTier = params.get('tier');
+
+    if (pfSlug) {
+      const btn = document.getElementById('platform-btn-' + pfSlug);
+      if (btn) {
+        selectPlatform(pfSlug, btn.dataset.color, btn.dataset.bg);
       }
     }
-  }
-</script>
-{% endblock %}
 
-{% block bottom_nav %}
-{% include 'partials/_bottom_nav.html' with active='smm' %}
+    // Scroll active platform into view
+    const activeBtn = document.querySelector('.platform-btn.active');
+    if (activeBtn) {
+      activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  });
+</script>
 {% endblock %}

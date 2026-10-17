@@ -486,9 +486,10 @@ def fetch_smm_service_description(provider_service_id):
 def sync_all_smm_descriptions(force_refresh=False):
     """
     Multithreaded fetch of detailed service descriptions from Ogaviral.
-    Populates the 'description' field for all active SMMService records.
+    Populates the 'description' field and updates suggested_tier for active SMMService records.
     """
     from concurrent.futures import ThreadPoolExecutor, as_completed
+    from apps.smm.tiering import calculate_suggested_tier
     logger.info("Starting multithreaded SMM service descriptions sync...")
     if force_refresh:
         qs = SMMService.objects.filter(is_active=True)
@@ -506,7 +507,9 @@ def sync_all_smm_descriptions(force_refresh=False):
         desc = fetch_smm_service_description(service.provider_service_id)
         if desc:
             service.description = desc
-            service.save(update_fields=["description"])
+            # Recalculate auto-suggested tier with the new description content
+            service.suggested_tier = calculate_suggested_tier(service)
+            service.save(update_fields=["description", "suggested_tier"])
             return True
         return False
 
@@ -527,34 +530,48 @@ def sync_all_smm_descriptions(force_refresh=False):
 def sync_smm_catalogue():
     """
     Synchronizes active social booster services. Applied daily at 3:00 AM (Celery Beat).
+    Dynamically identifies individual platforms and pre-calculates suggested tiers
+    while strictly keeping newly added services unclassified until confirmed by an admin.
     """
+    from apps.smm.platforms import detect_platform
+    from apps.smm.tiering import calculate_suggested_tier, auto_suggest_tiers_for_catalogue
+
     logger.info("Synchronizing SMM Catalogue from booster gateway...")
     api_key = settings.OGAVIRAL_API_KEY
     if not api_key:
-        # Pre-populate catalogue for local manual developer verification
+        # Pre-populated mock catalogue with confirmed 3-tier sample data for developer verification
         pre_populated = [
             # Instagram
-            {"service": "1001", "name": "Instagram Followers (Real & Active)", "category": "instagram", "min": "100", "max": "10000", "rate": Decimal("0.80")},
-            {"service": "1002", "name": "Instagram Likes (High Quality)", "category": "instagram", "min": "50", "max": "5000", "rate": Decimal("0.20")},
-            {"service": "1003", "name": "Instagram Views (Fast delivery)", "category": "instagram", "min": "100", "max": "50000", "rate": Decimal("0.10")},
+            {"service": "1001", "name": "Instagram Followers (Real & Active)", "cat_raw": "Instagram Followers", "min": "100", "max": "10000", "rate": Decimal("0.80"), "tier": "premium"},
+            {"service": "1002", "name": "Instagram Followers (30-Day Refill)", "cat_raw": "Instagram Followers", "min": "50", "max": "5000", "rate": Decimal("0.45"), "tier": "standard"},
+            {"service": "1003", "name": "Instagram Followers (Instant / No Refill)", "cat_raw": "Instagram Followers", "min": "100", "max": "50000", "rate": Decimal("0.20"), "tier": "basic"},
+            {"service": "1004", "name": "Instagram Likes (High Quality)", "cat_raw": "Instagram Likes", "min": "50", "max": "5000", "rate": Decimal("0.20"), "tier": "standard"},
+            {"service": "1005", "name": "Instagram Likes (Organic / Non-Drop)", "cat_raw": "Instagram Likes", "min": "50", "max": "5000", "rate": Decimal("0.35"), "tier": "premium"},
+            {"service": "1006", "name": "Instagram Likes (Instant Speed)", "cat_raw": "Instagram Likes", "min": "100", "max": "50000", "rate": Decimal("0.10"), "tier": "basic"},
             # TikTok
-            {"service": "2001", "name": "TikTok Followers (Premium)", "category": "tiktok", "min": "100", "max": "20000", "rate": Decimal("1.20")},
-            {"service": "2002", "name": "TikTok Likes (Real)", "category": "tiktok", "min": "100", "max": "10000", "rate": Decimal("0.30")},
-            {"service": "2003", "name": "TikTok Views (Instant)", "category": "tiktok", "min": "500", "max": "100000", "rate": Decimal("0.05")},
+            {"service": "2001", "name": "TikTok Followers (Premium Non-Drop)", "cat_raw": "TikTok Followers", "min": "100", "max": "20000", "rate": Decimal("1.20"), "tier": "premium"},
+            {"service": "2002", "name": "TikTok Followers (Growth Boost)", "cat_raw": "TikTok Followers", "min": "100", "max": "10000", "rate": Decimal("0.60"), "tier": "standard"},
+            {"service": "2003", "name": "TikTok Followers (Instant Bot Mix)", "cat_raw": "TikTok Followers", "min": "500", "max": "100000", "rate": Decimal("0.25"), "tier": "basic"},
             # YouTube
-            {"service": "3001", "name": "YouTube Subscribers (Non-Drop)", "category": "youtube", "min": "50", "max": "5000", "rate": Decimal("8.50")},
-            {"service": "3002", "name": "YouTube Likes (Active)", "category": "youtube", "min": "50", "max": "10000", "rate": Decimal("1.50")},
-            {"service": "3003", "name": "YouTube Views (High Retention)", "category": "youtube", "min": "100", "max": "100000", "rate": Decimal("1.20")},
+            {"service": "3001", "name": "YouTube Subscribers (Non-Drop / Lifetime Refill)", "cat_raw": "YouTube Subscribers", "min": "50", "max": "5000", "rate": Decimal("8.50"), "tier": "premium"},
+            {"service": "3002", "name": "YouTube Subscribers (Stable Growth)", "cat_raw": "YouTube Subscribers", "min": "50", "max": "10000", "rate": Decimal("4.50"), "tier": "standard"},
+            {"service": "3003", "name": "YouTube Subscribers (Fast Delivery)", "cat_raw": "YouTube Subscribers", "min": "50", "max": "10000", "rate": Decimal("2.00"), "tier": "basic"},
             # Twitter
-            {"service": "4001", "name": "Twitter Followers (Real Look)", "category": "twitter", "min": "100", "max": "5000", "rate": Decimal("2.50")},
-            {"service": "4002", "name": "Twitter Retweets (Instant)", "category": "twitter", "min": "50", "max": "2000", "rate": Decimal("0.90")},
-            {"service": "4003", "name": "Twitter Likes (Organic)", "category": "twitter", "min": "50", "max": "5000", "rate": Decimal("0.70")},
+            {"service": "4001", "name": "Twitter Followers (Real / Active / NFT)", "cat_raw": "Twitter Followers", "min": "100", "max": "5000", "rate": Decimal("2.50"), "tier": "premium"},
+            {"service": "4002", "name": "Twitter Followers (Standard 30-Day)", "cat_raw": "Twitter Followers", "min": "50", "max": "2000", "rate": Decimal("1.20"), "tier": "standard"},
+            {"service": "4003", "name": "Twitter Followers (Instant Mixed)", "cat_raw": "Twitter Followers", "min": "50", "max": "5000", "rate": Decimal("0.60"), "tier": "basic"},
+            # Facebook
+            {"service": "5001", "name": "Facebook Page Likes (Targeted / Real)", "cat_raw": "Facebook Page Likes", "min": "100", "max": "10000", "rate": Decimal("1.50"), "tier": "premium"},
+            {"service": "5002", "name": "Facebook Page Likes (Stable)", "cat_raw": "Facebook Page Likes", "min": "100", "max": "10000", "rate": Decimal("0.80"), "tier": "standard"},
+            {"service": "5003", "name": "Facebook Page Likes (Fast / Mixed)", "cat_raw": "Facebook Page Likes", "min": "100", "max": "10000", "rate": Decimal("0.40"), "tier": "basic"},
             # Telegram
-            {"service": "5001", "name": "Telegram Channel Members (Global)", "category": "telegram", "min": "100", "max": "10000", "rate": Decimal("0.60")},
-            {"service": "5002", "name": "Telegram Post Views (Instant)", "category": "telegram", "min": "100", "max": "50000", "rate": Decimal("0.05")},
+            {"service": "6001", "name": "Telegram Channel Members (Global Real)", "cat_raw": "Telegram Members", "min": "100", "max": "10000", "rate": Decimal("0.90"), "tier": "premium"},
+            {"service": "6002", "name": "Telegram Channel Members (Stable)", "cat_raw": "Telegram Members", "min": "100", "max": "10000", "rate": Decimal("0.60"), "tier": "standard"},
+            {"service": "6003", "name": "Telegram Channel Members (Instant)", "cat_raw": "Telegram Members", "min": "100", "max": "50000", "rate": Decimal("0.30"), "tier": "basic"},
             # Spotify
-            {"service": "6001", "name": "Spotify Playlist Followers", "category": "spotify", "min": "100", "max": "20000", "rate": Decimal("0.40")},
-            {"service": "6002", "name": "Spotify Song Plays (Premium)", "category": "spotify", "min": "100", "max": "50000", "rate": Decimal("0.30")},
+            {"service": "7001", "name": "Spotify Plays (Premium Organic / USA)", "cat_raw": "Spotify Plays", "min": "100", "max": "20000", "rate": Decimal("0.60"), "tier": "premium"},
+            {"service": "7002", "name": "Spotify Plays (Standard)", "cat_raw": "Spotify Plays", "min": "100", "max": "50000", "rate": Decimal("0.35"), "tier": "standard"},
+            {"service": "7003", "name": "Spotify Plays (Fast Delivery)", "cat_raw": "Spotify Plays", "min": "100", "max": "50000", "rate": Decimal("0.18"), "tier": "basic"},
         ]
         from apps.admin_panel.models import SystemSetting
         try:
@@ -564,90 +581,96 @@ def sync_smm_catalogue():
         smm_margin = smm_margin_pct / Decimal("100")
 
         for s in pre_populated:
-            # For mock data, rate is already normalized in Naira.
             markup_price = s["rate"] * (Decimal("1") + smm_margin)
+            platform_slug = detect_platform(s["cat_raw"], s["name"])
             SMMService.objects.update_or_create(
                 provider_service_id=s["service"],
                 defaults={
                     "name": s["name"],
-                    "category": s["category"],
-                    "subcategory": s["category"].capitalize() + " Default",
+                    "category": platform_slug,
+                    "subcategory": s["cat_raw"],
                     "provider_min": int(s["min"]),
                     "provider_max": int(s["max"]),
                     "provider_rate": s["rate"],
                     "subhero_price_per_1k": markup_price,
+                    "tier": s.get("tier"),
+                    "suggested_tier": s.get("tier"),
                     "is_active": True
                 }
             )
         logger.info("Mock SMM service catalogue loaded successfully.")
+
     url = settings.OGAVIRAL_API_URL
     try:
         response = requests.post(url, data={"key": api_key, "action": "services"}, timeout=30)
         services = response.json()
- 
+
         count = 0
+        from apps.admin_panel.models import SystemSetting
+        try:
+            max_smm_price_cap = Decimal(SystemSetting.get("max_smm_service_price", "150000.00"))
+        except Exception:
+            max_smm_price_cap = Decimal("150000.00")
+
+        try:
+            smm_margin_pct = Decimal(SystemSetting.get("smm_profit_margin", "50.00"))
+        except Exception:
+            smm_margin_pct = Decimal("50.00")
+        smm_margin = smm_margin_pct / Decimal("100")
+
         for s in services:
-            category_lower = s["category"].lower()
-            
-            # Map categories to our 6 core frontend platform tabs
-            platform = "other"
-            if "instagram" in category_lower:
-                platform = "instagram"
-            elif "tiktok" in category_lower:
-                platform = "tiktok"
-            elif "youtube" in category_lower:
-                platform = "youtube"
-            elif "twitter" in category_lower or "x.com" in category_lower or "threads" in category_lower or category_lower == "x" or category_lower.startswith("x ") or " x " in category_lower or "x -" in category_lower or category_lower.endswith(" x"):
-                platform = "twitter"
-            elif "telegram" in category_lower:
-                platform = "telegram"
-            elif "spotify" in category_lower:
-                platform = "spotify"
- 
-            # Rebrand OgaViral references to SubHero for frontend clients
+            raw_category = s.get("category", "").strip()
             clean_name = s["name"]
-            clean_subcategory = s.get("category", "").strip()
+            clean_subcategory = raw_category
+
             for old_branding in ["OgaViral", "Oga Viral", "Oga_Viral", "oga viral", "ogaviral", "oga_viral", "OGAVIRAL", "OGA VIRAL"]:
                 clean_name = clean_name.replace(old_branding, "SubHero")
                 clean_subcategory = clean_subcategory.replace(old_branding, "SubHero")
 
-            rate_naira = Decimal(str(s["rate"]))
-            
-            # Dynamic SMM service rate cap (0 or empty means unlimited)
-            from apps.admin_panel.models import SystemSetting
-            try:
-                max_smm_price_cap = Decimal(SystemSetting.get("max_smm_service_price", "150000.00"))
-            except Exception:
-                max_smm_price_cap = Decimal("150000.00")
+            # Detect platform dynamically so every supported network receives its own icon button
+            platform = detect_platform(raw_category, clean_name)
 
+            rate_naira = Decimal(str(s["rate"]))
             if max_smm_price_cap > 0 and rate_naira > max_smm_price_cap:
                 continue
 
-            # Dynamic SMM profit markup
-            try:
-                smm_margin_pct = Decimal(SystemSetting.get("smm_profit_margin", "50.00"))
-            except Exception:
-                smm_margin_pct = Decimal("50.00")
-            smm_margin = smm_margin_pct / Decimal("100")
-            
             subhero_price = rate_naira * (Decimal("1") + smm_margin)
- 
-            SMMService.objects.update_or_create(
-                provider_service_id=str(s["service"]),
-                defaults={
-                    "name": clean_name,
-                    "category": platform,
-                    "subcategory": clean_subcategory,
-                    "provider_min": int(s["min"]),
-                    "provider_max": int(s["max"]),
-                    "provider_rate": rate_naira,
-                    "subhero_price_per_1k": subhero_price,
-                    "is_active": True
-                }
-            )
+
+            existing = SMMService.objects.filter(provider_service_id=str(s["service"])).first()
+
+            if existing:
+                existing.name = clean_name
+                existing.category = platform
+                existing.subcategory = clean_subcategory
+                existing.provider_min = int(s["min"])
+                existing.provider_max = int(s["max"])
+                existing.provider_rate = rate_naira
+                existing.subhero_price_per_1k = subhero_price
+                existing.is_active = True
+                # Auto-suggest tier without overriding any confirmed admin tier
+                existing.suggested_tier = calculate_suggested_tier(existing)
+                existing.save()
+            else:
+                new_service = SMMService(
+                    provider_service_id=str(s["service"]),
+                    name=clean_name,
+                    category=platform,
+                    subcategory=clean_subcategory,
+                    provider_min=int(s["min"]),
+                    provider_max=int(s["max"]),
+                    provider_rate=rate_naira,
+                    subhero_price_per_1k=subhero_price,
+                    tier=None,  # Lands as unclassified until an admin confirms it
+                    is_active=True
+                )
+                new_service.suggested_tier = calculate_suggested_tier(new_service)
+                new_service.save()
+
             count += 1
+
         logger.info("SMM catalogue synced successfully via Ogaviral booster gateway. Mapped and updated %d services.", count)
         # Automatically trigger multithreaded description fetching for any missing descriptions
         sync_all_smm_descriptions.delay()
     except Exception as e:
         logger.error("Failed to sync SMM catalogue from booster gateway: %s", str(e))
+

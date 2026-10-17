@@ -1,0 +1,208 @@
+{% load humanize %}
+{% comment %}
+  Partial: _tier_cards.html
+  Renders the 3-tier boost cards (Basic / Standard / Premium) for a given platform.
+  Called via HTMX when user selects a platform icon.
+{% endcomment %}
+
+{% if not tier_groups.basic and not tier_groups.standard and not tier_groups.premium %}
+<div class="text-center py-8">
+  <div class="text-3xl mb-2">🔧</div>
+  <p class="text-text-muted text-sm font-semibold">No classified services yet</p>
+  <p class="text-text-muted text-xs mt-1">An admin needs to classify services for {{ platform|title }} in the Pricing Manager.</p>
+</div>
+{% else %}
+
+<!-- Price Anchor Banner -->
+{% if price_anchor and price_anchor.savings > 0 %}
+<div class="mx-4 mt-3 mb-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-start gap-2.5">
+  <span class="text-amber-400 text-lg mt-0.5">💡</span>
+  <div>
+    <p class="text-xs font-bold text-amber-300">Elite Boost vs. Quick Boost — Real Cost Comparison</p>
+    <p class="text-[11px] text-amber-200/80 leading-relaxed mt-0.5">
+      Buying Quick Boost <strong>4× over 30 days</strong> costs <span class="line-through text-red-400">₦{{ price_anchor.basic_true_cost|floatformat:0|intcomma }}</span>.
+      Elite Boost once = <span class="text-emerald-400 font-bold">₦{{ price_anchor.premium_one_cost|floatformat:0|intcomma }}</span>.
+      You save <span class="text-emerald-300 font-bold">₦{{ price_anchor.savings|floatformat:0|intcomma }}</span> and get lasting results.
+    </p>
+  </div>
+</div>
+{% endif %}
+
+<!-- 3-Tier Cards Grid -->
+<div class="px-4 pt-2 pb-6 space-y-3">
+
+  <!-- BASIC — Quick Boost -->
+  {% if tier_groups.basic %}
+  {% with svc=tier_groups.basic.0 %}
+  <div class="tier-card tier-basic rounded-2xl border border-[#2E3A4E] bg-gradient-to-br from-[#0D1B2A] to-[#0A1520] overflow-hidden"
+       data-tier="basic" data-platform="{{ platform }}">
+    <div class="p-4">
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-blue-900/40 flex items-center justify-center">
+            <span class="text-blue-400 text-sm">⚡</span>
+          </div>
+          <div>
+            <div class="text-white font-bold text-sm">Quick Boost</div>
+            <div class="text-blue-400/80 text-[10px] font-medium">Fast &amp; Affordable</div>
+          </div>
+        </div>
+        <div class="text-right">
+          <div class="text-blue-300 font-mono font-bold text-lg">₦{{ svc.unit_price|floatformat:2 }}</div>
+          <div class="text-slate-500 text-[10px]">per 1 unit</div>
+        </div>
+      </div>
+      <p class="text-slate-400 text-[11px] leading-relaxed mb-3">{{ svc.tier_honest_description }}</p>
+      <div class="grid grid-cols-2 gap-2 mb-3">
+        <div class="bg-blue-950/30 rounded-lg p-2 text-center">
+          <div class="text-blue-300 text-[10px] font-bold">⏱ Delivery</div>
+          <div class="text-slate-300 text-[10px]">{{ svc.delivery_speed }}</div>
+        </div>
+        <div class="bg-blue-950/30 rounded-lg p-2 text-center">
+          <div class="text-blue-300 text-[10px] font-bold">📊 Retention</div>
+          <div class="text-slate-300 text-[10px]">{{ svc.retention_label }}</div>
+        </div>
+      </div>
+      <button type="button"
+              class="w-full py-2.5 rounded-xl bg-blue-700 hover:bg-blue-600 active:scale-95 text-white font-bold text-sm transition-all"
+              onclick="openTierSheet('basic', '{{ platform }}', '{{ svc.id }}', '{{ svc.name|escapejs }}', {{ svc.unit_price }}, {{ svc.provider_min }}, {{ svc.provider_max }}, {{ svc.subhero_price_per_1k }})">
+        Boost Now ⚡
+      </button>
+      {% if tier_groups.basic|length > 1 %}
+      <button type="button" class="w-full mt-1.5 py-1.5 rounded-xl border border-blue-900/50 text-blue-400 text-[11px] font-semibold hover:bg-blue-950/30 transition-colors"
+              hx-get="{% url 'smm:ajax_services_list' %}?platform={{ platform }}&tier=basic"
+              hx-target="#tier-services-modal-body"
+              hx-swap="innerHTML"
+              onclick="document.getElementById('sheet-tier-services').classList.add('open'); document.getElementById('custom-backdrop').classList.add('open'); document.getElementById('tier-services-modal-title').textContent = 'Quick Boost Services';">
+        View all {{ tier_groups.basic|length }} services →
+      </button>
+      {% endif %}
+    </div>
+  </div>
+  {% endwith %}
+  {% endif %}
+
+  <!-- STANDARD — Growth Boost (Most Popular) -->
+  {% if tier_groups.standard %}
+  {% with svc=tier_groups.standard.0 %}
+  <div class="tier-card tier-standard rounded-2xl border border-violet-700/50 bg-gradient-to-br from-[#13082E] to-[#0F062A] overflow-hidden"
+       data-tier="standard" data-platform="{{ platform }}">
+    <!-- Popular badge -->
+    <div class="bg-violet-700 text-white text-[10px] font-bold text-center py-1.5 tracking-widest uppercase">
+      🔥 Most Popular
+    </div>
+    <div class="p-4">
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-violet-900/40 flex items-center justify-center">
+            <span class="text-violet-400 text-sm">📈</span>
+          </div>
+          <div>
+            <div class="text-white font-bold text-sm">Growth Boost</div>
+            <div class="text-violet-400/80 text-[10px] font-medium">Balanced &amp; Reliable</div>
+          </div>
+        </div>
+        <div class="text-right">
+          <div class="text-violet-300 font-mono font-bold text-lg">₦{{ svc.unit_price|floatformat:2 }}</div>
+          <div class="text-slate-500 text-[10px]">per 1 unit</div>
+        </div>
+      </div>
+      <p class="text-slate-400 text-[11px] leading-relaxed mb-3">{{ svc.tier_honest_description }}</p>
+      <div class="grid grid-cols-2 gap-2 mb-3">
+        <div class="bg-violet-950/30 rounded-lg p-2 text-center">
+          <div class="text-violet-300 text-[10px] font-bold">⏱ Delivery</div>
+          <div class="text-slate-300 text-[10px]">{{ svc.delivery_speed }}</div>
+        </div>
+        <div class="bg-violet-950/30 rounded-lg p-2 text-center">
+          <div class="text-violet-300 text-[10px] font-bold">📊 Retention</div>
+          <div class="text-slate-300 text-[10px]">{{ svc.retention_label }}</div>
+        </div>
+      </div>
+      <button type="button"
+              class="w-full py-2.5 rounded-xl bg-violet-700 hover:bg-violet-600 active:scale-95 text-white font-bold text-sm transition-all"
+              onclick="openTierSheet('standard', '{{ platform }}', '{{ svc.id }}', '{{ svc.name|escapejs }}', {{ svc.unit_price }}, {{ svc.provider_min }}, {{ svc.provider_max }}, {{ svc.subhero_price_per_1k }})">
+        Start Growing 📈
+      </button>
+      {% if tier_groups.standard|length > 1 %}
+      <button type="button" class="w-full mt-1.5 py-1.5 rounded-xl border border-violet-900/50 text-violet-400 text-[11px] font-semibold hover:bg-violet-950/30 transition-colors"
+              hx-get="{% url 'smm:ajax_services_list' %}?platform={{ platform }}&tier=standard"
+              hx-target="#tier-services-modal-body"
+              hx-swap="innerHTML"
+              onclick="document.getElementById('sheet-tier-services').classList.add('open'); document.getElementById('custom-backdrop').classList.add('open'); document.getElementById('tier-services-modal-title').textContent = 'Growth Boost Services';">
+        View all {{ tier_groups.standard|length }} services →
+      </button>
+      {% endif %}
+    </div>
+  </div>
+  {% endwith %}
+  {% endif %}
+
+  <!-- PREMIUM — Elite Boost (Recommended) — Larger/Elevated -->
+  {% if tier_groups.premium %}
+  {% with svc=tier_groups.premium.0 %}
+  <div class="tier-card tier-premium rounded-2xl border-2 border-amber-500/60 bg-gradient-to-br from-[#1A0D00] via-[#1C1100] to-[#0D0A00] overflow-hidden shadow-lg shadow-amber-900/20 scale-[1.01]"
+       data-tier="premium" data-platform="{{ platform }}">
+    <!-- Recommended badge -->
+    <div class="bg-gradient-to-r from-amber-600 to-orange-600 text-white text-[10px] font-bold text-center py-1.5 tracking-widest uppercase">
+      ⭐ Recommended — Best Long-Term Value
+    </div>
+    <div class="p-4">
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center gap-2">
+          <div class="w-9 h-9 rounded-xl bg-amber-900/40 flex items-center justify-center">
+            <span class="text-amber-400 text-base">👑</span>
+          </div>
+          <div>
+            <div class="text-white font-bold text-base">Elite Boost</div>
+            <div class="text-amber-400/80 text-[10px] font-medium">Real · High Retention · Non-Drop</div>
+          </div>
+        </div>
+        <div class="text-right">
+          <div class="text-amber-300 font-mono font-bold text-xl">₦{{ svc.unit_price|floatformat:2 }}</div>
+          <div class="text-slate-500 text-[10px]">per 1 unit</div>
+        </div>
+      </div>
+      <p class="text-slate-300 text-[11px] leading-relaxed mb-3">{{ svc.tier_honest_description }}</p>
+
+      <!-- Per-day-of-retention value frame -->
+      <div class="bg-amber-950/40 border border-amber-800/30 rounded-xl p-2.5 mb-3">
+        <div class="text-amber-300 text-[10px] font-bold mb-1">💰 Cost-Per-Day-of-Retention (1,000 units)</div>
+        <div class="flex items-baseline gap-1.5">
+          <span class="text-amber-200 font-mono text-sm font-bold">₦{{ svc.subhero_price_per_1k|floatformat:0 }}</span>
+          <span class="text-slate-400 text-[10px]">÷ 30 days = </span>
+          <span class="text-emerald-400 font-mono text-sm font-bold">₦{% widthratio svc.subhero_price_per_1k 30 1 %}/day</span>
+          <span class="text-slate-500 text-[10px]">to maintain growth</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2 mb-3">
+        <div class="bg-amber-950/20 rounded-lg p-2 text-center">
+          <div class="text-amber-300 text-[10px] font-bold">⏱ Delivery</div>
+          <div class="text-slate-300 text-[10px]">{{ svc.delivery_speed }}</div>
+        </div>
+        <div class="bg-amber-950/20 rounded-lg p-2 text-center">
+          <div class="text-amber-300 text-[10px] font-bold">📊 Retention</div>
+          <div class="text-slate-300 text-[10px]">{{ svc.retention_label }}</div>
+        </div>
+      </div>
+      <button type="button"
+              class="w-full py-3 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 active:scale-95 text-white font-bold text-sm transition-all shadow-md shadow-amber-900/40"
+              onclick="openTierSheet('premium', '{{ platform }}', '{{ svc.id }}', '{{ svc.name|escapejs }}', {{ svc.unit_price }}, {{ svc.provider_min }}, {{ svc.provider_max }}, {{ svc.subhero_price_per_1k }})">
+        Unlock Elite Boost 👑
+      </button>
+      {% if tier_groups.premium|length > 1 %}
+      <button type="button" class="w-full mt-1.5 py-1.5 rounded-xl border border-amber-900/50 text-amber-400 text-[11px] font-semibold hover:bg-amber-950/30 transition-colors"
+              hx-get="{% url 'smm:ajax_services_list' %}?platform={{ platform }}&tier=premium"
+              hx-target="#tier-services-modal-body"
+              hx-swap="innerHTML"
+              onclick="document.getElementById('sheet-tier-services').classList.add('open'); document.getElementById('custom-backdrop').classList.add('open'); document.getElementById('tier-services-modal-title').textContent = 'Elite Boost Services';">
+        View all {{ tier_groups.premium|length }} services →
+      </button>
+      {% endif %}
+    </div>
+  </div>
+  {% endwith %}
+  {% endif %}
+
+</div>
+{% endif %}
