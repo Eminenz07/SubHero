@@ -37,6 +37,14 @@
     box-shadow: 0 4px 14px rgba(124, 58, 237, 0.35);
   }
   .platform-tab:active { transform: scale(0.95); }
+  .platform-tab .pt-icon {
+    width: 14px;
+    height: 14px;
+    vertical-align: -2px;
+    display: inline-block;
+    margin-right: 5px;
+  }
+  .platform-tab.active .pt-icon { filter: drop-shadow(0 0 3px rgba(255,255,255,0.35)); }
 
   /* ─── Tier Selector Tabs ─── */
   .tier-tabs {
@@ -271,7 +279,7 @@
        id="platform-tab-{{ p.slug }}"
        data-platform="{{ p.slug }}"
        onclick="selectPlatform('{{ p.slug }}')">
-    {{ p.emoji }} {{ p.name }}
+    {% if p.svg %}<svg class="pt-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="{{ p.name }}">{{ p.svg|safe }}</svg>{{ p.name }}{% else %}{{ p.emoji }} {{ p.name }}{% endif %}
   </div>
   {% empty %}
   <div class="px-4 py-3 text-text-muted text-xs italic">
