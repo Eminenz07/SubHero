@@ -341,20 +341,43 @@ class SmmTierServicesAjaxView(LoginRequiredMixin, View):
         return render(request, self.template_name, context)
 
 
+class SmmTierCategoriesAjaxView(LoginRequiredMixin, View):
+    """
+    Returns <option> elements listing subcategories (Comments, Likes, Followers…)
+    available for a given platform + tier combo.
+    """
+    def get(self, request, *args, **kwargs):
+        platform = request.GET.get("platform", "").lower().strip()
+        tier = request.GET.get("tier", "").lower().strip()
+
+        subcategories = SMMService.objects.filter(
+            category=platform, tier=tier, is_active=True
+        ).exclude(subcategory="").values_list("subcategory", flat=True).distinct().order_by("subcategory")
+
+        html = '<option value="" selected>-- All Categories --</option>'
+        for sub in subcategories:
+            html += f'<option value="{sub}">{sub}</option>'
+        return HttpResponse(html)
+
+
 class SmmServicesListAjaxView(LoginRequiredMixin, View):
     """
-    Returns flat list of services for a given platform+tier combo.
-    Called when user clicks a tier card's "Select Service" or "Boost Now".
+    Returns flat list of services for a given platform+tier (+optional subcategory).
+    Called when user selects a tier or changes the category dropdown.
     """
     template_name = "smm/partials/_service_list.html"
 
     def get(self, request, *args, **kwargs):
         platform = request.GET.get("platform", "").lower().strip()
         tier = request.GET.get("tier", "").lower().strip()
+        subcategory = request.GET.get("subcategory", "").strip()
 
         services = SMMService.objects.filter(
             category=platform, tier=tier, is_active=True
-        ).order_by("subhero_price_per_1k")
+        )
+        if subcategory:
+            services = services.filter(subcategory=subcategory)
+        services = services.order_by("subhero_price_per_1k")
 
         for s in services:
             s.unit_price = s.subhero_price_per_1k / Decimal("1000.00")

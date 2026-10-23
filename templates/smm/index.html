@@ -8,24 +8,26 @@
 
 {% block content %}
 <style>
-  /* ─── Platform Chips (classic look) ─── */
+  /* ═══ LIGHT MODE (base) ═══ */
   .platform-tabs {
     display: flex;
     gap: 8px;
     overflow-x: auto;
     padding: 12px 16px;
     scrollbar-width: none;
+    background: #F5F7FA;
+    border-bottom: 1px solid #E5E7EB;
   }
   .platform-tabs::-webkit-scrollbar { display: none; }
   .platform-tab {
     flex-shrink: 0;
-    padding: 8px 16px;
-    background: rgba(30, 20, 50, 0.6);
-    border: 1px solid rgba(124, 58, 237, 0.2);
+    padding: 8px 14px;
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
     border-radius: 20px;
     font-size: 13px;
     font-weight: 600;
-    color: rgba(200, 185, 220, 0.85);
+    color: #4B5563;
     cursor: pointer;
     transition: all 0.2s ease;
     white-space: nowrap;
@@ -34,7 +36,7 @@
     background: #7C3AED;
     border-color: #7C3AED;
     color: #FFFFFF;
-    box-shadow: 0 4px 14px rgba(124, 58, 237, 0.35);
+    box-shadow: 0 4px 14px rgba(124, 58, 237, 0.3);
   }
   .platform-tab:active { transform: scale(0.95); }
   .platform-tab .pt-icon {
@@ -44,19 +46,17 @@
     display: inline-block;
     margin-right: 5px;
   }
-  .platform-tab.active .pt-icon { filter: drop-shadow(0 0 3px rgba(255,255,255,0.35)); }
 
-  /* ─── Tier Selector Tabs ─── */
   .tier-tabs {
     display: flex;
     gap: 8px;
-    padding: 0 16px 4px;
+    padding: 0 0 4px;
   }
   .tier-tab {
     flex: 1;
     padding: 10px 6px;
-    background: rgba(30, 20, 50, 0.6);
-    border: 1.5px solid rgba(124, 58, 237, 0.2);
+    background: #FFFFFF;
+    border: 1.5px solid #E5E7EB;
     border-radius: 14px;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -68,36 +68,35 @@
     font-size: 10.5px;
     font-weight: 700;
     margin-top: 3px;
-    color: rgba(200, 185, 220, 0.85);
+    color: #4B5563;
   }
   .tier-tab .tt-sub {
     font-size: 8.5px;
     font-weight: 600;
-    color: rgba(157, 136, 179, 0.75);
+    color: #9CA3AF;
     margin-top: 1px;
   }
   .tier-tab[data-tier="basic"].active {
-    background: linear-gradient(135deg, #0D1B2A, #0A1520);
+    background: #EFF6FF;
     border-color: #3B82F6;
-    box-shadow: 0 4px 14px rgba(59, 130, 246, 0.25);
+    box-shadow: 0 4px 14px rgba(59, 130, 246, 0.15);
   }
-  .tier-tab[data-tier="basic"].active .tt-name { color: #93c5fd; }
+  .tier-tab[data-tier="basic"].active .tt-name { color: #1D4ED8; }
   .tier-tab[data-tier="standard"].active {
-    background: linear-gradient(135deg, #13082E, #0F062A);
+    background: #F3EDFA;
     border-color: #8B5CF6;
-    box-shadow: 0 4px 14px rgba(139, 92, 246, 0.3);
+    box-shadow: 0 4px 14px rgba(139, 92, 246, 0.18);
   }
-  .tier-tab[data-tier="standard"].active .tt-name { color: #c4b5fd; }
+  .tier-tab[data-tier="standard"].active .tt-name { color: #6D28D9; }
   .tier-tab[data-tier="premium"].active {
-    background: linear-gradient(135deg, #1A0D00, #120A00);
+    background: #FFFBEB;
     border-color: #F59E0B;
-    box-shadow: 0 4px 14px rgba(245, 158, 11, 0.25);
+    box-shadow: 0 4px 14px rgba(245, 158, 11, 0.18);
   }
-  .tier-tab[data-tier="premium"].active .tt-name { color: #fcd34d; }
+  .tier-tab[data-tier="premium"].active .tt-name { color: #B45309; }
 
-  /* Tier description strip */
   .tier-strip {
-    margin: 8px 16px 10px;
+    margin: 8px 0 10px;
     padding: 8px 12px;
     border-radius: 12px;
     font-size: 10.5px;
@@ -106,22 +105,22 @@
     align-items: flex-start;
     gap: 8px;
   }
-  .tier-strip.basic { background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.25); color: #bfdbfe; }
-  .tier-strip.standard { background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.25); color: #ddd6fe; }
-  .tier-strip.premium { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.25); color: #fde68a; }
+  .tier-strip.basic { background: #EFF6FF; border: 1px solid #BFDBFE; color: #1E40AF; }
+  .tier-strip.standard { background: #F3EDFA; border: 1px solid #DDD6FE; color: #5B21B6; }
+  .tier-strip.premium { background: #FFFBEB; border: 1px solid #FDE68A; color: #92400E; }
 
-  /* ─── Service Cards (classic flat list) ─── */
   .smm-card {
     display: flex;
     align-items: flex-start;
     gap: 12px;
-    background: rgba(26, 13, 46, 0.75);
-    border: 1px solid rgba(124, 58, 237, 0.16);
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
     border-radius: 16px;
     padding: 14px;
     cursor: pointer;
     transition: all 0.2s ease;
   }
+  .smm-card:hover { border-color: #C4B5FD; box-shadow: 0 2px 10px rgba(124, 58, 237, 0.08); }
   .smm-card:active { transform: scale(0.98); }
   .smm-icon-bg {
     width: 44px;
@@ -137,14 +136,11 @@
   .smm-name {
     font-size: 13px;
     font-weight: 700;
-    color: #FAF5FF;
+    color: #1A092A;
     margin-bottom: 2px;
     line-height: 1.35;
   }
-  .smm-desc {
-    font-size: 11px;
-    color: #C4B5D8;
-  }
+  .smm-desc { font-size: 11px; color: #9D88B3; }
   .smm-price {
     font-size: 12px;
     font-weight: 800;
@@ -155,29 +151,32 @@
     line-height: 1.3;
   }
   .smm-price .per-k { display: block; font-size: 8.5px; font-weight: 600; opacity: 0.7; }
-  .smm-price.t-basic { background: rgba(59,130,246,0.14); color: #93c5fd; }
-  .smm-price.t-standard { background: rgba(139,92,246,0.16); color: #c4b5fd; }
-  .smm-price.t-premium { background: rgba(245,158,11,0.14); color: #fcd34d; }
+  .smm-price.t-basic { background: #EFF6FF; color: #1D4ED8; }
+  .smm-price.t-standard { background: #F3EDFA; color: #6D28D9; }
+  .smm-price.t-premium { background: #FFFBEB; color: #B45309; }
+  .smm-rules-desc {
+    background: #F3EDFA;
+    color: #1A092A;
+    border-left: 2px solid #7C3AED;
+  }
 
-  /* ─── Wallet Balance Strip ─── */
   .wallet-strip {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background: linear-gradient(135deg, #110728 0%, #1A0D38 100%);
-    border: 1px solid rgba(124, 58, 237, 0.25);
+    background: #F3EDFA;
+    border: 1px solid #E8DEF5;
     border-radius: 16px;
     padding: 12px 16px;
     margin: 0 16px 12px;
   }
 
-  /* ─── Insufficient Balance Nudge ─── */
   .topup-nudge {
     margin: 0 16px 12px;
     padding: 12px 14px;
     border-radius: 16px;
-    background: linear-gradient(135deg, #2D1010 0%, #1A0A0A 100%);
-    border: 1px solid rgba(239, 68, 68, 0.3);
+    background: #FEF2F2;
+    border: 1px solid #FECACA;
     animation: pulse-border 2s ease-in-out infinite;
   }
   @keyframes pulse-border {
@@ -185,36 +184,99 @@
     50% { border-color: rgba(239, 68, 68, 0.6); }
   }
 
-  /* ─── Sheet styles ─── */
   .numpad-key {
     height: 52px;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.06);
+    background: #F5F7FA;
+    border: 1px solid #E5E7EB;
     border-radius: 12px;
     font-weight: 700;
     font-size: 18px;
-    color: white;
+    color: #1A092A;
     transition: all 0.12s ease;
     cursor: pointer;
   }
   .numpad-key:active {
-    background: rgba(124, 58, 237, 0.3);
+    background: #E9D5FF;
     transform: scale(0.95);
   }
-  .tier-label-basic { background: rgba(59,130,246,0.15); color: #93c5fd; }
-  .tier-label-standard { background: rgba(139,92,246,0.15); color: #c4b5fd; }
-  .tier-label-premium { background: rgba(245,158,11,0.15); color: #fcd34d; }
+  .tier-label-basic { background: #EFF6FF; color: #1D4ED8; }
+  .tier-label-standard { background: #F3EDFA; color: #6D28D9; }
+  .tier-label-premium { background: #FFFBEB; color: #B45309; }
+
+  /* ═══ DARK MODE OVERRIDES ═══ */
+  html.dark .platform-tabs { background: #11071F; border-bottom-color: #2E174D; }
+  html.dark .platform-tab { background: #1A0D2E; border-color: #2E174D; color: #C4B5D8; }
+  html.dark .platform-tab.active {
+    background: #7C3AED;
+    border-color: #7C3AED;
+    color: #FFFFFF;
+    box-shadow: 0 4px 14px rgba(124, 58, 237, 0.35);
+  }
+  html.dark .platform-tab.active .pt-icon { filter: drop-shadow(0 0 3px rgba(255,255,255,0.35)); }
+
+  html.dark .tier-tab { background: rgba(30, 20, 50, 0.6); border-color: rgba(124, 58, 237, 0.2); }
+  html.dark .tier-tab .tt-name { color: rgba(200, 185, 220, 0.85); }
+  html.dark .tier-tab .tt-sub { color: rgba(157, 136, 179, 0.75); }
+  html.dark .tier-tab[data-tier="basic"].active {
+    background: linear-gradient(135deg, #0D1B2A, #0A1520);
+    border-color: #3B82F6;
+    box-shadow: 0 4px 14px rgba(59, 130, 246, 0.25);
+  }
+  html.dark .tier-tab[data-tier="basic"].active .tt-name { color: #93c5fd; }
+  html.dark .tier-tab[data-tier="standard"].active {
+    background: linear-gradient(135deg, #13082E, #0F062A);
+    border-color: #8B5CF6;
+    box-shadow: 0 4px 14px rgba(139, 92, 246, 0.3);
+  }
+  html.dark .tier-tab[data-tier="standard"].active .tt-name { color: #c4b5fd; }
+  html.dark .tier-tab[data-tier="premium"].active {
+    background: linear-gradient(135deg, #1A0D00, #120A00);
+    border-color: #F59E0B;
+    box-shadow: 0 4px 14px rgba(245, 158, 11, 0.25);
+  }
+  html.dark .tier-tab[data-tier="premium"].active .tt-name { color: #fcd34d; }
+
+  html.dark .tier-strip.basic { background: rgba(59,130,246,0.1); border-color: rgba(59,130,246,0.25); color: #bfdbfe; }
+  html.dark .tier-strip.standard { background: rgba(139,92,246,0.1); border-color: rgba(139,92,246,0.25); color: #ddd6fe; }
+  html.dark .tier-strip.premium { background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.25); color: #fde68a; }
+
+  html.dark .smm-card { background: rgba(26, 13, 46, 0.75); border-color: rgba(124, 58, 237, 0.16); }
+  html.dark .smm-card:hover { border-color: rgba(200, 147, 255, 0.4); box-shadow: none; }
+  html.dark .smm-name { color: #FAF5FF; }
+  html.dark .smm-desc { color: #C4B5D8; }
+  html.dark .smm-price.t-basic { background: rgba(59,130,246,0.14); color: #93c5fd; }
+  html.dark .smm-price.t-standard { background: rgba(139,92,246,0.16); color: #c4b5fd; }
+  html.dark .smm-price.t-premium { background: rgba(245,158,11,0.14); color: #fcd34d; }
+  html.dark .smm-rules-desc { background: #11071F; color: #FAF5FF; border-left-color: #C893FF; }
+
+  html.dark .wallet-strip {
+    background: linear-gradient(135deg, #110728 0%, #1A0D38 100%);
+    border-color: rgba(124, 58, 237, 0.25);
+  }
+  html.dark .topup-nudge {
+    background: linear-gradient(135deg, #2D1010 0%, #1A0A0A 100%);
+    border-color: rgba(239, 68, 68, 0.3);
+  }
+  html.dark .numpad-key {
+    background: rgba(255,255,255,0.04);
+    border-color: rgba(255,255,255,0.06);
+    color: #FAF5FF;
+  }
+  html.dark .numpad-key:active { background: rgba(124, 58, 237, 0.3); }
+  html.dark .tier-label-basic { background: rgba(59,130,246,0.15); color: #93c5fd; }
+  html.dark .tier-label-standard { background: rgba(139,92,246,0.15); color: #c4b5fd; }
+  html.dark .tier-label-premium { background: rgba(245,158,11,0.15); color: #fcd34d; }
 </style>
 
 <!-- ═══ WALLET BALANCE STRIP (always visible) ═══ -->
 <div class="wallet-strip">
   <div>
-    <div class="text-[10px] font-medium text-purple-300/70 tracking-wide uppercase">Wallet Balance</div>
-    <div class="font-mono text-xl font-bold text-white mt-0.5">
+    <div class="text-[10px] font-medium text-purple-300/70 dark:text-text-muted tracking-wide uppercase">Wallet Balance</div>
+    <div class="font-mono text-xl font-bold text-text-primary dark:text-white mt-0.5">
       ₦<span id="wallet-balance-display" data-raw="{{ wallet.balance|floatformat:2 }}">{{ wallet.balance|floatformat:2 }}</span>
     </div>
   </div>
-  <a href="/wallet/fund/" class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-purple-700/30 hover:bg-purple-700/50 border border-purple-600/30 transition-colors text-xs font-bold text-purple-300">
+  <a href="/wallet/fund/" class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-purple-700/30 hover:bg-purple-700/50 dark:bg-purple-700/30 border border-purple-600/30 transition-colors text-xs font-bold text-purple-300 dark:text-purple-300">
     <i data-feather="plus" class="w-3.5 h-3.5"></i> Top Up
   </a>
 </div>
@@ -228,13 +290,13 @@
     {% with parts=message.message|cut:"INSUFFICIENT_BALANCE|"|split:"|" %}
     <div class="topup-nudge" id="topup-nudge-banner">
       <div class="flex items-start gap-2.5">
-        <span class="text-red-400 text-xl mt-0.5">💳</span>
+        <span class="text-red-500 text-xl mt-0.5">💳</span>
         <div class="flex-1">
-          <div class="text-red-300 font-bold text-xs mb-0.5">Insufficient Balance</div>
-          <div class="text-red-200/80 text-[11px] leading-relaxed">
-            This boost costs <strong class="text-white">₦{{ parts.0 }}</strong>.
-            You have <strong class="text-white">₦{{ parts.1 }}</strong>.
-            Top up <strong class="text-emerald-400">₦{{ parts.4 }}</strong> to unlock & continue.
+          <div class="text-red-600 dark:text-red-300 font-bold text-xs mb-0.5">Insufficient Balance</div>
+          <div class="text-red-700/80 dark:text-red-200/80 text-[11px] leading-relaxed">
+            This boost costs <strong class="text-text-primary dark:text-white">₦{{ parts.0 }}</strong>.
+            You have <strong class="text-text-primary dark:text-white">₦{{ parts.1 }}</strong>.
+            Top up <strong class="text-emerald-600 dark:text-emerald-400">₦{{ parts.4 }}</strong> to unlock & continue.
           </div>
           <a href="/wallet/fund/?amount={{ parts.4 }}&return_to=/smm/?platform={{ parts.5 }}&tier={{ parts.6 }}"
              class="mt-2 flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white font-bold text-xs transition-all">
@@ -264,8 +326,8 @@
     <input type="hidden" name="quantity" value="{{ form_data.quantity }}">
     <input type="hidden" name="confirm_duplicate" value="1">
     <div class="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30">
-      <div class="text-xs font-bold text-amber-300 mb-1 flex items-center gap-1.5">⚠️ Duplicate Order Notice</div>
-      <div class="text-[11px] text-amber-200/80 mb-3">An identical boost order was placed less than a minute ago.</div>
+      <div class="text-xs font-bold text-amber-600 dark:text-amber-300 mb-1 flex items-center gap-1.5">⚠️ Duplicate Order Notice</div>
+      <div class="text-[11px] text-amber-700/80 dark:text-amber-200/80 mb-3">An identical boost order was placed less than a minute ago.</div>
       <button class="w-full py-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs transition-all">Confirm & Process Duplicate</button>
     </div>
   </form>
@@ -288,9 +350,9 @@
   {% endfor %}
 </div>
 
-<!-- ═══ STEP 1 · TIER SELECTOR ═══ -->
-<div class="px-4 pt-1 pb-1">
-  <div class="text-[10px] font-bold text-purple-300/70 uppercase tracking-widest mb-2">Step 1 · Choose Your Boost Tier</div>
+<div class="px-4 pb-6">
+  <!-- ═══ STEP 1 · TIER SELECTOR ═══ -->
+  <div class="text-[10px] font-bold text-purple-700/70 dark:text-purple-300/70 uppercase tracking-widest mb-2">Step 1 · Choose Your Boost Tier</div>
   <div class="tier-tabs" id="tier-tabs">
     <div class="tier-tab" data-tier="basic" onclick="selectTier('basic')">
       <div class="tt-icon">⚡</div>
@@ -308,13 +370,21 @@
       <div class="tt-sub">⭐ Non-Drop</div>
     </div>
   </div>
-</div>
 
-<div id="tier-strip-container"></div>
+  <div id="tier-strip-container"></div>
 
-<!-- ═══ STEP 2 · SERVICE LIST (HTMX target) ═══ -->
-<div class="px-4 pt-1 pb-6">
-  <div class="text-[10px] font-bold text-purple-300/70 uppercase tracking-widest mb-2">Step 2 · Pick a Service</div>
+  <!-- ═══ STEP 2 · CATEGORY DROPDOWN ═══ -->
+  <div class="mb-3" id="category-select-wrap">
+    <div class="text-[10px] font-bold text-purple-700/70 dark:text-purple-300/70 uppercase tracking-widest mb-2">Step 2 · Select Category</div>
+    <select id="smm-category-select"
+            class="form-select w-full rounded-xl px-4 py-3 text-sm font-semibold border border-surface-border bg-white dark:bg-[#1A0D2E] dark:text-[#FAF5FF] dark:border-[#2E174D] cursor-pointer"
+            onchange="changeCategory()">
+      <option value="">-- All Categories --</option>
+    </select>
+  </div>
+
+  <!-- ═══ STEP 3 · SERVICE LIST ═══ -->
+  <div class="text-[10px] font-bold text-purple-700/70 dark:text-purple-300/70 uppercase tracking-widest mb-2">Step 3 · Pick a Service</div>
   <div class="space-y-3" id="smm-cards-container">
     <div class="text-center py-8 text-text-muted text-sm" id="service-list-loading">
       <div class="text-2xl mb-2">🎯</div>
@@ -352,7 +422,7 @@
 
     <div class="space-y-3">
       <!-- Delivery promise -->
-      <div id="sheet-delivery-label" class="flex items-center gap-1.5 text-[11px] text-emerald-400 font-semibold bg-emerald-950/30 border border-emerald-900/30 rounded-xl px-3 py-2">
+      <div id="sheet-delivery-label" class="flex items-center gap-1.5 text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/30 rounded-xl px-3 py-2">
         <span>⏱</span> <span id="sheet-delivery-text">Starts within 15 mins</span>
       </div>
 
@@ -370,16 +440,16 @@
       </div>
 
       <!-- Live cost preview -->
-      <div class="flex justify-between items-center bg-[#1A0D38] border border-[#2E174D] rounded-xl p-4">
-        <span class="text-sm font-semibold text-purple-200/80">Estimated Cost</span>
-        <span class="text-lg font-bold text-purple-300 font-mono" id="smm-cost-display">₦0.00</span>
+      <div class="flex justify-between items-center bg-[#F3EDFA] dark:bg-[#1A0D38] border border-[#E8DEF5] dark:border-[#2E174D] rounded-xl p-4">
+        <span class="text-sm font-semibold text-text-secondary dark:text-purple-200/80">Estimated Cost</span>
+        <span class="text-lg font-bold text-brand-primary dark:text-purple-300 font-mono" id="smm-cost-display">₦0.00</span>
       </div>
 
       <!-- Insufficient balance inline nudge -->
-      <div id="sheet-balance-nudge" class="hidden p-3 rounded-xl bg-red-950/40 border border-red-800/40 text-[11px] leading-relaxed">
-        <div class="text-red-300 font-bold mb-1">💳 Wallet balance insufficient</div>
-        <div class="text-red-200/80">You need <strong id="nudge-cost">₦0</strong> but have <strong id="nudge-balance">₦0</strong>.
-          Top up <strong id="nudge-topup" class="text-emerald-400">₦0</strong> to continue.
+      <div id="sheet-balance-nudge" class="hidden p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/40 text-[11px] leading-relaxed">
+        <div class="text-red-600 dark:text-red-300 font-bold mb-1">💳 Wallet balance insufficient</div>
+        <div class="text-red-700/80 dark:text-red-200/80">You need <strong id="nudge-cost">₦0</strong> but have <strong id="nudge-balance">₦0</strong>.
+          Top up <strong id="nudge-topup" class="text-emerald-600 dark:text-emerald-400">₦0</strong> to continue.
         </div>
         <a id="nudge-topup-link" href="/wallet/fund/" class="mt-2 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-bold transition-all">
           <i data-feather="zap" class="w-3.5 h-3.5"></i> Top Up & Continue
@@ -423,6 +493,7 @@
   // ─── State ───────────────────────────────────────────────────
   let activePlatform = '{{ platforms_meta.0.slug|default:"instagram"|escapejs }}';
   let activeTier = '';
+  let activeCategory = '';
   let activeServiceId = '';
   let activeServiceName = '';
   let activeUnitRate = 0.0;
@@ -455,8 +526,9 @@
       tab.classList.toggle('active', tab.dataset.platform === slug);
     });
 
-    // Reload service list for current tier (if one is selected)
+    // Reload categories + list for the current tier (if selected)
     if (activeTier) {
+      loadCategories();
       loadServiceList();
     }
   }
@@ -464,6 +536,7 @@
   // ─── Tier Selection ───────────────────────────────────────────
   function selectTier(tier) {
     activeTier = tier;
+    activeCategory = '';
     document.querySelectorAll('.tier-tab').forEach(tab => {
       tab.classList.toggle('active', tab.dataset.tier === tier);
     });
@@ -471,14 +544,38 @@
     const stripEl = document.getElementById('tier-strip-container');
     stripEl.innerHTML = '<div class="tier-strip ' + tier + '">' + TIER_META[tier].strip + '</div>';
 
+    loadCategories();
     loadServiceList();
   }
 
+  // ─── Category Dropdown ────────────────────────────────────────
+  function loadCategories() {
+    const selectEl = document.getElementById('smm-category-select');
+    selectEl.innerHTML = '<option value="">Loading…</option>';
+    fetch('{% url "smm:ajax_tier_categories" %}?platform=' + encodeURIComponent(activePlatform) + '&tier=' + encodeURIComponent(activeTier))
+      .then(r => r.text())
+      .then(html => {
+        selectEl.innerHTML = html;
+        activeCategory = '';
+      });
+  }
+
+  function changeCategory() {
+    activeCategory = document.getElementById('smm-category-select').value;
+    loadServiceList();
+  }
+
+  // ─── Service List ─────────────────────────────────────────────
   function loadServiceList() {
     const container = document.getElementById('smm-cards-container');
     container.innerHTML = '<div class="text-center py-10 text-text-muted text-sm"><div class="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>Loading services…</div>';
 
-    fetch('{% url "smm:ajax_services_list" %}?platform=' + encodeURIComponent(activePlatform) + '&tier=' + encodeURIComponent(activeTier))
+    let url = '{% url "smm:ajax_services_list" %}?platform=' + encodeURIComponent(activePlatform) + '&tier=' + encodeURIComponent(activeTier);
+    if (activeCategory) {
+      url += '&subcategory=' + encodeURIComponent(activeCategory);
+    }
+
+    fetch(url)
       .then(r => r.text())
       .then(html => {
         container.innerHTML = html;
@@ -489,7 +586,19 @@
       });
   }
 
-  // ─── Open order sheet from a service card ────────────────────
+  // ─── Delegated service card click (robust against names w/ quotes) ───
+  document.addEventListener('click', function(e) {
+    const card = e.target.closest('.smm-card');
+    if (!card) return;
+    if (e.target.closest('.smm-rules-btn')) return;  // details toggle — don't open sheet
+
+    const d = card.dataset;
+    if (d.id && d.unit) {
+      openTierSheet(d.tier, d.platform, d.id, d.name, d.unit, d.min, d.max);
+    }
+  });
+
+  // ─── Open order sheet ──────────────────────────────────────────
   function openTierSheet(tier, platform, serviceId, serviceName, unitRate, min, max) {
     activeTier = tier;
     activePlatform = platform;
@@ -516,7 +625,7 @@
 
     // Set sheet labels
     document.getElementById('smm-sheet-title').textContent = serviceName.length > 30 ? serviceName.substring(0, 30) + '…' : serviceName;
-    document.getElementById('sheet-qty-limits').textContent = `${min.toLocaleString()} – ${max.toLocaleString()}`;
+    document.getElementById('sheet-qty-limits').textContent = `${parseInt(min).toLocaleString()} – ${parseInt(max).toLocaleString()}`;
 
     const deliveryMap = {
       basic: 'Starts within 5–15 minutes',

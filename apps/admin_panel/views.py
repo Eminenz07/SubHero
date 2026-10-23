@@ -678,34 +678,40 @@ def smm_pricing_save(request):
 @admin_required
 def smm_pricing_autoclassify(request):
     """
-    Backfills tier = suggested_tier for all unclassified services in one click.
-    Marks them tier_source='auto' so future syncs keep refining them,
-    while admin-set (manual) tiers are never touched.
+    One-click tier classification tool.
+    Default: backfills tier = suggested_tier for all unclassified services.
+    reclassify=1: re-runs the price-major engine over ALL auto-classified services
+    (admin 'manual' overrides are never touched).
     """
     if request.method == "POST":
-        from apps.smm.tiering import auto_suggest_tiers_for_catalogue
+        from apps.smm.tiering import reclassify_services
 
-        pending_qs = SMMService.objects.filter(tier__isnull=True, is_active=True)
-        pending_count = pending_qs.count()
-        if pending_count == 0:
-            return JsonResponse({"status": "ok", "updated": 0, "message": "No pending services — all classified."})
+        reclassify = request.POST.get("reclassify") == "1"
 
-        # 1. Recompute suggestions (keyword + price banding)
-        auto_suggest_tiers_for_catalogue(qs=pending_qs)
+        if reclassify:
+            qs = SMMService.objects.filter(is_active=True).exclude(tier_source="manual")
+        else:
+            qs = SMMService.objects.filter(tier__isnull=True, is_active=True)
 
-        # 2. Apply suggestions as confirmed tiers
-        applied = 0
-        for service in SMMService.objects.filter(tier__isnull=True, is_active=True, suggested_tier__isnull=False):
-            service.tier = service.suggested_tier
-            service.tier_source = "auto"
-            service.save(update_fields=["tier", "tier_source"])
-            applied += 1
+        if not qs.exists():
+            return JsonResponse({"status": "ok", "updated": 0, "message": "Nothing to do — no matching services."})
 
-        log_admin_action(
-            request.user, "TIER_AUTOCLASSIFY", "SMM_SERVICE", "BULK",
-            f"Auto-classified {applied} SMM services from suggestions (pending was {pending_count})", request
+        suggested_updated, tiers_applied = reclassify_services(qs=qs)
+
+        action = "TIER_RECLASSIFY" if reclassify else "TIER_AUTOCLASSIFY"
+        detail = (
+            f"Re-classified ALL auto SMM services with price-major engine: "
+            f"{suggested_updated} suggestions updated, {tiers_applied} tiers applied"
+            if reclassify else
+            f"Auto-classified {tiers_applied} pending SMM services from suggestions"
         )
-        return JsonResponse({"status": "ok", "updated": applied})
+        log_admin_action(request.user, action, "SMM_SERVICE", "BULK", detail, request)
+
+        return JsonResponse({
+            "status": "ok",
+            "updated": tiers_applied,
+            "message": f"{tiers_applied} services classified ({suggested_updated} suggestions updated)."
+        })
     return JsonResponse({"status": "error"}, status=400)
 
 

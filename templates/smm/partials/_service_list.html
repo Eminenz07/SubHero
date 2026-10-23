@@ -1,31 +1,39 @@
-{% comment %}Service list partial for a platform+tier combo — classic flat card list{% endcomment %}
+{% comment %}Service list partial for a platform+tier(+subcategory) combo — classic flat card list.
+Card params are passed via data-* attributes and handled by a delegated listener
+in index.html (robust against service names containing quotes).{% endcomment %}
 {% for service in services %}
 <div class="smm-card"
-     onclick="openTierSheet('{{ tier }}', '{{ platform }}', '{{ service.id }}', '{{ service.name|escapejs }}', {{ service.unit_price }}, {{ service.provider_min }}, {{ service.provider_max }})">
+     data-id="{{ service.id }}"
+     data-tier="{{ tier }}"
+     data-platform="{{ platform }}"
+     data-name="{{ service.name }}"
+     data-unit="{{ service.unit_price }}"
+     data-min="{{ service.provider_min }}"
+     data-max="{{ service.provider_max }}">
 
   {% if "Follower" in service.name or "Subscriber" in service.name or "Member" in service.name %}
-    <div class="smm-icon-bg" style="background: rgba(59,130,246,0.15); color: #93c5fd;">👥</div>
+    <div class="smm-icon-bg" style="background: #EFF6FF; color: #2563EB;">👥</div>
   {% elif "Like" in service.name %}
-    <div class="smm-icon-bg" style="background: rgba(239,68,68,0.15); color: #f87171;">❤️</div>
+    <div class="smm-icon-bg" style="background: #FEF2F2; color: #DC2626;">❤️</div>
   {% elif "View" in service.name or "Play" in service.name or "Impression" in service.name or "Reach" in service.name %}
-    <div class="smm-icon-bg" style="background: rgba(59,130,246,0.12); color: #60a5fa;">👁️</div>
+    <div class="smm-icon-bg" style="background: #EFF6FF; color: #1D4ED8;">👁️</div>
   {% elif "Comment" in service.name %}
-    <div class="smm-icon-bg" style="background: rgba(245,158,11,0.15); color: #fbbf24;">💬</div>
+    <div class="smm-icon-bg" style="background: #FFFBEB; color: #B45309;">💬</div>
   {% elif "Share" in service.name %}
-    <div class="smm-icon-bg" style="background: rgba(16,185,129,0.15); color: #34d399;">🔗</div>
+    <div class="smm-icon-bg" style="background: #ECFDF5; color: #059669;">🔗</div>
   {% else %}
-    <div class="smm-icon-bg" style="background: rgba(124,58,237,0.15); color: #c4b5fd;">✨</div>
+    <div class="smm-icon-bg" style="background: #F3EDFA; color: #6D28D9;">✨</div>
   {% endif %}
 
   <div class="smm-info">
     <div class="smm-name">{{ service.name }}</div>
     <div class="smm-desc">Min: {{ service.provider_min|floatformat:"0" }} · Max: {{ service.provider_max|floatformat:"0" }}</div>
     {% if service.description %}
-    <button type="button" class="mt-1.5 text-[11px] font-semibold text-[#C893FF] hover:text-[#E9D5FF] flex items-center gap-1 hover:underline cursor-pointer transition-colors"
+    <button type="button" class="smm-rules-btn mt-1.5 text-[11px] font-semibold text-[#7C3AED] dark:text-[#C893FF] hover:text-[#6D28D9] dark:hover:text-[#E9D5FF] flex items-center gap-1 hover:underline cursor-pointer transition-colors"
             onclick="event.stopPropagation(); document.getElementById('desc-{{ service.id }}').classList.toggle('hidden');">
       <i data-feather="info" class="w-3.5 h-3.5 shrink-0"></i> View Details & Rules
     </button>
-    <div id="desc-{{ service.id }}" class="hidden mt-2 p-3 bg-[#11071F] text-[#FAF5FF] rounded-xl text-[11px] leading-relaxed whitespace-pre-line font-mono border-l-2 border-[#C893FF] shadow-inner">
+    <div id="desc-{{ service.id }}" class="smm-rules-desc hidden mt-2 p-3 rounded-xl text-[11px] leading-relaxed whitespace-pre-line font-mono shadow-inner">
 {{ service.description }}
     </div>
     {% endif %}
@@ -35,7 +43,7 @@
 {% empty %}
 <div class="text-center py-8 text-text-muted text-sm">
   <div class="text-2xl mb-2">🔍</div>
-  No services in this tier for {{ platform|title }} right now.
-  <div class="text-[11px] mt-1 opacity-70">Try another tier above.</div>
+  No services found{{ active_category_note|default:"" }} in this tier for {{ platform|title }}.
+  <div class="text-[11px] mt-1 opacity-70">Try another category or tier.</div>
 </div>
 {% endfor %}

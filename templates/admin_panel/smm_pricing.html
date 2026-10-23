@@ -20,12 +20,17 @@
             </h4>
             <p class="text-[11px] text-slate-400">Fetch rules, start times, drop rates from the gateway. Auto-populates suggested tiers (won't override confirmed ones).</p>
         </div>
-        <form hx-post="{% url 'admin_panel:sync_smm_descriptions_admin' %}" hx-target="#desc-sync-result">
+        <form hx-post="{% url 'admin_panel:sync_smm_descriptions_admin' %}" hx-target="#desc-sync-result" class="flex items-center gap-2">
             {% csrf_token %}
             <button type="submit" class="px-4 py-2 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition-colors flex items-center gap-1.5 cursor-pointer">
                 <i data-feather="refresh-cw" class="w-3.5 h-3.5"></i> Sync Now
             </button>
         </form>
+        <button id="reclassify-btn" type="button"
+                class="px-4 py-2 rounded-lg text-xs font-bold bg-violet-700 hover:bg-violet-600 text-white transition-colors flex items-center gap-1.5 cursor-pointer"
+                hx-post="{% url 'admin_panel:smm_pricing_autoclassify' %}" hx-vals='{"reclassify": "1"}' hx-swap="none">
+            <i data-feather="shuffle" class="w-3.5 h-3.5"></i> Re-classify All Tiers
+        </button>
     </div>
 
     <!-- Pending Classification Alert Banner -->
@@ -267,20 +272,21 @@
     document.body.addEventListener('htmx:afterRequest', function (evt) {
         const path = evt.detail.pathInfo?.requestPath || '';
         if (path.includes('smm-pricing/autoclassify')) {
-            const btn = document.getElementById('autoclassify-btn');
+            const isReclassify = evt.detail.elt?.getAttribute?.('hx-vals')?.includes('reclassify');
+            const btn = isReclassify ? document.getElementById('reclassify-btn') : document.getElementById('autoclassify-btn');
             if (evt.detail.successful) {
                 let data = {};
                 try { data = JSON.parse(evt.detail.xhr.responseText); } catch (e) {}
                 if (btn) {
-                    btn.innerHTML = '✓ ' + (data.updated || 0) + ' services classified';
+                    btn.innerHTML = '✓ ' + (data.updated || 0) + ' services updated';
                     btn.disabled = true;
-                    btn.classList.remove('bg-violet-600', 'hover:bg-violet-500');
+                    btn.classList.remove('bg-violet-600', 'hover:bg-violet-500', 'bg-violet-700', 'hover:bg-violet-600');
                     btn.classList.add('bg-emerald-600');
                 }
                 setTimeout(() => window.location.reload(), 1500);
             } else if (btn) {
                 btn.innerHTML = '⚠ Failed — try again';
-                btn.classList.remove('bg-violet-600');
+                btn.classList.remove('bg-violet-600', 'bg-violet-700');
                 btn.classList.add('bg-red-600');
             }
         }

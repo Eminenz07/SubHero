@@ -489,7 +489,6 @@ def sync_all_smm_descriptions(force_refresh=False):
     Populates the 'description' field and updates suggested_tier for active SMMService records.
     """
     from concurrent.futures import ThreadPoolExecutor, as_completed
-    from apps.smm.tiering import calculate_suggested_tier
     logger.info("Starting multithreaded SMM service descriptions sync...")
     if force_refresh:
         qs = SMMService.objects.filter(is_active=True)
@@ -507,16 +506,7 @@ def sync_all_smm_descriptions(force_refresh=False):
         desc = fetch_smm_service_description(service.provider_service_id)
         if desc:
             service.description = desc
-            # Recalculate auto-suggested tier with the new description content
-            new_suggestion = calculate_suggested_tier(service)
-            service.suggested_tier = new_suggestion
-            # Refine auto-classified tiers as descriptions arrive; never touch admin overrides
-            if service.tier_source != "manual":
-                service.tier = new_suggestion
-                service.tier_source = "auto"
-                service.save(update_fields=["description", "suggested_tier", "tier", "tier_source"])
-            else:
-                service.save(update_fields=["description", "suggested_tier"])
+            service.save(update_fields=["description"])
             return True
         return False
 
@@ -529,7 +519,12 @@ def sync_all_smm_descriptions(force_refresh=False):
             except Exception as e:
                 logger.warning("Error in description worker: %s", e)
 
-    logger.info("Successfully synced %d SMM service descriptions.", updated_count)
+    # Recompute tier suggestions with full description text + subcategory
+    # price grouping, and apply them to all non-manual services.
+    from apps.smm.tiering import reclassify_services
+    suggested_updated, tiers_applied = reclassify_services()
+
+    logger.info("Successfully synced %d SMM service descriptions (reclassified: %d suggestions, %d tier updates).", updated_count, suggested_updated, tiers_applied)
     return updated_count
 
 
@@ -537,11 +532,11 @@ def sync_all_smm_descriptions(force_refresh=False):
 def sync_smm_catalogue():
     """
     Synchronizes active social booster services. Applied daily at 3:00 AM (Celery Beat).
-    Dynamically identifies individual platforms and pre-calculates suggested tiers
-    while strictly keeping newly added services unclassified until confirmed by an admin.
+    Dynamically identifies individual platforms and pre-classifies tiers using
+    price-major heuristics; admin-set (manual) tiers are never overwritten.
     """
     from apps.smm.platforms import detect_platform
-    from apps.smm.tiering import calculate_suggested_tier, auto_suggest_tiers_for_catalogue
+    from apps.smm.tiering import reclassify_services
 
     logger.info("Synchronizing SMM Catalogue from booster gateway...")
     api_key = settings.OGAVIRAL_API_KEY
@@ -602,6 +597,7 @@ def sync_smm_catalogue():
                     "subhero_price_per_1k": markup_price,
                     "tier": s.get("tier"),
                     "suggested_tier": s.get("tier"),
+                    "tier_source": "manual",  # curated mock data — lock against auto reclassification
                     "is_active": True
                 }
             )
@@ -654,12 +650,8 @@ def sync_smm_catalogue():
                 existing.provider_rate = rate_naira
                 existing.subhero_price_per_1k = subhero_price
                 existing.is_active = True
-                # Auto-classify: refine tier for auto/legacy services, never override admin-set tiers
-                new_suggestion = calculate_suggested_tier(existing)
-                existing.suggested_tier = new_suggestion
-                if existing.tier_source != "manual":
-                    existing.tier = new_suggestion
-                    existing.tier_source = "auto"
+                # Tier classification is recomputed in bulk below with proper
+                # subcategory price grouping — never touching manual overrides.
                 existing.save()
             else:
                 new_service = SMMService(
@@ -673,15 +665,17 @@ def sync_smm_catalogue():
                     subhero_price_per_1k=subhero_price,
                     is_active=True
                 )
-                # Pre-classify new services automatically so nothing lands unclassified
-                new_service.suggested_tier = calculate_suggested_tier(new_service)
-                new_service.tier = new_service.suggested_tier
-                new_service.tier_source = "auto"
                 new_service.save()
 
             count += 1
 
         logger.info("SMM catalogue synced successfully via Ogaviral booster gateway. Mapped and updated %d services.", count)
+
+        # Bulk re-classification: price-major banding within subcategory groups,
+        # keyword adjustment, applied to every non-manual service.
+        suggested_updated, tiers_applied = reclassify_services()
+        logger.info("Post-sync reclassification: %d suggestions updated, %d auto tiers applied.", suggested_updated, tiers_applied)
+
         # Automatically trigger multithreaded description fetching for any missing descriptions
         sync_all_smm_descriptions.delay()
     except Exception as e:

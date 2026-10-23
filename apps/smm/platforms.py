@@ -235,6 +235,86 @@ PLATFORMS_META = {
         "border_color": "#3B82F6",
         "order": 18,
     },
+    "soundcloud": {
+        "slug": "soundcloud",
+        "name": "SoundCloud",
+        "emoji": "☁️",
+        "feather_icon": "cloud",
+        "brand_color": "#FF5500",
+        "brand_bg": "linear-gradient(135deg, #FF5500 0%, #CC4400 100%)",
+        "border_color": "#FF5500",
+        "order": 19,
+    },
+    "pinterest": {
+        "slug": "pinterest",
+        "name": "Pinterest",
+        "emoji": "📌",
+        "feather_icon": "bookmark",
+        "brand_color": "#BD081C",
+        "brand_bg": "linear-gradient(135deg, #BD081C 0%, #8C0615 100%)",
+        "border_color": "#BD081C",
+        "order": 20,
+    },
+    "reddit": {
+        "slug": "reddit",
+        "name": "Reddit",
+        "emoji": "👽",
+        "feather_icon": "message-circle",
+        "brand_color": "#FF4500",
+        "brand_bg": "linear-gradient(135deg, #FF4500 0%, #CC3700 100%)",
+        "border_color": "#FF4500",
+        "order": 21,
+    },
+    "boomplay": {
+        "slug": "boomplay",
+        "name": "Boomplay",
+        "emoji": "🔊",
+        "feather_icon": "speaker",
+        "brand_color": "#00A9E0",
+        "brand_bg": "linear-gradient(135deg, #00A9E0 0%, #007FB0 100%)",
+        "border_color": "#00A9E0",
+        "order": 22,
+    },
+    "mixcloud": {
+        "slug": "mixcloud",
+        "name": "Mixcloud",
+        "emoji": "📻",
+        "feather_icon": "radio",
+        "brand_color": "#5000FF",
+        "brand_bg": "linear-gradient(135deg, #5000FF 0%, #3A00CC 100%)",
+        "border_color": "#5000FF",
+        "order": 23,
+    },
+    "shazam": {
+        "slug": "shazam",
+        "name": "Shazam",
+        "emoji": "🎵",
+        "feather_icon": "music",
+        "brand_color": "#0088FF",
+        "brand_bg": "linear-gradient(135deg, #0088FF 0%, #0066CC 100%)",
+        "border_color": "#0088FF",
+        "order": 24,
+    },
+    "google_reviews": {
+        "slug": "google_reviews",
+        "name": "Google Reviews",
+        "emoji": "⭐",
+        "feather_icon": "star",
+        "brand_color": "#4285F4",
+        "brand_bg": "linear-gradient(135deg, #4285F4 0%, #34A853 100%)",
+        "border_color": "#4285F4",
+        "order": 25,
+    },
+    "imdb": {
+        "slug": "imdb",
+        "name": "IMDb",
+        "emoji": "🎬",
+        "feather_icon": "film",
+        "brand_color": "#F5C518",
+        "brand_bg": "linear-gradient(135deg, #F5C518 0%, #C7A012 100%)",
+        "border_color": "#F5C518",
+        "order": 26,
+    },
     "other": {
         "slug": "other",
         "name": "Other Services",
@@ -293,6 +373,22 @@ def detect_platform(category_str, name_str=""):
         return "gaming"
     if "traffic" in text or "website" in text:
         return "traffic"
+    if "soundcloud" in text or "sound cloud" in text:
+        return "soundcloud"
+    if "pinterest" in text:
+        return "pinterest"
+    if "reddit" in text:
+        return "reddit"
+    if "boomplay" in text:
+        return "boomplay"
+    if "mixcloud" in text:
+        return "mixcloud"
+    if "shazam" in text:
+        return "shazam"
+    if "imdb" in text:
+        return "imdb"
+    if "google review" in text or "google map" in text or "google business" in text:
+        return "google_reviews"
 
     return "other"
 

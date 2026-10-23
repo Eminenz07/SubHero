@@ -6,9 +6,10 @@ Classifies services into the 3-tier structure:
   - standard: Growth Boost (Balanced speed and retention, Most Popular)
   - premium: Elite Boost (Real, active engagement, highest retention, Recommended)
 
-Provides auto-suggestion heuristics based on keyword matching and category
-price banding, while strictly keeping newly synced services unclassified
-until explicitly confirmed by an admin.
+Pricing is the MAJOR determinant: a service is banded by its price within its
+subcategory (bottom third = basic, middle = standard, top third = premium).
+Keywords only adjust the price band by at most one tier — so a cheap plan can
+never land in Elite Boost, and an expensive plan needs quality signals to earn it.
 """
 
 from decimal import Decimal
@@ -24,7 +25,7 @@ PREMIUM_KEYWORDS = [
 ]
 
 BASIC_KEYWORDS = [
-    "instant", "fast", "cheap", "no refill", "no guarantee", "drop",
+    "instant", "fast", "cheap", "no refill", "no guarantee",
     "bot", "mixed", "speed", "quick", "cheapest", "low retention", "flash"
 ]
 
@@ -62,15 +63,17 @@ def score_keywords(text):
     return premium_score, basic_score, standard_score
 
 
-def determine_price_band(service, category_prices):
+def determine_price_band(service, group_prices):
     """
-    Determines whether the service's price per 1k is in the bottom third (basic),
-    middle third (standard), or top third (premium) of its category/platform.
+    MAJOR DETERMINANT: bands the service by price within its group
+    (subcategory prices, falling back to platform-level prices).
+    Bottom third = basic, middle third = standard, top third = premium.
     """
-    if not category_prices or len(category_prices) <= 2:
+    prices = [p for p in (group_prices or []) if p is not None]
+    if len(prices) <= 2:
         return "standard"
 
-    sorted_prices = sorted(category_prices)
+    sorted_prices = sorted(prices)
     n = len(sorted_prices)
     t1 = sorted_prices[n // 3]
     t2 = sorted_prices[(2 * n) // 3]
@@ -83,43 +86,63 @@ def determine_price_band(service, category_prices):
     return "standard"
 
 
-def calculate_suggested_tier(service, category_prices=None):
+def calculate_suggested_tier(service, group_prices=None):
     """
-    Calculates the recommended tier ('basic', 'standard', 'premium') for a service
-    based on keyword matching and category price banding.
+    Calculates the recommended tier ('basic', 'standard', 'premium').
+
+    Price band is the primary classifier; keywords adjust it by at most ONE tier:
+      - premium band → premium (demoted to standard if zero quality signals)
+      - standard band → standard (promoted to premium only with strong premium
+        signals and no cheap language; demoted to basic with explicit cheap signals)
+      - basic band → basic (lifted to standard only with real premium signals)
     """
-    # 1. Keyword analysis
+    # 1. Price band — the major determinant
+    price_band = determine_price_band(service, group_prices)
+
+    # 2. Keyword analysis — the fine adjustment
     combined_text = f"{service.name or ''} {service.subcategory or ''} {service.description or ''}"
     prem_score, basic_score, std_score = score_keywords(combined_text)
 
-    # 2. Price banding
-    price_band = determine_price_band(service, category_prices) if category_prices else "standard"
+    # 3. Decision synthesis: keywords shift the price band by at most one tier
+    if price_band == "premium":
+        # Top-priced service: it must still show some quality (or at least no
+        # explicit cheap/bot language) to be recommended as Elite.
+        if prem_score >= 1 or (basic_score == 0 and std_score >= 1):
+            return "premium"
+        return "standard"
 
-    # 3. Decision synthesis
-    # If strong premium keywords are present, elevate to premium
-    if prem_score >= 3 or (prem_score > basic_score and price_band == "premium"):
-        return "premium"
+    if price_band == "standard":
+        if prem_score >= 3 and basic_score == 0:
+            return "premium"
+        if (basic_score >= 2 and prem_score == 0) or basic_score >= 3:
+            return "basic"
+        return "standard"
 
-    # If explicit basic keywords with no quality/refill language, lower to basic
-    if (basic_score >= 2 and prem_score == 0) or (price_band == "basic" and prem_score == 0):
-        return "basic"
-
-    # If price band is top third and has at least some quality signal
-    if price_band == "premium" and prem_score >= 1:
-        return "premium"
-
-    # If price band is bottom third and lacks strong premium signals
-    if price_band == "basic" and prem_score <= 1:
-        return "basic"
-
-    # Default balanced option
-    return "standard"
+    # price_band == "basic": a cheap plan can NEVER be premium.
+    if prem_score >= 2 and basic_score == 0:
+        return "standard"
+    return "basic"
 
 
-def auto_suggest_tiers_for_catalogue(qs=None):
+def _price_groups_for_queryset(services):
     """
-    Scans services in the catalogue and updates their `suggested_tier` field
-    without altering `tier` (which remains unclassified until admin approval).
+    Builds price lists grouped by subcategory (falling back to platform category)
+    so banding compares like-for-like services (e.g. IG Comments vs IG Comments).
+    """
+    groups = {}
+    for s in services:
+        key = (s.subcategory or "").strip() or s.category or "other"
+        groups.setdefault(key, []).append(s.subhero_price_per_1k or s.provider_rate)
+    return groups
+
+
+def reclassify_services(qs=None):
+    """
+    Recomputes suggested_tier for services using subcategory price grouping,
+    and applies the suggestion as the confirmed tier for every service whose
+    tier_source is not 'manual' (admin overrides are never touched).
+
+    Returns (suggested_updated, tiers_applied).
     """
     from apps.smm.models import SMMService
 
@@ -128,20 +151,41 @@ def auto_suggest_tiers_for_catalogue(qs=None):
 
     services = list(qs)
     if not services:
-        return 0
+        return 0, 0
 
-    # Group price points by category for price banding calculation
-    cat_prices = {}
-    for s in services:
-        cat_prices.setdefault(s.category, []).append(s.subhero_price_per_1k or s.provider_rate)
+    price_groups = _price_groups_for_queryset(services)
 
-    updated_count = 0
+    suggested_updated = 0
+    tiers_applied = 0
     for s in services:
-        suggestion = calculate_suggested_tier(s, cat_prices.get(s.category, []))
+        key = (s.subcategory or "").strip() or s.category or "other"
+        suggestion = calculate_suggested_tier(s, price_groups.get(key, []))
+
+        update_fields = []
         if s.suggested_tier != suggestion:
             s.suggested_tier = suggestion
-            s.save(update_fields=["suggested_tier"])
-            updated_count += 1
+            update_fields.append("suggested_tier")
 
-    logger.info("Auto-suggested tiers updated for %d SMM services.", updated_count)
-    return updated_count
+        if s.tier_source != "manual" and s.tier != suggestion:
+            s.tier = suggestion
+            s.tier_source = "auto"
+            update_fields.extend(["tier", "tier_source"])
+
+        if update_fields:
+            s.save(update_fields=list(set(update_fields)))
+            if "suggested_tier" in update_fields:
+                suggested_updated += 1
+            if "tier" in update_fields:
+                tiers_applied += 1
+
+    logger.info("Reclassified SMM services: %d suggestions updated, %d auto tiers applied.", suggested_updated, tiers_applied)
+    return suggested_updated, tiers_applied
+
+
+def auto_suggest_tiers_for_catalogue(qs=None):
+    """
+    Backwards-compatible wrapper: recomputes suggestions and applies them to
+    all non-manual services. Returns the number of services processed.
+    """
+    suggested_updated, tiers_applied = reclassify_services(qs=qs)
+    return suggested_updated + tiers_applied
