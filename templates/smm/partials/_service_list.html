@@ -1,19 +1,41 @@
-{% comment %}Service list partial for a platform+tier combo — used in the service picker sheet{% endcomment %}
+{% comment %}Service list partial for a platform+tier combo — classic flat card list{% endcomment %}
 {% for service in services %}
-<div class="smm-service-item flex items-center justify-between p-3 rounded-xl border border-surface-border hover:border-brand-accent/40 cursor-pointer active:scale-[0.98] transition-all"
-     onclick="selectServiceFromList('{{ service.id }}', '{{ platform }}', '{{ service.name|escapejs }}', {{ service.unit_price }}, {{ service.provider_min }}, {{ service.provider_max }}, {{ service.subhero_price_per_1k }}, '{{ tier }}')">
-  <div class="flex-1 min-w-0 mr-3">
-    <div class="text-text-primary font-bold text-[12px] leading-tight">{{ service.name }}</div>
-    <div class="text-text-muted text-[10px] mt-0.5">Min: {{ service.provider_min|floatformat:0 }} · Max: {{ service.provider_max|floatformat:0 }}</div>
+<div class="smm-card"
+     onclick="openTierSheet('{{ tier }}', '{{ platform }}', '{{ service.id }}', '{{ service.name|escapejs }}', {{ service.unit_price }}, {{ service.provider_min }}, {{ service.provider_max }})">
+
+  {% if "Follower" in service.name or "Subscriber" in service.name or "Member" in service.name %}
+    <div class="smm-icon-bg" style="background: rgba(59,130,246,0.15); color: #93c5fd;">👥</div>
+  {% elif "Like" in service.name %}
+    <div class="smm-icon-bg" style="background: rgba(239,68,68,0.15); color: #f87171;">❤️</div>
+  {% elif "View" in service.name or "Play" in service.name or "Impression" in service.name or "Reach" in service.name %}
+    <div class="smm-icon-bg" style="background: rgba(59,130,246,0.12); color: #60a5fa;">👁️</div>
+  {% elif "Comment" in service.name %}
+    <div class="smm-icon-bg" style="background: rgba(245,158,11,0.15); color: #fbbf24;">💬</div>
+  {% elif "Share" in service.name %}
+    <div class="smm-icon-bg" style="background: rgba(16,185,129,0.15); color: #34d399;">🔗</div>
+  {% else %}
+    <div class="smm-icon-bg" style="background: rgba(124,58,237,0.15); color: #c4b5fd;">✨</div>
+  {% endif %}
+
+  <div class="smm-info">
+    <div class="smm-name">{{ service.name }}</div>
+    <div class="smm-desc">Min: {{ service.provider_min|floatformat:"0" }} · Max: {{ service.provider_max|floatformat:"0" }}</div>
     {% if service.description %}
-    <div class="text-text-muted text-[10px] mt-0.5 leading-relaxed line-clamp-2">{{ service.description|truncatechars:100 }}</div>
+    <button type="button" class="mt-1.5 text-[11px] font-semibold text-[#C893FF] hover:text-[#E9D5FF] flex items-center gap-1 hover:underline cursor-pointer transition-colors"
+            onclick="event.stopPropagation(); document.getElementById('desc-{{ service.id }}').classList.toggle('hidden');">
+      <i data-feather="info" class="w-3.5 h-3.5 shrink-0"></i> View Details & Rules
+    </button>
+    <div id="desc-{{ service.id }}" class="hidden mt-2 p-3 bg-[#11071F] text-[#FAF5FF] rounded-xl text-[11px] leading-relaxed whitespace-pre-line font-mono border-l-2 border-[#C893FF] shadow-inner">
+{{ service.description }}
+    </div>
     {% endif %}
   </div>
-  <div class="text-right flex-shrink-0">
-    <div class="font-mono font-bold text-sm {% if tier == 'premium' %}text-amber-400{% elif tier == 'standard' %}text-violet-400{% else %}text-blue-400{% endif %}">₦{{ service.unit_price|floatformat:2 }}</div>
-    <div class="text-text-muted text-[9px]">per unit</div>
-  </div>
+  <div class="smm-price t-{{ tier }}">₦{{ service.subhero_price_per_1k|floatformat:0 }}<span class="per-k">per 1k</span></div>
 </div>
 {% empty %}
-<div class="text-center py-6 text-text-muted text-sm">No services available in this tier for this platform.</div>
+<div class="text-center py-8 text-text-muted text-sm">
+  <div class="text-2xl mb-2">🔍</div>
+  No services in this tier for {{ platform|title }} right now.
+  <div class="text-[11px] mt-1 opacity-70">Try another tier above.</div>
+</div>
 {% endfor %}

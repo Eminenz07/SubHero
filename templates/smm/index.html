@@ -8,59 +8,148 @@
 
 {% block content %}
 <style>
-  /* ─── Platform Icon Grid ─── */
-  .platform-grid {
+  /* ─── Platform Chips (classic look) ─── */
+  .platform-tabs {
     display: flex;
     gap: 8px;
     overflow-x: auto;
-    padding: 12px 16px 8px;
+    padding: 12px 16px;
     scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
   }
-  .platform-grid::-webkit-scrollbar { display: none; }
-  .platform-btn {
+  .platform-tabs::-webkit-scrollbar { display: none; }
+  .platform-tab {
     flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 5px;
-    padding: 10px 12px;
-    border-radius: 16px;
-    border: 2px solid transparent;
+    padding: 8px 16px;
     background: rgba(30, 20, 50, 0.6);
+    border: 1px solid rgba(124, 58, 237, 0.2);
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(200, 185, 220, 0.85);
     cursor: pointer;
-    transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
-    min-width: 68px;
-    position: relative;
-    backdrop-filter: blur(4px);
+    transition: all 0.2s ease;
+    white-space: nowrap;
   }
-  .platform-btn:active { transform: scale(0.93); }
-  .platform-btn.active {
-    transform: translateY(-3px) scale(1.04);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.06);
+  .platform-tab.active {
+    background: #7C3AED;
+    border-color: #7C3AED;
+    color: #FFFFFF;
+    box-shadow: 0 4px 14px rgba(124, 58, 237, 0.35);
   }
-  .platform-icon {
-    width: 42px;
-    height: 42px;
+  .platform-tab:active { transform: scale(0.95); }
+
+  /* ─── Tier Selector Tabs ─── */
+  .tier-tabs {
+    display: flex;
+    gap: 8px;
+    padding: 0 16px 4px;
+  }
+  .tier-tab {
+    flex: 1;
+    padding: 10px 6px;
+    background: rgba(30, 20, 50, 0.6);
+    border: 1.5px solid rgba(124, 58, 237, 0.2);
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+  }
+  .tier-tab:active { transform: scale(0.96); }
+  .tier-tab .tt-icon { font-size: 16px; line-height: 1; }
+  .tier-tab .tt-name {
+    font-size: 10.5px;
+    font-weight: 700;
+    margin-top: 3px;
+    color: rgba(200, 185, 220, 0.85);
+  }
+  .tier-tab .tt-sub {
+    font-size: 8.5px;
+    font-weight: 600;
+    color: rgba(157, 136, 179, 0.75);
+    margin-top: 1px;
+  }
+  .tier-tab[data-tier="basic"].active {
+    background: linear-gradient(135deg, #0D1B2A, #0A1520);
+    border-color: #3B82F6;
+    box-shadow: 0 4px 14px rgba(59, 130, 246, 0.25);
+  }
+  .tier-tab[data-tier="basic"].active .tt-name { color: #93c5fd; }
+  .tier-tab[data-tier="standard"].active {
+    background: linear-gradient(135deg, #13082E, #0F062A);
+    border-color: #8B5CF6;
+    box-shadow: 0 4px 14px rgba(139, 92, 246, 0.3);
+  }
+  .tier-tab[data-tier="standard"].active .tt-name { color: #c4b5fd; }
+  .tier-tab[data-tier="premium"].active {
+    background: linear-gradient(135deg, #1A0D00, #120A00);
+    border-color: #F59E0B;
+    box-shadow: 0 4px 14px rgba(245, 158, 11, 0.25);
+  }
+  .tier-tab[data-tier="premium"].active .tt-name { color: #fcd34d; }
+
+  /* Tier description strip */
+  .tier-strip {
+    margin: 8px 16px 10px;
+    padding: 8px 12px;
+    border-radius: 12px;
+    font-size: 10.5px;
+    line-height: 1.45;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .tier-strip.basic { background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.25); color: #bfdbfe; }
+  .tier-strip.standard { background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.25); color: #ddd6fe; }
+  .tier-strip.premium { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.25); color: #fde68a; }
+
+  /* ─── Service Cards (classic flat list) ─── */
+  .smm-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    background: rgba(26, 13, 46, 0.75);
+    border: 1px solid rgba(124, 58, 237, 0.16);
+    border-radius: 16px;
+    padding: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .smm-card:active { transform: scale(0.98); }
+  .smm-icon-bg {
+    width: 44px;
+    height: 44px;
     border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 22px;
-    line-height: 1;
+    font-size: 20px;
+    flex-shrink: 0;
   }
-  .platform-label {
-    font-size: 9px;
+  .smm-info { flex-grow: 1; min-width: 0; }
+  .smm-name {
+    font-size: 13px;
     font-weight: 700;
-    letter-spacing: 0.3px;
-    color: rgba(200, 185, 220, 0.8);
-    text-align: center;
-    white-space: nowrap;
-    max-width: 64px;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    color: #FAF5FF;
+    margin-bottom: 2px;
+    line-height: 1.35;
   }
-  .platform-btn.active .platform-label { color: #fff; }
+  .smm-desc {
+    font-size: 11px;
+    color: #C4B5D8;
+  }
+  .smm-price {
+    font-size: 12px;
+    font-weight: 800;
+    flex-shrink: 0;
+    padding: 5px 9px;
+    border-radius: 9px;
+    text-align: right;
+    line-height: 1.3;
+  }
+  .smm-price .per-k { display: block; font-size: 8.5px; font-weight: 600; opacity: 0.7; }
+  .smm-price.t-basic { background: rgba(59,130,246,0.14); color: #93c5fd; }
+  .smm-price.t-standard { background: rgba(139,92,246,0.16); color: #c4b5fd; }
+  .smm-price.t-premium { background: rgba(245,158,11,0.14); color: #fcd34d; }
 
   /* ─── Wallet Balance Strip ─── */
   .wallet-strip {
@@ -88,10 +177,6 @@
     50% { border-color: rgba(239, 68, 68, 0.6); }
   }
 
-  /* ─── Tier Cards ─── */
-  .tier-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
-  .tier-card:active { transform: scale(0.98); }
-
   /* ─── Sheet styles ─── */
   .numpad-key {
     height: 52px;
@@ -108,10 +193,6 @@
     background: rgba(124, 58, 237, 0.3);
     transform: scale(0.95);
   }
-  html.dark .numpad-key { color: #FAF5FF; }
-  html.dark .numpad-key:active { background: rgba(200, 147, 255, 0.2); }
-
-  /* ─── Tier Label Colours in Sheets ─── */
   .tier-label-basic { background: rgba(59,130,246,0.15); color: #93c5fd; }
   .tier-label-standard { background: rgba(139,92,246,0.15); color: #c4b5fd; }
   .tier-label-premium { background: rgba(245,158,11,0.15); color: #fcd34d; }
@@ -145,12 +226,12 @@
           <div class="text-red-200/80 text-[11px] leading-relaxed">
             This boost costs <strong class="text-white">₦{{ parts.0 }}</strong>.
             You have <strong class="text-white">₦{{ parts.1 }}</strong>.
-            Top up <strong class="text-emerald-400">₦{{ parts.4 }}</strong> to unlock &amp; continue.
+            Top up <strong class="text-emerald-400">₦{{ parts.4 }}</strong> to unlock & continue.
           </div>
           <a href="/wallet/fund/?amount={{ parts.4 }}&return_to=/smm/?platform={{ parts.5 }}&tier={{ parts.6 }}"
              class="mt-2 flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white font-bold text-xs transition-all">
             <i data-feather="zap" class="w-3.5 h-3.5"></i>
-            Top Up ₦{{ parts.4 }} &amp; Continue Boosting
+            Top Up ₦{{ parts.4 }} & Continue Boosting
           </a>
         </div>
       </div>
@@ -177,44 +258,60 @@
     <div class="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30">
       <div class="text-xs font-bold text-amber-300 mb-1 flex items-center gap-1.5">⚠️ Duplicate Order Notice</div>
       <div class="text-[11px] text-amber-200/80 mb-3">An identical boost order was placed less than a minute ago.</div>
-      <button class="w-full py-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs transition-all">Confirm &amp; Process Duplicate</button>
+      <button class="w-full py-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs transition-all">Confirm & Process Duplicate</button>
     </div>
   </form>
 </div>
 {% endif %}
 
-<!-- ═══ PLATFORM ICON GRID ═══ -->
-<div class="platform-grid" id="platform-grid">
+<!-- ═══ PLATFORM CHIPS ═══ -->
+<div class="platform-tabs" id="platform-tabs">
   {% for p in platforms_meta %}
-  <button class="platform-btn {% if forloop.first or p.slug == prefill_platform %}active{% endif %}"
-          id="platform-btn-{{ p.slug }}"
-          data-platform="{{ p.slug }}"
-          data-color="{{ p.brand_color }}"
-          data-bg="{{ p.brand_bg }}"
-          onclick="selectPlatform('{{ p.slug }}', '{{ p.brand_color }}', `{{ p.brand_bg }}`)"
-          style="{% if forloop.first or p.slug == prefill_platform %}border-color: {{ p.brand_color }}40; background: linear-gradient(135deg, {{ p.brand_color }}18 0%, rgba(20,10,40,0.9) 100%);{% endif %}">
-    <div class="platform-icon" style="background: {{ p.brand_bg }};">
-      <span>{{ p.emoji }}</span>
-    </div>
-    <span class="platform-label">{{ p.name }}</span>
-  </button>
+  <div class="platform-tab {% if forloop.first or p.slug == prefill_platform %}active{% endif %}"
+       id="platform-tab-{{ p.slug }}"
+       data-platform="{{ p.slug }}"
+       onclick="selectPlatform('{{ p.slug }}')">
+    {{ p.emoji }} {{ p.name }}
+  </div>
   {% empty %}
   <div class="px-4 py-3 text-text-muted text-xs italic">
-    No classified services yet — admin needs to set tiers in the Pricing Manager.
+    No classified services yet — admin needs to classify services in the Pricing Manager.
   </div>
   {% endfor %}
 </div>
 
-<!-- ═══ TIER CARDS CONTAINER (HTMX target) ═══ -->
-<div id="smm-tier-cards"
-     hx-get="{% url 'smm:ajax_tier_services' %}"
-     hx-trigger="load"
-     hx-vals='{"platform": "{{ platforms_meta.0.slug|default:"instagram" }}"}'
-     hx-swap="innerHTML"
-     hx-indicator="#tier-loading">
-  <div class="text-center py-10 text-text-muted text-sm" id="tier-loading">
-    <div class="w-6 h-6 border-2 border-brand-accent border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-    Loading services…
+<!-- ═══ STEP 1 · TIER SELECTOR ═══ -->
+<div class="px-4 pt-1 pb-1">
+  <div class="text-[10px] font-bold text-purple-300/70 uppercase tracking-widest mb-2">Step 1 · Choose Your Boost Tier</div>
+  <div class="tier-tabs" id="tier-tabs">
+    <div class="tier-tab" data-tier="basic" onclick="selectTier('basic')">
+      <div class="tt-icon">⚡</div>
+      <div class="tt-name">Quick Boost</div>
+      <div class="tt-sub">Fast & Cheap</div>
+    </div>
+    <div class="tier-tab" data-tier="standard" onclick="selectTier('standard')">
+      <div class="tt-icon">📈</div>
+      <div class="tt-name">Growth Boost</div>
+      <div class="tt-sub">🔥 Most Popular</div>
+    </div>
+    <div class="tier-tab" data-tier="premium" onclick="selectTier('premium')">
+      <div class="tt-icon">👑</div>
+      <div class="tt-name">Elite Boost</div>
+      <div class="tt-sub">⭐ Non-Drop</div>
+    </div>
+  </div>
+</div>
+
+<div id="tier-strip-container"></div>
+
+<!-- ═══ STEP 2 · SERVICE LIST (HTMX target) ═══ -->
+<div class="px-4 pt-1 pb-6">
+  <div class="text-[10px] font-bold text-purple-300/70 uppercase tracking-widest mb-2">Step 2 · Pick a Service</div>
+  <div class="space-y-3" id="smm-cards-container">
+    <div class="text-center py-8 text-text-muted text-sm" id="service-list-loading">
+      <div class="text-2xl mb-2">🎯</div>
+      Select a tier above to view available services.
+    </div>
   </div>
 </div>
 
@@ -234,18 +331,6 @@
 {% block modals %}
 <!-- ═══ BOTTOM SHEETS ═══ -->
 <div class="sheet-backdrop" id="custom-backdrop" onclick="closeAllSheets()"></div>
-
-<!-- SERVICE PICKER SHEET (for "View all N services") -->
-<div class="bottom-sheet shadow-2xl" id="sheet-tier-services">
-  <div class="sheet-handle"></div>
-  <div class="p-5 pb-2">
-    <h2 class="sheet-title" id="tier-services-modal-title">Choose a Service</h2>
-    <p class="sheet-subtitle">Select the service that matches your goal</p>
-  </div>
-  <div id="tier-services-modal-body" class="px-4 pb-6 space-y-2 overflow-y-auto max-h-[60vh]">
-    <div class="text-center py-6 text-text-muted text-sm">Loading…</div>
-  </div>
-</div>
 
 <!-- ORDER DETAIL SHEET -->
 <div class="bottom-sheet shadow-2xl" id="sheet-smm-order">
@@ -289,7 +374,7 @@
           Top up <strong id="nudge-topup" class="text-emerald-400">₦0</strong> to continue.
         </div>
         <a id="nudge-topup-link" href="/wallet/fund/" class="mt-2 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-bold transition-all">
-          <i data-feather="zap" class="w-3.5 h-3.5"></i> Top Up &amp; Continue
+          <i data-feather="zap" class="w-3.5 h-3.5"></i> Top Up & Continue
         </a>
       </div>
 
@@ -329,40 +414,75 @@
 <script>
   // ─── State ───────────────────────────────────────────────────
   let activePlatform = '{{ platforms_meta.0.slug|default:"instagram"|escapejs }}';
+  let activeTier = '';
   let activeServiceId = '';
   let activeServiceName = '';
   let activeUnitRate = 0.0;
   let activeMin = 0;
   let activeMax = 0;
-  let activePricePer1k = 0.0;
-  let activeTier = '';
   let pinDigits = [];
   const walletBalance = parseFloat('{{ wallet.balance|floatformat:2 }}');
 
+  const TIER_META = {
+    basic: {
+      title: 'Quick Boost',
+      strip: '⚡ <strong>Quick Boost</strong> — Fast & affordable. Best for quick visibility; engagement may drop over time. Starts in 5–15 mins.',
+    },
+    standard: {
+      title: 'Growth Boost',
+      strip: '📈 <strong>Growth Boost</strong> — Balanced speed & retention with 30-day refill protection. Starts in 15–30 mins.',
+    },
+    premium: {
+      title: 'Elite Boost',
+      strip: '👑 <strong>Elite Boost</strong> — Real, active engagement with the highest retention & non-drop guarantee. Natural paced delivery.',
+    },
+  };
+
   // ─── Platform Selection ───────────────────────────────────────
-  function selectPlatform(slug, color, bg) {
+  function selectPlatform(slug) {
     activePlatform = slug;
     document.getElementById('id_platform').value = slug;
 
-    // Update button active states
-    document.querySelectorAll('.platform-btn').forEach(btn => {
-      const isActive = btn.dataset.platform === slug;
-      btn.classList.toggle('active', isActive);
-      btn.style.borderColor = isActive ? color + '60' : 'transparent';
-      btn.style.background = isActive
-        ? `linear-gradient(135deg, ${color}18 0%, rgba(20,10,40,0.9) 100%)`
-        : 'rgba(30, 20, 50, 0.6)';
+    document.querySelectorAll('.platform-tab').forEach(tab => {
+      tab.classList.toggle('active', tab.dataset.platform === slug);
     });
 
-    // HTMX fetch new tier cards
-    htmx.ajax('GET', '{% url "smm:ajax_tier_services" %}?platform=' + slug, {
-      target: '#smm-tier-cards',
-      swap: 'innerHTML'
-    });
+    // Reload service list for current tier (if one is selected)
+    if (activeTier) {
+      loadServiceList();
+    }
   }
 
-  // ─── Open order sheet from a tier card ───────────────────────
-  function openTierSheet(tier, platform, serviceId, serviceName, unitRate, min, max, pricePer1k) {
+  // ─── Tier Selection ───────────────────────────────────────────
+  function selectTier(tier) {
+    activeTier = tier;
+    document.querySelectorAll('.tier-tab').forEach(tab => {
+      tab.classList.toggle('active', tab.dataset.tier === tier);
+    });
+
+    const stripEl = document.getElementById('tier-strip-container');
+    stripEl.innerHTML = '<div class="tier-strip ' + tier + '">' + TIER_META[tier].strip + '</div>';
+
+    loadServiceList();
+  }
+
+  function loadServiceList() {
+    const container = document.getElementById('smm-cards-container');
+    container.innerHTML = '<div class="text-center py-10 text-text-muted text-sm"><div class="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>Loading services…</div>';
+
+    fetch('{% url "smm:ajax_services_list" %}?platform=' + encodeURIComponent(activePlatform) + '&tier=' + encodeURIComponent(activeTier))
+      .then(r => r.text())
+      .then(html => {
+        container.innerHTML = html;
+        if (typeof feather !== 'undefined') feather.replace();
+      })
+      .catch(() => {
+        container.innerHTML = '<div class="text-center py-8 text-text-muted text-sm">Could not load services. Please try again.</div>';
+      });
+  }
+
+  // ─── Open order sheet from a service card ────────────────────
+  function openTierSheet(tier, platform, serviceId, serviceName, unitRate, min, max) {
     activeTier = tier;
     activePlatform = platform;
     activeServiceId = serviceId;
@@ -370,7 +490,6 @@
     activeUnitRate = parseFloat(unitRate);
     activeMin = parseInt(min);
     activeMax = parseInt(max);
-    activePricePer1k = parseFloat(pricePer1k);
 
     document.getElementById('id_platform').value = platform;
     document.getElementById('id_service_id').value = serviceId;
@@ -408,13 +527,6 @@
     // Open sheet
     document.getElementById('sheet-smm-order').classList.add('open');
     document.getElementById('custom-backdrop').classList.add('open');
-  }
-
-  // ─── Select service from list in service picker sheet ────────
-  function selectServiceFromList(serviceId, platform, serviceName, unitRate, min, max, pricePer1k, tier) {
-    // Close service picker, open order sheet
-    document.getElementById('sheet-tier-services').classList.remove('open');
-    setTimeout(() => openTierSheet(tier, platform, serviceId, serviceName, unitRate, min, max, pricePer1k), 100);
   }
 
   // ─── Live cost calculation & balance check ─────────────────
@@ -516,24 +628,27 @@
     document.getElementById('custom-backdrop').classList.remove('open');
   }
 
-  // ─── Auto-select platform from URL params (return after funding) ──
+  // ─── Auto-select platform & tier from URL params (return after funding) ──
   document.addEventListener('DOMContentLoaded', () => {
     const params = new URLSearchParams(window.location.search);
     const pfSlug = params.get('platform');
     const pfTier = params.get('tier');
 
-    if (pfSlug) {
-      const btn = document.getElementById('platform-btn-' + pfSlug);
-      if (btn) {
-        selectPlatform(pfSlug, btn.dataset.color, btn.dataset.bg);
-      }
+    if (pfSlug && document.getElementById('platform-tab-' + pfSlug)) {
+      selectPlatform(pfSlug);
     }
 
-    // Scroll active platform into view
-    const activeBtn = document.querySelector('.platform-btn.active');
-    if (activeBtn) {
-      activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    selectTier(pfTier && TIER_META[pfTier] ? pfTier : 'standard');
+
+    // Scroll active platform chip into view
+    const activeTab = document.querySelector('.platform-tab.active');
+    if (activeTab) {
+      activeTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     }
   });
 </script>
+{% endblock %}
+
+{% block bottom_nav %}
+{% include 'partials/_bottom_nav.html' with active='smm' %}
 {% endblock %}
