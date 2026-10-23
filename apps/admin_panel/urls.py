@@ -30,6 +30,7 @@ urlpatterns = [
     # SMM Pricing
     path("smm-pricing/", views.smm_pricing_manager, name="smm_pricing"),
     path("smm-pricing/save/", views.smm_pricing_save, name="smm_pricing_save"),
+    path("smm-pricing/autoclassify/", views.smm_pricing_autoclassify, name="smm_pricing_autoclassify"),
     path("smm-pricing/bulk-update/", views.smm_pricing_bulk_update, name="smm_pricing_bulk_update"),
     path("smm-pricing/exchange-rate/", views.update_exchange_rate, name="update_exchange_rate"),
     path("smm-pricing/sync-descriptions/", views.sync_smm_descriptions_admin, name="sync_smm_descriptions_admin"),

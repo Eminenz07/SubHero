@@ -47,6 +47,17 @@ class SMMService(models.Model):
         null=True,
         help_text="Auto-suggested tier based on description keywords and category price banding"
     )
+    TIER_SOURCE_CHOICES = [
+        ("auto", "Auto-classified"),
+        ("manual", "Admin override"),
+    ]
+    tier_source = models.CharField(
+        max_length=10,
+        choices=TIER_SOURCE_CHOICES,
+        blank=True,
+        default="",
+        help_text="How 'tier' was set. 'manual' tiers are never overwritten by catalogue syncs."
+    )
     description = models.TextField(blank=True, default="", help_text="Full service details, rules, and start time fetched from gateway")
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)

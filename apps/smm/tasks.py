@@ -508,8 +508,15 @@ def sync_all_smm_descriptions(force_refresh=False):
         if desc:
             service.description = desc
             # Recalculate auto-suggested tier with the new description content
-            service.suggested_tier = calculate_suggested_tier(service)
-            service.save(update_fields=["description", "suggested_tier"])
+            new_suggestion = calculate_suggested_tier(service)
+            service.suggested_tier = new_suggestion
+            # Refine auto-classified tiers as descriptions arrive; never touch admin overrides
+            if service.tier_source != "manual":
+                service.tier = new_suggestion
+                service.tier_source = "auto"
+                service.save(update_fields=["description", "suggested_tier", "tier", "tier_source"])
+            else:
+                service.save(update_fields=["description", "suggested_tier"])
             return True
         return False
 
@@ -647,8 +654,12 @@ def sync_smm_catalogue():
                 existing.provider_rate = rate_naira
                 existing.subhero_price_per_1k = subhero_price
                 existing.is_active = True
-                # Auto-suggest tier without overriding any confirmed admin tier
-                existing.suggested_tier = calculate_suggested_tier(existing)
+                # Auto-classify: refine tier for auto/legacy services, never override admin-set tiers
+                new_suggestion = calculate_suggested_tier(existing)
+                existing.suggested_tier = new_suggestion
+                if existing.tier_source != "manual":
+                    existing.tier = new_suggestion
+                    existing.tier_source = "auto"
                 existing.save()
             else:
                 new_service = SMMService(
@@ -660,10 +671,12 @@ def sync_smm_catalogue():
                     provider_max=int(s["max"]),
                     provider_rate=rate_naira,
                     subhero_price_per_1k=subhero_price,
-                    tier=None,  # Lands as unclassified until an admin confirms it
                     is_active=True
                 )
+                # Pre-classify new services automatically so nothing lands unclassified
                 new_service.suggested_tier = calculate_suggested_tier(new_service)
+                new_service.tier = new_service.suggested_tier
+                new_service.tier_source = "auto"
                 new_service.save()
 
             count += 1

@@ -659,6 +659,8 @@ def smm_pricing_save(request):
         service.subhero_price_per_1k = sell
         service.is_active = is_active
         service.tier = tier_value  # Admin-confirmed tier (None = still unclassified)
+        if tier_value:
+            service.tier_source = "manual"  # Locks tier against future auto-classification syncs
         service.save()
 
         detail = f"Updated SMM service={service.name}: tier={tier_value}, type={markup_type}, value={markup_value}, sell={sell}, active={is_active}"
@@ -671,6 +673,40 @@ def smm_pricing_save(request):
 
         return HttpResponse(f'<button type="submit" class="px-2.5 py-1 rounded bg-slate-800 border border-white/[0.04] text-[10px] font-bold text-white hover:bg-slate-700 transition-colors">Save</button><span class="text-emerald-500 text-[10px] font-bold block mt-1 animate-pulse">✓ Saved{tier_badge}</span>')
     return HttpResponse("Invalid request", status=400)
+
+
+@admin_required
+def smm_pricing_autoclassify(request):
+    """
+    Backfills tier = suggested_tier for all unclassified services in one click.
+    Marks them tier_source='auto' so future syncs keep refining them,
+    while admin-set (manual) tiers are never touched.
+    """
+    if request.method == "POST":
+        from apps.smm.tiering import auto_suggest_tiers_for_catalogue
+
+        pending_qs = SMMService.objects.filter(tier__isnull=True, is_active=True)
+        pending_count = pending_qs.count()
+        if pending_count == 0:
+            return JsonResponse({"status": "ok", "updated": 0, "message": "No pending services — all classified."})
+
+        # 1. Recompute suggestions (keyword + price banding)
+        auto_suggest_tiers_for_catalogue(qs=pending_qs)
+
+        # 2. Apply suggestions as confirmed tiers
+        applied = 0
+        for service in SMMService.objects.filter(tier__isnull=True, is_active=True, suggested_tier__isnull=False):
+            service.tier = service.suggested_tier
+            service.tier_source = "auto"
+            service.save(update_fields=["tier", "tier_source"])
+            applied += 1
+
+        log_admin_action(
+            request.user, "TIER_AUTOCLASSIFY", "SMM_SERVICE", "BULK",
+            f"Auto-classified {applied} SMM services from suggestions (pending was {pending_count})", request
+        )
+        return JsonResponse({"status": "ok", "updated": applied})
+    return JsonResponse({"status": "error"}, status=400)
 
 
 @admin_required

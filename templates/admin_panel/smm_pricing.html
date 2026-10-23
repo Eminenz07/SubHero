@@ -30,8 +30,8 @@
 
     <!-- Pending Classification Alert Banner -->
     {% if pending_count > 0 %}
-    <a href="?pending_only=1" class="flex items-center justify-between bg-amber-950/60 border border-amber-700/40 p-4 rounded-xl hover:bg-amber-950/80 transition-colors group">
-        <div class="flex items-center gap-3">
+    <div class="flex items-center justify-between bg-amber-950/60 border border-amber-700/40 p-4 rounded-xl">
+        <a href="?pending_only=1" class="flex items-center gap-3 group flex-1">
             <div class="w-8 h-8 rounded-lg bg-amber-600/20 flex items-center justify-center flex-shrink-0">
                 <i data-feather="alert-circle" class="w-4 h-4 text-amber-400"></i>
             </div>
@@ -40,11 +40,15 @@
                     Pending Classification
                     <span class="bg-amber-600 text-white text-[10px] px-2 py-0.5 rounded-full font-mono">{{ pending_count }}</span>
                 </div>
-                <p class="text-[11px] text-amber-500">{{ pending_count }} service{{ pending_count|pluralize }} awaiting admin tier assignment. Click to review &amp; classify.</p>
+                <p class="text-[11px] text-amber-500">{{ pending_count }} service{{ pending_count|pluralize }} unclassified. Auto-classify below, or click to review manually.</p>
             </div>
-        </div>
-        <i data-feather="chevron-right" class="w-4 h-4 text-amber-500 group-hover:text-amber-300 transition-colors"></i>
-    </a>
+        </a>
+        <button id="autoclassify-btn" type="button"
+                class="ml-3 px-4 py-2 rounded-lg text-xs font-bold bg-violet-600 hover:bg-violet-500 text-white transition-colors flex items-center gap-1.5 cursor-pointer flex-shrink-0"
+                hx-post="{% url 'admin_panel:smm_pricing_autoclassify' %}" hx-swap="none">
+            <i data-feather="sparkles" class="w-3.5 h-3.5"></i> Auto-classify All
+        </button>
+    </div>
     {% else %}
     <div class="flex items-center gap-3 bg-emerald-950/40 border border-emerald-800/30 p-3 rounded-xl">
         <i data-feather="check-circle" class="w-4 h-4 text-emerald-400 flex-shrink-0"></i>
@@ -163,8 +167,9 @@
                                         <option value="{{ val }}" {% if s.tier == val %}selected{% endif %}>{{ label }}</option>
                                         {% endfor %}
                                     </select>
-                                    {% if s.suggested_tier and not s.tier %}
-                                    <span class="text-[9px] text-amber-400 font-mono whitespace-nowrap" title="Auto-suggested: {{ s.suggested_tier }}">
+                                    {% if s.suggested_tier %}
+                                    <span class="text-[9px] font-mono whitespace-nowrap {% if not s.tier %}text-amber-400{% elif s.suggested_tier != s.tier %}text-amber-300 underline decoration-dotted{% else %}text-slate-500{% endif %}"
+                                          title="{% if not s.tier %}Auto-suggested: {{ s.suggested_tier }}{% elif s.suggested_tier != s.tier %}System suggests {{ s.suggested_tier }} — your override ({{ s.tier_source }}) is locked against syncs.{% else %}Matches system suggestion ({{ s.tier_source }}){% endif %}">
                                         💡 {{ s.suggested_tier }}
                                     </span>
                                     {% endif %}
@@ -258,5 +263,27 @@
         document.getElementById('client-price-' + serviceId).innerText = '₦' + clientPrice.toFixed(2);
         document.getElementById('profit-' + serviceId).innerText = '₦' + profit.toFixed(2);
     }
+
+    document.body.addEventListener('htmx:afterRequest', function (evt) {
+        const path = evt.detail.pathInfo?.requestPath || '';
+        if (path.includes('smm-pricing/autoclassify')) {
+            const btn = document.getElementById('autoclassify-btn');
+            if (evt.detail.successful) {
+                let data = {};
+                try { data = JSON.parse(evt.detail.xhr.responseText); } catch (e) {}
+                if (btn) {
+                    btn.innerHTML = '✓ ' + (data.updated || 0) + ' services classified';
+                    btn.disabled = true;
+                    btn.classList.remove('bg-violet-600', 'hover:bg-violet-500');
+                    btn.classList.add('bg-emerald-600');
+                }
+                setTimeout(() => window.location.reload(), 1500);
+            } else if (btn) {
+                btn.innerHTML = '⚠ Failed — try again';
+                btn.classList.remove('bg-violet-600');
+                btn.classList.add('bg-red-600');
+            }
+        }
+    });
 </script>
 {% endblock %}
