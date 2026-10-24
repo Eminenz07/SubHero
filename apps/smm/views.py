@@ -354,7 +354,7 @@ class SmmTierCategoriesAjaxView(LoginRequiredMixin, View):
             category=platform, tier=tier, is_active=True
         ).exclude(subcategory="").values_list("subcategory", flat=True).distinct().order_by("subcategory")
 
-        html = '<option value="" selected>-- All Categories --</option>'
+        html = '<option value="" disabled selected>-- Select Category --</option>'
         for sub in subcategories:
             html += f'<option value="{sub}">{sub}</option>'
         return HttpResponse(html)

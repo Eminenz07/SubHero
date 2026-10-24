@@ -379,7 +379,7 @@
     <select id="smm-category-select"
             class="form-select w-full rounded-xl px-4 py-3 text-sm font-semibold border border-surface-border bg-white dark:bg-[#1A0D2E] dark:text-[#FAF5FF] dark:border-[#2E174D] cursor-pointer"
             onchange="changeCategory()">
-      <option value="">-- All Categories --</option>
+      <option value="" disabled selected>-- Select Category --</option>
     </select>
   </div>
 
@@ -526,10 +526,12 @@
       tab.classList.toggle('active', tab.dataset.platform === slug);
     });
 
-    // Reload categories + list for the current tier (if selected)
+    // Reload categories for the current tier; services reset until a
+    // category is picked again.
     if (activeTier) {
+      document.getElementById('smm-cards-container').innerHTML =
+        '<div class="text-center py-8 text-text-muted text-sm"><div class="text-2xl mb-2">📂</div>Pick a category above to see ' + TIER_META[activeTier].title + ' services.</div>';
       loadCategories();
-      loadServiceList();
     }
   }
 
@@ -544,8 +546,11 @@
     const stripEl = document.getElementById('tier-strip-container');
     stripEl.innerHTML = '<div class="tier-strip ' + tier + '">' + TIER_META[tier].strip + '</div>';
 
+    // Services stay hidden until the user picks a category (Step 2)
+    document.getElementById('smm-cards-container').innerHTML =
+      '<div class="text-center py-8 text-text-muted text-sm"><div class="text-2xl mb-2">📂</div>Pick a category above to see ' + TIER_META[tier].title + ' services.</div>';
+
     loadCategories();
-    loadServiceList();
   }
 
   // ─── Category Dropdown ────────────────────────────────────────
@@ -562,7 +567,9 @@
 
   function changeCategory() {
     activeCategory = document.getElementById('smm-category-select').value;
-    loadServiceList();
+    if (activeCategory) {
+      loadServiceList();
+    }
   }
 
   // ─── Service List ─────────────────────────────────────────────
@@ -641,9 +648,9 @@
     document.getElementById('sheet-balance-nudge').classList.add('hidden');
     document.getElementById('proceed-to-pin-btn').disabled = false;
 
-    // Open sheet
-    document.getElementById('sheet-smm-order').classList.add('open');
-    document.getElementById('custom-backdrop').classList.add('open');
+    // Open sheet (CSS class is 'active' — defined in input.css)
+    document.getElementById('sheet-smm-order').classList.add('active');
+    document.getElementById('custom-backdrop').classList.add('active');
   }
 
   // ─── Live cost calculation & balance check ─────────────────
@@ -707,9 +714,9 @@
       box.classList.add('border-surface-border');
     }
 
-    document.getElementById('sheet-smm-order').classList.remove('open');
+    document.getElementById('sheet-smm-order').classList.remove('active');
     setTimeout(() => {
-      document.getElementById('custom-sheet-pin').classList.add('open');
+      document.getElementById('custom-sheet-pin').classList.add('active');
     }, 120);
   }
 
@@ -741,8 +748,8 @@
 
   // ─── Close sheets ─────────────────────────────────────────────
   function closeAllSheets() {
-    document.querySelectorAll('.bottom-sheet.open').forEach(s => s.classList.remove('open'));
-    document.getElementById('custom-backdrop').classList.remove('open');
+    document.querySelectorAll('.bottom-sheet.active').forEach(s => s.classList.remove('active'));
+    document.getElementById('custom-backdrop').classList.remove('active');
   }
 
   // ─── Auto-select platform & tier from URL params (return after funding) ──
