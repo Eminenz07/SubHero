@@ -203,6 +203,49 @@
   .tier-label-standard { background: #F3EDFA; color: #6D28D9; }
   .tier-label-premium { background: #FFFBEB; color: #B45309; }
 
+  /* Quantity limits hint — self-styled so it works in both modes
+     regardless of the compiled Tailwind bundle */
+  .qty-limits {
+    margin-top: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #6D28D9;
+    background: #F3EDFA;
+    border: 1px solid #E8DEF5;
+    border-radius: 8px;
+    padding: 5px 10px;
+    display: inline-block;
+  }
+  html.dark .qty-limits {
+    color: #C4B5FD;
+    background: rgba(139, 92, 246, 0.12);
+    border-color: rgba(139, 92, 246, 0.3);
+  }
+
+  /* Category select — self-styled for both modes */
+  .smm-category-select {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1A092A;
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    border-radius: 12px;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236D28D9' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 16px;
+  }
+  html.dark .smm-category-select {
+    color: #FAF5FF;
+    background-color: #1A0D2E;
+    border-color: #2E174D;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23C893FF' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  }
+
   /* ═══ DARK MODE OVERRIDES ═══ */
   html.dark .platform-tabs { background: #11071F; border-bottom-color: #2E174D; }
   html.dark .platform-tab { background: #1A0D2E; border-color: #2E174D; color: #C4B5D8; }
@@ -377,7 +420,7 @@
   <div class="mb-3" id="category-select-wrap">
     <div class="text-[10px] font-bold text-purple-700/70 dark:text-purple-300/70 uppercase tracking-widest mb-2">Step 2 · Select Category</div>
     <select id="smm-category-select"
-            class="form-select w-full rounded-xl px-4 py-3 text-sm font-semibold border border-surface-border bg-white dark:bg-[#1A0D2E] dark:text-[#FAF5FF] dark:border-[#2E174D] cursor-pointer"
+            class="smm-category-select"
             onchange="changeCategory()">
       <option value="" disabled selected>-- Select Category --</option>
     </select>
@@ -433,10 +476,8 @@
 
       <div class="form-group">
         <label class="form-label" for="smm-quantity-input">Quantity</label>
-        <div class="relative">
-          <input class="form-input pr-24" type="number" id="smm-quantity-input" placeholder="500" inputmode="numeric">
-          <div class="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted text-[10px]" id="sheet-qty-limits">min / max</div>
-        </div>
+        <input class="form-input w-full" type="number" id="smm-quantity-input" placeholder="Enter quantity" inputmode="numeric">
+        <div id="sheet-qty-limits" class="qty-limits">Min: – · Max: –</div>
       </div>
 
       <!-- Live cost preview -->
@@ -632,7 +673,7 @@
 
     // Set sheet labels
     document.getElementById('smm-sheet-title').textContent = serviceName.length > 30 ? serviceName.substring(0, 30) + '…' : serviceName;
-    document.getElementById('sheet-qty-limits').textContent = `${parseInt(min).toLocaleString()} – ${parseInt(max).toLocaleString()}`;
+    document.getElementById('sheet-qty-limits').textContent = `Min: ${parseInt(min).toLocaleString()} · Max: ${parseInt(max).toLocaleString()}`;
 
     const deliveryMap = {
       basic: 'Starts within 5–15 minutes',
