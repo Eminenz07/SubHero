@@ -222,8 +222,80 @@
     border-color: rgba(139, 92, 246, 0.3);
   }
 
-  /* Category select — self-styled for both modes */
-  .smm-category-select {
+  /* ─── Order sheet info rows — self-styled for both modes ─── */
+  .sheet-info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 12px;
+    padding: 14px 16px;
+    background: #F3EDFA;
+    border: 1px solid #E8DEF5;
+  }
+  .sheet-info-row .label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #4B5563;
+  }
+  .sheet-info-row .value {
+    font-size: 17px;
+    font-weight: 700;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: #6D28D9;
+  }
+  html.dark .sheet-info-row { background: #1A0D38; border-color: #2E174D; }
+  html.dark .sheet-info-row .label { color: #DDD6FE; }
+  html.dark .sheet-info-row .value { color: #C4B5FD; }
+
+  .sheet-delivery-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #059669;
+    background: #ECFDF5;
+    border: 1px solid #A7F3D0;
+    border-radius: 12px;
+    padding: 8px 12px;
+  }
+  html.dark .sheet-delivery-row {
+    color: #6EE7B7;
+    background: rgba(6, 78, 59, 0.3);
+    border-color: rgba(6, 95, 70, 0.4);
+  }
+
+  .sheet-balance-nudge {
+    padding: 12px;
+    border-radius: 12px;
+    font-size: 11px;
+    line-height: 1.6;
+    background: #FEF2F2;
+    border: 1px solid #FECACA;
+  }
+  .sheet-balance-nudge .nudge-title { color: #DC2626; font-weight: 700; margin-bottom: 4px; }
+  .sheet-balance-nudge .nudge-body { color: #991B1B; }
+  .sheet-balance-nudge .nudge-green { color: #059669; }
+  .sheet-balance-nudge .nudge-cta {
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px;
+    border-radius: 12px;
+    background: #047857;
+    color: #FFFFFF;
+    font-weight: 700;
+    transition: background 0.15s ease;
+  }
+  .sheet-balance-nudge .nudge-cta:hover { background: #059669; }
+  html.dark .sheet-balance-nudge { background: rgba(127, 29, 29, 0.25); border-color: rgba(153, 27, 27, 0.5); }
+  html.dark .sheet-balance-nudge .nudge-title { color: #FCA5A5; }
+  html.dark .sheet-balance-nudge .nudge-body { color: #FEE2E2; }
+  html.dark .sheet-balance-nudge .nudge-green { color: #6EE7B7; }
+
+  /* Category select — self-styled for both modes */  .smm-category-select {
     width: 100%;
     padding: 12px 16px;
     font-size: 14px;
@@ -465,7 +537,7 @@
 
     <div class="space-y-3">
       <!-- Delivery promise -->
-      <div id="sheet-delivery-label" class="flex items-center gap-1.5 text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/30 rounded-xl px-3 py-2">
+      <div id="sheet-delivery-label" class="sheet-delivery-row">
         <span>⏱</span> <span id="sheet-delivery-text">Starts within 15 mins</span>
       </div>
 
@@ -481,18 +553,18 @@
       </div>
 
       <!-- Live cost preview -->
-      <div class="flex justify-between items-center bg-[#F3EDFA] dark:bg-[#1A0D38] border border-[#E8DEF5] dark:border-[#2E174D] rounded-xl p-4">
-        <span class="text-sm font-semibold text-text-secondary dark:text-purple-200/80">Estimated Cost</span>
-        <span class="text-lg font-bold text-brand-primary dark:text-purple-300 font-mono" id="smm-cost-display">₦0.00</span>
+      <div class="sheet-info-row">
+        <span class="label">Estimated Cost</span>
+        <span class="value" id="smm-cost-display">₦0.00</span>
       </div>
 
       <!-- Insufficient balance inline nudge -->
-      <div id="sheet-balance-nudge" class="hidden p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/40 text-[11px] leading-relaxed">
-        <div class="text-red-600 dark:text-red-300 font-bold mb-1">💳 Wallet balance insufficient</div>
-        <div class="text-red-700/80 dark:text-red-200/80">You need <strong id="nudge-cost">₦0</strong> but have <strong id="nudge-balance">₦0</strong>.
-          Top up <strong id="nudge-topup" class="text-emerald-600 dark:text-emerald-400">₦0</strong> to continue.
+      <div id="sheet-balance-nudge" class="sheet-balance-nudge hidden">
+        <div class="nudge-title">💳 Wallet balance insufficient</div>
+        <div class="nudge-body">You need <strong id="nudge-cost">₦0</strong> but have <strong id="nudge-balance">₦0</strong>.
+          Top up <strong id="nudge-topup" class="nudge-green">₦0</strong> to continue.
         </div>
-        <a id="nudge-topup-link" href="/wallet/fund/" class="mt-2 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-bold transition-all">
+        <a id="nudge-topup-link" href="/wallet/fund/" class="nudge-cta">
           <i data-feather="zap" class="w-3.5 h-3.5"></i> Top Up & Continue
         </a>
       </div>
