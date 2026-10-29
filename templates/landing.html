@@ -631,89 +631,56 @@ section[id] { scroll-margin-top: 96px; }
     </div>
   </section>
 
-<!-- ============ PLATFORM ICONS ============ -->
-  <section class="section" id="platforms" aria-label="Supported platforms">
-    <div class="container">
-      <div class="section-head section-head--center">
-        <span class="eyebrow eyebrow--center">SMM growth ecosystem</span>
-        <h2>26+ global platforms, one instant boost</h2>
-        <p class="lead">Grow followers, engagement, and reach on every channel you care about.</p>
-      </div>
-      <div class="platform-grid" role="list" aria-label="Supported social media platforms">
-        {% for slug, meta in platforms_meta.items %}
-        <a class="platform-card" href="{% url 'smm:index' %}?platform={{ slug }}" role="listitem">
-          <div class="platform-card__icon" style="background: {{ meta.brand_bg }};">
+<!-- ============ PLATFORM MARQUEE ============ -->
+  <section class="marquee-band" aria-label="Supported platforms">
+    <div class="container section-head section-head--center">
+      <span class="eyebrow eyebrow--center">SMM growth ecosystem</span>
+      <h2>26+ global platforms, one instant boost</h2>
+      <p class="lead">Grow followers, engagement, and reach on every channel you care about.</p>
+    </div>
+    <div class="marquee">
+      <div class="marquee__row marquee__row--a" aria-hidden="true">
+        <span class="group">
+          {% for slug, meta in platforms_meta.items %}
+          <span class="chip">
             {% if meta.svg %}
-              <svg class="platform-card__svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="{{ meta.name }}">{{ meta.svg|safe }}</svg>
+              <svg class="chip__svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">{{ meta.svg|safe }}</svg>
             {% else %}
-              <span class="platform-card__emoji">{{ meta.emoji }}</span>
+              <span class="chip__dot" style="background: {{ meta.brand_color }}"></span>
             {% endif %}
-          </div>
-          <span class="platform-card__name">{{ meta.name }}</span>
-        </a>
-        {% endfor %}
+            <span class="chip__name">{{ meta.name }}</span>
+            {% if meta.chip_tag %}<span class="chip__tag">{{ meta.chip_tag }}</span>{% endif %}
+          </span>
+          {% endfor %}
+        </span>
+      </div>
+      <div class="marquee__row marquee__row--b" aria-hidden="true">
+        <span class="group">
+          {% for slug, meta in platforms_meta.items %}
+          <span class="chip">
+            {% if meta.svg %}
+              <svg class="chip__svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">{{ meta.svg|safe }}</svg>
+            {% else %}
+              <span class="chip__dot" style="background: {{ meta.brand_color }}"></span>
+            {% endif %}
+            <span class="chip__name">{{ meta.name }}</span>
+            {% if meta.chip_tag %}<span class="chip__tag">{{ meta.chip_tag }}</span>{% endif %}
+          </span>
+          {% endfor %}
+        </span>
       </div>
     </div>
   </section>
 
   <style>
-    .platform-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-      gap: var(--space-4);
-      padding: var(--space-4) 0;
-    }
-    @media (min-width: 640px) { .platform-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: var(--space-5); } }
-    @media (min-width: 1024px) { .platform-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--space-6); } }
-
-    .platform-card {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: var(--space-3);
-      padding: var(--space-5) var(--space-4);
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      text-decoration: none;
-      color: inherit;
-      transition: transform var(--motion-base) var(--ease-standard),
-                  border-color var(--motion-base) var(--ease-standard),
-                  background-color var(--motion-base) var(--ease-standard),
-                  box-shadow var(--motion-base) var(--ease-standard);
-    }
-    .platform-card:hover {
-      transform: translateY(-4px);
-      border-color: rgba(200,147,255,0.4);
-      background: var(--surface-2);
-      box-shadow: 0 18px 44px rgba(0,0,0,0.5);
-    }
-    .platform-card__icon {
-      width: 56px;
-      height: 56px;
-      border-radius: var(--radius-md);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
+    .chip__svg {
+      width: 14px;
+      height: 14px;
+      color: currentColor;
       flex-shrink: 0;
     }
-    .platform-card__svg {
-      width: 28px;
-      height: 28px;
-      color: currentColor;
-    }
-    .platform-card__emoji { font-size: 28px; }
-    .platform-card__name {
-      font-family: var(--font-display);
-      font-size: var(--text-sm);
-      font-weight: 600;
-      color: var(--fg);
-      text-align: center;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
+    .chip__name { font-size: var(--text-sm); font-weight: 600; color: var(--fg); }
+    .chip__tag { font-family: var(--font-mono); font-size: 11px; color: var(--muted); font-weight: 600; }
   </style>
 
   <!-- ============ SERVICES / BENTO ============ -->
