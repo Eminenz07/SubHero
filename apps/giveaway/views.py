@@ -20,6 +20,7 @@ from apps.giveaway.utils import generate_giveaway_slug, generate_qr_code_base64
 from apps.wallet.models import Wallet, WalletTransaction
 from apps.vtu.models import VTUPlan
 from apps.giveaway.tasks import process_giveaway_claim
+from apps.core.meta_pixel import track_lead
 
 logger = logging.getLogger(__name__)
 
@@ -142,8 +143,19 @@ def create_giveaway(request):
                     description=f"Locked funds for giveaway: {title}"
                 )
 
-            messages.success(request, "Giveaway created successfully!")
-            return redirect('giveaway:detail', slug=slug)
+                messages.success(request, "Giveaway created successfully!")
+                # Fire Meta Pixel Lead event for first giveaway creation (client-side via session)
+                if not Giveaway.objects.filter(host=request.user).exclude(id=giveaway.id).exists():
+                    request.session['fire_giveaway_lead_event'] = {
+                        'giveaway_id': giveaway.slug,
+                        'giveaway_type': giveaway.giveaway_type,
+                    }
+                    # Also fire server-side Conversions API event
+                    try:
+                        track_lead(request.user, giveaway_id=giveaway.slug, giveaway_type=giveaway.giveaway_type, request=request)
+                    except Exception as pixel_err:
+                        logger.error("Meta Pixel Lead event failed: %s", str(pixel_err))
+                return redirect('giveaway:detail', slug=slug)
         except Exception as e:
             messages.error(request, f"An error occurred: {str(e)}")
             return redirect('giveaway:create')

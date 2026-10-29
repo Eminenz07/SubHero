@@ -19,6 +19,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django_ratelimit.decorators import ratelimit
 from django.utils.decorators import method_decorator
 
+from apps.core.meta_pixel import track_complete_registration
 from apps.core.utils import (
     get_client_ip,
     normalize_phone,
@@ -385,6 +386,12 @@ class VerifyOTPView(View):
 
                     logger.info("OTP verified: user=%s, email=%s", user.id, user.email)
 
+                    # Fire Meta Pixel CompleteRegistration event (server-side Conversions API)
+                    try:
+                        track_complete_registration(user, method="email", request=request)
+                    except Exception as pixel_err:
+                        logger.error("Meta Pixel CompleteRegistration event failed: %s", str(pixel_err))
+
                     # Auto-create wallet + virtual account (PRD Section 6.1.1)
                     if purpose == "registration":
                         try:
@@ -527,7 +534,8 @@ class SetPINView(View):
                 logger.error("PIN set notification creation failed: %s", str(ex))
 
             messages.success(request, "Transaction PIN set successfully! Welcome to SubHero.")
-            return redirect("dashboard")
+            # Pass registration_complete flag to trigger Meta Pixel CompleteRegistration event
+            return redirect("dashboard?registration_complete=1")
 
         return render(request, self.template_name, {"form": form})
 

@@ -39,6 +39,9 @@ SITE_URL = config("SITE_URL", default="http://localhost:8000")
 ADMIN_URL = config("ADMIN_URL", default="admin/")
 ADMIN_HQ_URL = config("ADMIN_HQ_URL", default="subhero-hq-sh9k4x2/")
 
+# Meta Pixel (Facebook) — PRD Section 8
+META_PIXEL_ID = config("META_PIXEL_ID", default="")
+
 # HTTPS / SSL
 SECURE_SSL_REDIRECT = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
@@ -150,6 +153,8 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "apps.notifications.context_processors.unread_notifications",
+                "apps.core.context_processors.meta_pixel",
+                "apps.core.context_processors.platforms",
             ],
         },
     },

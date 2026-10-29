@@ -147,3 +147,12 @@ if REDIS_URL:
 else:
     CELERY_TASK_ALWAYS_EAGER = True
     CELERY_TASK_EAGER_PROPAGATES = True
+
+# =============================================================
+# CONTENT SECURITY POLICY — Meta Pixel domains (PRD Section 8)
+# =============================================================
+# Add CSP middleware to whitelist Meta Pixel domains
+MIDDLEWARE = [
+    "django.middleware.security.SecurityMiddleware",
+    "apps.core.meta_pixel_csp.MetaPixelCSPMiddleware",
+] + MIDDLEWARE

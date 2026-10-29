@@ -17,6 +17,19 @@
 {% endblock %}
 
 {% block content %}
+<!-- Meta Pixel: Lead event on first giveaway creation -->
+{% if request.session.fire_giveaway_lead_event %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    if (window.SubHeroPixel) {
+        var leadData = {{ request.session.fire_giveaway_lead_event|safe }};
+        window.SubHeroPixel.trackLead(leadData.giveaway_id, leadData.giveaway_type);
+    }
+    // Clear the flag so it doesn't fire again
+    delete window.request.session.fire_giveaway_lead_event;
+});
+</script>
+{% endif %}
 <div class="px-4 pt-5 pb-10 max-w-md mx-auto space-y-6 text-center">
     
     <div class="bg-white p-6 rounded-2xl shadow-sm border border-surface-border">

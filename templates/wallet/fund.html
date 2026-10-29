@@ -302,6 +302,11 @@ function payWithCard() {
         return;
     }
 
+    // Fire Meta Pixel InitiateCheckout event
+    if (window.SubHeroPixel) {
+        window.SubHeroPixel.trackInitiateCheckout(amount, 'NGN', 'card');
+    }
+
     // Set button state to loading
     btn.disabled = true;
     btnText.textContent = "Initializing checkout...";

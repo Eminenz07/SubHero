@@ -49,6 +49,8 @@
     <meta name="twitter:description" content="{% block twitter_description %}Instant VTU, cheap data, airtime, and automated social media growth with seamless payments on SubHero.{% endblock %}">
     <meta name="twitter:image" content="{% block twitter_image %}{{ request.scheme }}://{{ request.get_host }}{% static 'img/subhero-og.jpg' %}{% endblock %}">
 
+    {% include 'partials/_meta_pixel.html' %}
+
     {% block json_ld %}{% endblock %}
 
     <!-- Tailwind CSS -->
@@ -62,6 +64,7 @@
 
     <!-- App JS -->
     <script src="{% static 'js/app.js' %}" defer></script>
+    <script src="{% static 'js/meta-pixel.js' %}" defer></script>
 
     <style>
         /* =============================================================

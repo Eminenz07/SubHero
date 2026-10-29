@@ -24,6 +24,28 @@
 {% endblock %}
 
 {% block content %}
+<!-- Meta Pixel: CompleteRegistration on first login after registration -->
+{% if request.GET.registration_complete == "1" and user.is_authenticated %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    if (window.SubHeroPixel) {
+        window.SubHeroPixel.trackCompleteRegistration('email');
+    }
+});
+</script>
+{% endif %}
+
+<!-- Meta Pixel: Purchase event on wallet funding confirmation -->
+{% if fire_purchase_event %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    if (window.SubHeroPixel) {
+        window.SubHeroPixel.trackPurchase({{ fire_purchase_event.value }}, '{{ fire_purchase_event.currency }}', '{{ fire_purchase_event.transaction_ref }}');
+    }
+});
+</script>
+{% endif %}
+
 <!-- Wallet Hero Card -->
 <div class="bg-gradient-to-br from-brand-primary via-[#1D0831] to-brand-dark rounded-card p-6 mx-4 mb-6 relative overflow-hidden shadow-elevated">
     <!-- Decorative overlays -->

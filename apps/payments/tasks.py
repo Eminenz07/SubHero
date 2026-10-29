@@ -14,6 +14,7 @@ from celery.exceptions import MaxRetriesExceededError
 
 from apps.wallet.models import Wallet, WalletTransaction
 from apps.notifications.tasks import send_transaction_sms
+from apps.core.meta_pixel import track_purchase
 
 logger = logging.getLogger(__name__)
 
@@ -88,6 +89,12 @@ def credit_wallet(self, transaction_ref, amount_naira,
             "SUCCESS: Funded User %s with ₦%s (Fee: ₦%s). Ref=%s",
             wallet.user.phone_number, net_amount, deposit_fee, transaction_ref
         )
+
+        # Fire Meta Pixel Purchase event via Conversions API (server-side)
+        try:
+            track_purchase(wallet.user, float(net_amount), "NGN", transaction_ref)
+        except Exception as pixel_err:
+            logger.error("Meta Pixel Purchase event failed: %s", str(pixel_err))
 
         try:
             from apps.notifications.services import send_push_notification

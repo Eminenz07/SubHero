@@ -44,7 +44,7 @@ urlpatterns = [
     path("auth/", include("apps.accounts.urls", namespace="accounts")),
 
     # Dashboard (stub for Phase 1)
-    path("dashboard/", TemplateView.as_view(template_name="dashboard.html"), name="dashboard"),
+    path("dashboard/", core_views.DashboardView.as_view(), name="dashboard"),
 
     # Wallet (Phase 2)
     path("wallet/", include("apps.wallet.urls", namespace="wallet")),

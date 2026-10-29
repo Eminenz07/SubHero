@@ -1,5 +1,36 @@
 from django.shortcuts import render
 from django.http import HttpResponse
+from django.views.generic import TemplateView
+from apps.wallet.models import Wallet, WalletTransaction
+
+
+class DashboardView(TemplateView):
+    """
+    Dashboard view with Meta Pixel event context.
+    """
+    template_name = "dashboard.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        if self.request.user.is_authenticated:
+            # Fire Purchase event if there's a recent successful wallet funding
+            recent_fund = WalletTransaction.objects.filter(
+                wallet=self.request.user.wallet,
+                txn_type=WalletTransaction.TxnType.FUND,
+                status=WalletTransaction.Status.SUCCESS
+            ).order_by('-created_at').first()
+            
+            if recent_fund and not self.request.session.get(f'pixel_purchase_fired_{recent_fund.id}'):
+                self.request.session[f'pixel_purchase_fired_{recent_fund.id}'] = True
+                context['fire_purchase_event'] = {
+                    'value': float(recent_fund.amount),
+                    'currency': 'NGN',
+                    'transaction_ref': recent_fund.reference,
+                }
+        
+        return context
+
 
 def healthcheck(request):
     """

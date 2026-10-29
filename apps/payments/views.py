@@ -27,6 +27,7 @@ from apps.payments.services import (
     verify_webhook_signature
 )
 from apps.payments.tasks import credit_wallet
+from apps.core.meta_pixel import track_purchase
 
 logger = logging.getLogger(__name__)
 
