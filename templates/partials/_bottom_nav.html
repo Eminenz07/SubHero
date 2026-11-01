@@ -6,22 +6,22 @@
 
 <nav class="bottom-nav">
     <a href="{{ dashboard_url }}" class="nav-item {% if request.path == dashboard_url %}active{% endif %}">
-        <i data-feather="home" class="nav-icon"></i>
+        {% include "icons/home.html" %}
         <span>Home</span>
     </a>
     
     <a href="#" onclick="openVtuSheet(event)" class="nav-item {% if '/vtu/' in request.path %}active{% endif %}">
-        <i class="heroicons-outline-device-mobile nav-icon"></i>
+        {% include "icons/device-mobile.html" %}
         <span>VTU</span>
     </a>
     
     <a href="{{ smm_url }}" class="nav-item {% if request.path == smm_url %}active{% endif %}">
-        <i class="heroicons-outline-thumb-up nav-icon"></i>
+        {% include "icons/thumb-up.html" %}
         <span>SMM</span>
     </a>
     
     <a href="{{ profile_url }}" class="nav-item {% if request.path == profile_url %}active{% endif %}">
-        <i class="heroicons-outline-user nav-icon"></i>
+        {% include "icons/user.html" %}
         <span>Profile</span>
     </a>
 </nav>
@@ -38,35 +38,35 @@
         <div class="grid grid-cols-3 gap-3 my-5">
             <a href="{% url 'vtu:buy_data' %}" class="bg-surface-card rounded-[14px] py-4 px-2 flex flex-col items-center gap-2 shadow-card border border-surface-border cursor-pointer active:bg-surface-page no-underline">
                 <div class="w-[44px] h-[44px] rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center">
-                    <i data-feather="wifi" class="w-5 h-5"></i>
+                    {% include "icons/wifi.html" %}
                 </div>
                 <span class="text-[12px] font-semibold text-text-secondary text-center leading-[1.2]">Data</span>
             </a>
             
             <a href="{% url 'vtu:buy_airtime' %}" class="bg-surface-card rounded-[14px] py-4 px-2 flex flex-col items-center gap-2 shadow-card border border-surface-border cursor-pointer active:bg-surface-page no-underline">
                 <div class="w-[44px] h-[44px] rounded-xl bg-green-50 text-green-500 flex items-center justify-center">
-                    <i data-feather="phone" class="w-5 h-5"></i>
+                    {% include "icons/phone.html" %}
                 </div>
                 <span class="text-[12px] font-semibold text-text-secondary text-center leading-[1.2]">Airtime</span>
             </a>
             
             <a href="{% url 'vtu:buy_electricity' %}" class="bg-surface-card rounded-[14px] py-4 px-2 flex flex-col items-center gap-2 shadow-card border border-surface-border cursor-pointer active:bg-surface-page no-underline">
                 <div class="w-[44px] h-[44px] rounded-xl bg-yellow-50 text-yellow-500 flex items-center justify-center">
-                    <i data-feather="zap" class="w-5 h-5"></i>
+                    {% include "icons/zap.html" %}
                 </div>
                 <span class="text-[12px] font-semibold text-text-secondary text-center leading-[1.2]">Power</span>
             </a>
             
             <a href="{% url 'vtu:buy_cable' %}" class="bg-surface-card rounded-[14px] py-4 px-2 flex flex-col items-center gap-2 shadow-card border border-surface-border cursor-pointer active:bg-surface-page no-underline">
                 <div class="w-[44px] h-[44px] rounded-xl bg-purple-50 text-purple-500 flex items-center justify-center">
-                    <i data-feather="tv" class="w-5 h-5"></i>
+                    {% include "icons/tv.html" %}
                 </div>
                 <span class="text-[12px] font-semibold text-text-secondary text-center leading-[1.2]">Cable TV</span>
             </a>
             
             <a href="{% url 'vtu:buy_exam_pin' %}" class="bg-surface-card rounded-[14px] py-4 px-2 flex flex-col items-center gap-2 shadow-card border border-surface-border cursor-pointer active:bg-surface-page no-underline">
                 <div class="w-[44px] h-[44px] rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center">
-                    <i data-feather="book-open" class="w-5 h-5"></i>
+                    {% include "icons/book-open.html" %}
                 </div>
                 <span class="text-[12px] font-semibold text-text-secondary text-center leading-[1.2]">Exam PIN</span>
             </a>
@@ -89,7 +89,20 @@
             document.body.style.overflow = 'hidden';
             // Initialize Heroicons
             document.querySelectorAll('[class^="heroicons-"]').forEach(icon => {
-                icon.setAttribute('aria-hidden', 'true');
+                const iconName = icon.className.match(/heroicons-(outline|solid)-([a-z-]+)/);
+                if (iconName) {
+                    const iconType = iconName[1]; // outline or solid
+                    const iconId = iconName[2]; // icon name
+                    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                    svg.setAttribute('class', `h-5 w-5 ${icon.className}`);
+                    svg.setAttribute('fill', 'none');
+                    svg.setAttribute('viewBox', '0 0 24 24');
+                    svg.setAttribute('stroke', 'currentColor');
+                    svg.setAttribute('aria-hidden', 'true');
+                    svg.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${window.Heroicons[iconType][iconId]}"/>`;
+                    icon.innerHTML = '';
+                    icon.appendChild(svg);
+                }
             });
         }
     }

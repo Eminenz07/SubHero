@@ -25,14 +25,18 @@ class MetaPixelCSPMiddleware:
             # Build CSP directives
             csp_directives = [
                 "default-src 'self'",
-                "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://connect.facebook.net https://www.facebook.com",
-                "img-src 'self' data: https://www.facebook.com https://www.facebook.com",
-                "connect-src 'self' https://connect.facebook.net https://www.facebook.com https://graph.facebook.com",
-                "frame-src 'self' https://www.facebook.com",
-                "font-src 'self' data: https://fonts.gstatic.com",
+                "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://connect.facebook.net https://www.facebook.com https://static.cloudflareinsights.com",
                 "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+                "font-src 'self' data: https://fonts.gstatic.com",
+                "img-src 'self' data: https://www.facebook.com",
+                "connect-src 'self' https://connect.facebook.net https://www.facebook.com https://graph.facebook.com https://fonts.googleapis.com https://fonts.gstatic.com https://cloudflareinsights.com",
+                "frame-src 'self' https://www.facebook.com",
+                "manifest-src 'self'",
+                "worker-src 'self'",
                 "frame-ancestors 'self'",
                 "form-action 'self'",
+                "object-src 'none'",
+                "base-uri 'self'",
             ]
 
             # Only add CSP if not already set (e.g., by other middleware)
