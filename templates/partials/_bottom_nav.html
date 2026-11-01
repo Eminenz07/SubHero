@@ -11,17 +11,17 @@
     </a>
     
     <a href="#" onclick="openVtuSheet(event)" class="nav-item {% if '/vtu/' in request.path %}active{% endif %}">
-        <i data-feather="smartphone" class="nav-icon"></i>
+        <i class="heroicons-outline-device-mobile nav-icon"></i>
         <span>VTU</span>
     </a>
     
     <a href="{{ smm_url }}" class="nav-item {% if request.path == smm_url %}active{% endif %}">
-        <i data-feather="thumbs-up" class="nav-icon"></i>
+        <i class="heroicons-outline-thumb-up nav-icon"></i>
         <span>SMM</span>
     </a>
     
     <a href="{{ profile_url }}" class="nav-item {% if request.path == profile_url %}active{% endif %}">
-        <i data-feather="user" class="nav-icon"></i>
+        <i class="heroicons-outline-user nav-icon"></i>
         <span>Profile</span>
     </a>
 </nav>
@@ -87,9 +87,10 @@
             backdrop.classList.add('active');
             sheet.classList.add('active');
             document.body.style.overflow = 'hidden';
-            if (typeof feather !== 'undefined') {
-                feather.replace();
-            }
+            // Initialize Heroicons
+            document.querySelectorAll('[class^="heroicons-"]').forEach(icon => {
+                icon.setAttribute('aria-hidden', 'true');
+            });
         }
     }
     

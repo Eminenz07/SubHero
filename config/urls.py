@@ -74,6 +74,20 @@ urlpatterns = [
 
 # Debug toolbar — dev only
 if settings.DEBUG:
+    from django.shortcuts import redirect
+    from django.contrib.auth import login, get_user_model
+
+    def demo_login_view(request):
+        User = get_user_model()
+        u, _ = User.objects.get_or_create(phone_number='+2348012345678', defaults={'email': 'demo@subhero.ng', 'full_name': 'Tunde Balogun', 'is_verified': True})
+        login(request, u, backend='django.contrib.auth.backends.ModelBackend')
+        target = request.GET.get('next', '/giveaway/create/')
+        return redirect(target)
+
+    urlpatterns += [
+        path("demo-login/", demo_login_view, name="demo_login"),
+    ]
+
     try:
         import debug_toolbar
 
@@ -82,3 +96,4 @@ if settings.DEBUG:
         ] + urlpatterns
     except ImportError:
         pass
+
