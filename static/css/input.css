@@ -1,4 +1,23 @@
-@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap&subset=latin');
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  src: url('../fonts/BricolageGrotesque-VariableFont_opsz,wght.ttf') format('truetype');
+  font-display: swap;
+  font-weight: 200 800;
+}
+
+@font-face {
+  font-family: 'DM Sans';
+  src: url('../fonts/DMSans-VariableFont_opsz,wght.ttf') format('truetype');
+  font-display: swap;
+  font-weight: 300 700;
+}
+
+@font-face {
+  font-family: 'DM Mono';
+  src: url('../fonts/DMMono-VariableFont_opsz,wght.ttf') format('truetype');
+  font-display: swap;
+  font-weight: 400 500;
+}
 
 @tailwind base;
 @tailwind components;

@@ -10,9 +10,9 @@
     <link rel="icon" type="image/svg+xml" href="{% static 'favicon.svg' %}">
 
     <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap" rel="stylesheet">
+    <link rel="preload" href="{% static 'fonts/BricolageGrotesque-VariableFont_opsz,wght.ttf' %}" as="font" type="font/ttf" crossorigin>
+    <link rel="preload" href="{% static 'fonts/DMSans-VariableFont_opsz,wght.ttf' %}" as="font" type="font/ttf" crossorigin>
+    <link rel="preload" href="{% static 'fonts/DMMono-VariableFont_opsz,wght.ttf' %}" as="font" type="font/ttf" crossorigin>
 
     <!-- Tailwind CSS -->
     <link rel="stylesheet" href="{% static 'css/app.css' %}?v={% now 'U' %}">
@@ -21,7 +21,7 @@
     <script src="{% static 'js/htmx.min.js' %}" defer></script>
     
     <!-- Feather Icons -->
-    <script src="https://unpkg.com/feather-icons" defer></script>
+    <script src="{% static 'js/feather.min.js' %}" defer></script>
 
     <!-- Custom CSS Overrides for Admin Panel -->
     <style>
@@ -86,51 +86,51 @@
         <!-- Navigation Links -->
         <nav class="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">
             <a href="{% url 'admin_panel:dashboard' %}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all {% if active_nav == 'dashboard' %}bg-emerald-600/15 text-emerald-400 border border-emerald-500/20{% else %}text-slate-400 hover:text-white hover:bg-white/[0.03] border border-transparent{% endif %}">
-                <i data-feather="grid" class="w-4 h-4"></i>
+                {% include "icons/grid.html" %}
                 Dashboard
             </a>
             <a href="{% url 'admin_panel:users' %}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all {% if active_nav == 'users' %}bg-emerald-600/15 text-emerald-400 border border-emerald-500/20{% else %}text-slate-400 hover:text-white hover:bg-white/[0.03] border border-transparent{% endif %}">
-                <i data-feather="users" class="w-4 h-4"></i>
+                {% include "icons/users.html" %}
                 User Management
             </a>
             <a href="{% url 'admin_panel:vtu_pricing' %}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all {% if active_nav == 'vtu_pricing' %}bg-emerald-600/15 text-emerald-400 border border-emerald-500/20{% else %}text-slate-400 hover:text-white hover:bg-white/[0.03] border border-transparent{% endif %}">
-                <i data-feather="zap" class="w-4 h-4"></i>
+                {% include "icons/zap.html" %}
                 VTU Pricing
             </a>
             <a href="{% url 'admin_panel:smm_pricing' %}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all {% if active_nav == 'smm_pricing' %}bg-emerald-600/15 text-emerald-400 border border-emerald-500/20{% else %}text-slate-400 hover:text-white hover:bg-white/[0.03] border border-transparent{% endif %}">
-                <i data-feather="trending-up" class="w-4 h-4"></i>
+                {% include "icons/trending-up.html" %}
                 SMM Pricing
             </a>
             <a href="{% url 'admin_panel:orders' %}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all {% if active_nav == 'orders' %}bg-emerald-600/15 text-emerald-400 border border-emerald-500/20{% else %}text-slate-400 hover:text-white hover:bg-white/[0.03] border border-transparent{% endif %}">
-                <i data-feather="shopping-bag" class="w-4 h-4"></i>
+                {% include "icons/shopping-bag.html" %}
                 Orders
             </a>
             <a href="{% url 'admin_panel:giveaways' %}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all {% if active_nav == 'giveaways' %}bg-emerald-600/15 text-emerald-400 border border-emerald-500/20{% else %}text-slate-400 hover:text-white hover:bg-white/[0.03] border border-transparent{% endif %}">
-                <i data-feather="gift" class="w-4 h-4"></i>
+                {% include "icons/gift.html" %}
                 Giveaways
             </a>
             <a href="{% url 'admin_panel:transactions' %}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all {% if active_nav == 'transactions' %}bg-emerald-600/15 text-emerald-400 border border-emerald-500/20{% else %}text-slate-400 hover:text-white hover:bg-white/[0.03] border border-transparent{% endif %}">
-                <i data-feather="database" class="w-4 h-4"></i>
+                {% include "icons/database.html" %}
                 Transaction Ledger
             </a>
             <a href="{% url 'admin_panel:analytics' %}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all {% if active_nav == 'analytics' %}bg-emerald-600/15 text-emerald-400 border border-emerald-500/20{% else %}text-slate-400 hover:text-white hover:bg-white/[0.03] border border-transparent{% endif %}">
-                <i data-feather="bar-chart-2" class="w-4 h-4"></i>
+                {% include "icons/bar-chart-2.html" %}
                 Analytics
             </a>
             <a href="{% url 'admin_panel:api_wallets' %}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all {% if active_nav == 'api_wallets' %}bg-emerald-600/15 text-emerald-400 border border-emerald-500/20{% else %}text-slate-400 hover:text-white hover:bg-white/[0.03] border border-transparent{% endif %}">
-                <i data-feather="credit-card" class="w-4 h-4"></i>
+                {% include "icons/credit-card.html" %}
                 API Wallet Monitor
             </a>
             <a href="{% url 'admin_panel:send_email' %}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all {% if active_nav == 'send_email' %}bg-emerald-600/15 text-emerald-400 border border-emerald-500/20{% else %}text-slate-400 hover:text-white hover:bg-white/[0.03] border border-transparent{% endif %}">
-                <i data-feather="mail" class="w-4 h-4"></i>
+                {% include "icons/mail.html" %}
                 Email Dispatcher
             </a>
             <a href="{% url 'admin_panel:logs' %}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all {% if active_nav == 'logs' %}bg-emerald-600/15 text-emerald-400 border border-emerald-500/20{% else %}text-slate-400 hover:text-white hover:bg-white/[0.03] border border-transparent{% endif %}">
-                <i data-feather="terminal" class="w-4 h-4"></i>
+                {% include "icons/terminal.html" %}
                 Live Logs
             </a>
             <a href="{% url 'admin_panel:settings' %}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all {% if active_nav == 'settings' %}bg-emerald-600/15 text-emerald-400 border border-emerald-500/20{% else %}text-slate-400 hover:text-white hover:bg-white/[0.03] border border-transparent{% endif %}">
-                <i data-feather="settings" class="w-4 h-4"></i>
+                {% include "icons/settings.html" %}
                 System Settings
             </a>
         </nav>
@@ -147,7 +147,7 @@
                 </div>
             </div>
             <a href="{% url 'accounts:logout' %}" class="text-slate-400 hover:text-red-400 p-1.5 rounded transition-colors" title="Log Out">
-                <i data-feather="log-out" class="w-4.5 h-4.5"></i>
+                {% include "icons/log-out.html" %}
             </a>
         </div>
     </aside>
@@ -159,7 +159,7 @@
             <div class="flex items-center gap-3 md:gap-2">
                 <!-- Hamburger Menu (Mobile Only) -->
                 <button onclick="toggleSidebar()" class="md:hidden text-slate-400 hover:text-white p-1 rounded-md focus:outline-none">
-                    <i data-feather="menu" class="w-6 h-6"></i>
+                    {% include "icons/menu.html" %}
                 </button>
                 <h2 class="text-lg md:text-xl font-bold text-white tracking-wide truncate">{% block header_title %}SubHero HQ{% endblock %}</h2>
                 <div class="hidden md:block">{% block header_subtitle %}{% endblock %}</div>
@@ -174,7 +174,7 @@
 
                 <!-- Link back to customer landing -->
                 <a href="{% url 'landing' %}" class="text-xs text-slate-400 hover:text-white flex items-center gap-1.5 no-underline transition-colors">
-                    <i data-feather="external-link" class="w-3.5 h-3.5"></i>
+                    {% include "icons/external-link.html" %}
                     View Site
                 </a>
             </div>

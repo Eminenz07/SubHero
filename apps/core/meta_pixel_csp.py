@@ -26,10 +26,10 @@ class MetaPixelCSPMiddleware:
             csp_directives = [
                 "default-src 'self'",
                 "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://connect.facebook.net https://www.facebook.com https://static.cloudflareinsights.com",
-                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-                "font-src 'self' data: https://fonts.gstatic.com",
+                "style-src 'self' 'unsafe-inline'",
+                "font-src 'self' data:",
                 "img-src 'self' data: https://www.facebook.com",
-                "connect-src 'self' https://connect.facebook.net https://www.facebook.com https://graph.facebook.com https://fonts.googleapis.com https://fonts.gstatic.com https://cloudflareinsights.com",
+                "connect-src 'self' https://connect.facebook.net https://www.facebook.com https://graph.facebook.com https://cloudflareinsights.com",
                 "frame-src 'self' https://www.facebook.com",
                 "manifest-src 'self'",
                 "worker-src 'self'",

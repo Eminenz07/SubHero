@@ -21,16 +21,16 @@
                 <span class="text-2xl mr-0.5">₦</span><span class="balance-display-amount" data-raw-balance="{{ wallet.balance|floatformat:2|default:"0.00" }}">{{ wallet.balance|floatformat:2|default:"0.00" }}</span>
             </div>
             <button id="balance-toggle" class="w-[34px] h-[34px] rounded-full bg-white/10 text-white/70 flex items-center justify-center shrink-0 border-none outline-none" aria-label="Toggle Balance Visibility">
-                <i data-feather="eye" class="w-[18px] h-[18px]"></i>
+                {% include "icons/eye.html" %}
             </button>
         </div>
         
         <div class="flex gap-2.5">
             <a href="{% url 'wallet:fund' %}" class="flex-1 h-[42px] rounded-[10px] bg-brand-accent text-white text-[14px] font-semibold flex items-center justify-center gap-1.5 border-none no-underline">
-                <i data-feather="plus" class="w-4 h-4"></i> Fund
+                {% include "icons/plus.html" %} Fund
             </a>
             <a href="{% url 'wallet:transfer' %}" class="flex-1 h-[42px] rounded-[10px] bg-white/10 text-white border border-white/25 text-[14px] font-semibold flex items-center justify-center gap-1.5 no-underline">
-                <i data-feather="send" class="w-4 h-4"></i> Send
+                {% include "icons/send.html" %} Send
             </a>
         </div>
     </div>
@@ -46,7 +46,7 @@
             <div class="text-[13px] text-text-secondary mt-0.5">{{ wallet.virtual_account_bank }}</div>
         </div>
         <button onclick="copyAccountNumber()" class="h-[36px] px-4 rounded-[10px] bg-brand-accent/10 text-brand-primary text-[13px] font-semibold flex items-center gap-1.5 border-none cursor-pointer active:scale-95 transition-transform" id="copy-btn">
-            <i data-feather="copy" class="w-4 h-4"></i>
+            {% include "icons/copy.html" %}
             <span id="copy-text">Copy</span>
         </button>
     </div>
@@ -76,15 +76,15 @@
                     bg-yellow-50 text-yellow-600
                 {% endif %}">
                 {% if txn.txn_type == 'FUND' or txn.txn_type == 'P2P_RECEIVE' %}
-                    <i data-feather="arrow-down-left" class="w-5 h-5"></i>
+                    {% include "icons/arrow-down-left.html" %}
                 {% elif txn.txn_type == 'P2P_SEND' %}
-                    <i data-feather="arrow-up-right" class="w-5 h-5"></i>
+                    {% include "icons/arrow-up-right.html" %}
                 {% elif txn.txn_type == 'VTU' %}
-                    <i data-feather="wifi" class="w-5 h-5"></i>
+                    {% include "icons/wifi.html" %}
                 {% elif txn.txn_type == 'SMM' %}
-                    <i data-feather="trending-up" class="w-5 h-5"></i>
+                    {% include "icons/trending-up.html" %}
                 {% else %}
-                    <i data-feather="refresh-cw" class="w-5 h-5"></i>
+                    {% include "icons/refresh-cw.html" %}
                 {% endif %}
             </div>
             <div class="flex-1 min-w-0">
