@@ -21,7 +21,7 @@
     <div class="p-5 rounded-xl border flex items-center justify-between transition-all {% if sabuss_status == 'critical' %}bg-red-950/20 border-red-500/30 text-red-200{% elif sabuss_status == 'warning' %}bg-yellow-950/20 border-yellow-500/30 text-yellow-200{% else %}bg-emerald-950/20 border-emerald-500/30 text-emerald-200{% endif %}">
         <div class="flex items-center gap-4">
             <div class="w-12 h-12 rounded-lg flex items-center justify-center border {% if sabuss_status == 'critical' %}bg-red-500/10 border-red-500/20 text-red-400{% elif sabuss_status == 'warning' %}bg-yellow-500/10 border-yellow-500/20 text-yellow-400{% else %}bg-emerald-500/10 border-emerald-500/20 text-emerald-400{% endif %}">
-                <i data-feather="database" class="w-6 h-6"></i>
+                {% include "icons/database.html" %}
             </div>
             <div>
                 <div class="text-[11px] uppercase tracking-wider font-semibold opacity-75">Sabuss VTU Wallet</div>
@@ -41,7 +41,7 @@
     <div class="p-5 rounded-xl border flex items-center justify-between transition-all {% if cdh_status == 'critical' %}bg-red-950/20 border-red-500/30 text-red-200{% elif cdh_status == 'warning' %}bg-yellow-950/20 border-yellow-500/30 text-yellow-200{% else %}bg-emerald-950/20 border-emerald-500/30 text-emerald-200{% endif %}">
         <div class="flex items-center gap-4">
             <div class="w-12 h-12 rounded-lg flex items-center justify-center border {% if cdh_status == 'critical' %}bg-red-500/10 border-red-500/20 text-red-400{% elif cdh_status == 'warning' %}bg-yellow-500/10 border-yellow-500/20 text-yellow-400{% else %}bg-emerald-500/10 border-emerald-500/20 text-emerald-400{% endif %}">
-                <i data-feather="database" class="w-6 h-6"></i>
+                {% include "icons/database.html" %}
             </div>
             <div>
                 <div class="text-[11px] uppercase tracking-wider font-semibold opacity-75">CheapDataHub Wallet</div>
@@ -61,7 +61,7 @@
     <div class="p-5 rounded-xl border flex items-center justify-between transition-all {% if ogaviral_status == 'critical' %}bg-red-950/20 border-red-500/30 text-red-200{% elif ogaviral_status == 'warning' %}bg-yellow-950/20 border-yellow-500/30 text-yellow-200{% else %}bg-emerald-950/20 border-emerald-500/30 text-emerald-200{% endif %}">
         <div class="flex items-center gap-4">
             <div class="w-12 h-12 rounded-lg flex items-center justify-center border {% if ogaviral_status == 'critical' %}bg-red-500/10 border-red-500/20 text-red-400{% elif ogaviral_status == 'warning' %}bg-yellow-500/10 border-yellow-500/20 text-yellow-400{% else %}bg-emerald-500/10 border-emerald-500/20 text-emerald-400{% endif %}">
-                <i data-feather="globe" class="w-6 h-6"></i>
+                {% include "icons/globe.html" %}
             </div>
             <div>
                 <div class="text-[11px] uppercase tracking-wider font-semibold opacity-75">Ogaviral SMM Wallet</div>
@@ -84,11 +84,11 @@
     <div class="admin-card p-5">
         <div class="flex items-center justify-between text-slate-400 mb-2">
             <span class="text-xs font-semibold uppercase tracking-wider">Total Users</span>
-            <i data-feather="users" class="w-4 h-4"></i>
+            {% include "icons/users.html" %}
         </div>
         <div class="text-2xl font-bold text-white font-mono">{{ total_users }}</div>
         <div class="text-[11px] text-emerald-400 mt-2 font-semibold flex items-center gap-1">
-            <i data-feather="trending-up" class="w-3 h-3"></i>
+            {% include "icons/trending-up.html" %}
             Active Customer Base
         </div>
     </div>
@@ -97,7 +97,7 @@
     <div class="admin-card p-5">
         <div class="flex items-center justify-between text-slate-400 mb-2">
             <span class="text-xs font-semibold uppercase tracking-wider">New Users Today</span>
-            <i data-feather="user-plus" class="w-4 h-4"></i>
+            {% include "icons/user-plus.html" %}
         </div>
         <div class="text-2xl font-bold text-white font-mono">{{ new_users_today }}</div>
         <div class="text-[11px] text-slate-400 mt-2 font-semibold">
@@ -109,11 +109,11 @@
     <div class="admin-card p-5">
         <div class="flex items-center justify-between text-slate-400 mb-2">
             <span class="text-xs font-semibold uppercase tracking-wider">Gross Sales</span>
-            <i data-feather="dollar-sign" class="w-4 h-4"></i>
+            {% include "icons/dollar-sign.html" %}
         </div>
         <div class="text-2xl font-bold text-white font-mono">₦{{ total_revenue|floatformat:0 }}</div>
         <div class="text-[11px] text-emerald-400 mt-2 font-semibold flex items-center gap-1">
-            <i data-feather="check-circle" class="w-3 h-3"></i>
+            {% include "icons/check-circle.html" %}
             Completed Purchases
         </div>
     </div>
@@ -122,7 +122,7 @@
     <div class="admin-card p-5">
         <div class="flex items-center justify-between text-slate-400 mb-2">
             <span class="text-xs font-semibold uppercase tracking-wider">Estimated Profit</span>
-            <i data-feather="bar-chart-2" class="w-4 h-4"></i>
+            {% include "icons/bar-chart-2.html" %}
         </div>
         <div class="text-2xl font-bold text-emerald-400 font-mono">₦{{ total_profit|floatformat:0 }}</div>
         <div class="text-[11px] text-emerald-400 mt-2 font-semibold">
@@ -134,7 +134,7 @@
     <div class="admin-card p-5 border-emerald-500/20 relative" hx-get="{% url 'admin_panel:dashboard' %}" hx-trigger="every 15s" hx-target="#active-orders-count" hx-select="#active-orders-count">
         <div class="flex items-center justify-between text-slate-400 mb-2">
             <span class="text-xs font-semibold uppercase tracking-wider">Active Orders</span>
-            <i data-feather="shopping-cart" class="w-4 h-4 text-emerald-400"></i>
+            {% include "icons/shopping-cart.html" %}
         </div>
         <div id="active-orders-count" class="text-2xl font-bold text-white font-mono flex items-center gap-1.5">
             {{ active_orders }}

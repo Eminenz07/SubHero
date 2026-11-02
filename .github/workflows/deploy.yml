@@ -4,23 +4,124 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
 
 jobs:
+  verify:
+    name: Verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements/production.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements/production.txt
+
+      - name: Django system check
+        env:
+          SECRET_KEY: ci-dummy-secret-key-for-system-check
+          DATABASE_URL: sqlite:///:memory:
+          DJANGO_SETTINGS_MODULE: config.settings.production
+        run: python manage.py check
+
   deploy:
     name: Deploy to Contabo VPS
+    needs: verify
     runs-on: ubuntu-latest
-    concurrency: deploy-production
+    timeout-minutes: 25
     steps:
-      - name: Deploy via SSH to VPS
-        uses: appleboy/ssh-action@v1.0.3
+      - name: Prepare SSH key
+        env:
+          RAW_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          if printf '%s' "$RAW_SSH_KEY" | grep -q 'BEGIN .*PRIVATE KEY'; then
+            KEY="$RAW_SSH_KEY"
+          else
+            KEY=$(printf '%s' "$RAW_SSH_KEY" | base64 -d)
+          fi
+          if [ -z "$KEY" ]; then
+            echo "VPS_SSH_KEY secret is empty or not a valid private key" >&2
+            exit 1
+          fi
+          {
+            echo 'RESOLVED_SSH_KEY<<GITHUB_ENV_EOF'
+            printf '%s\n' "$KEY"
+            echo 'GITHUB_ENV_EOF'
+          } >> "$GITHUB_ENV"
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.2
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
-          key: ${{ secrets.VPS_SSH_KEY }}
+          key: ${{ env.RESOLVED_SSH_KEY }}
+          passphrase: ${{ secrets.VPS_SSH_KEY_PASSPHRASE }}
           port: ${{ secrets.VPS_PORT || 22 }}
           script_stop: true
           script: |
-            cd /home/${{ secrets.VPS_USERNAME }}/SubHero
-            git pull origin main
-            docker compose up -d --build web
+            set -e
+            DEPLOY_DIR="${{ secrets.VPS_DEPLOY_PATH }}"
+            if [ -z "$DEPLOY_DIR" ]; then
+              DEPLOY_DIR="/home/${{ secrets.VPS_USERNAME }}/SubHero"
+            fi
+
+            echo "==> Deploy directory: $DEPLOY_DIR"
+            cd "$DEPLOY_DIR"
+
+            echo "==> Git remotes"
+            git remote -v
+
+            echo "==> Fetching origin/main"
+            git fetch --prune origin main
+
+            echo "==> Syncing working tree to origin/main"
+            git checkout main 2>/dev/null || git checkout -b main 2>/dev/null || true
+            git reset --hard origin/main
+            git clean -fd -e .env -e config/local_settings.py
+
+            echo "==> Deployed commits"
+            git log --oneline -3
+
+            echo "==> Rebuilding web service"
+            docker compose up -d --build --remove-orphans web
+
+            echo "==> Pruning dangling images"
             docker image prune -f
+
+            echo "==> Waiting for web container"
+            for i in $(seq 1 30); do
+              if docker inspect -f '{{.State.Running}}' subhero_web 2>/dev/null | grep -q true; then
+                echo "Container running after ${i} check(s)"
+                break
+              fi
+              sleep 2
+            done
+
+            echo "==> Container status"
+            docker compose ps web
+
+            echo "==> Smoke test"
+            sleep 5
+            CODE=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8000/ || echo 000)
+            echo "HTTP status: $CODE"
+            if [ "$CODE" = "000" ]; then
+              echo "Web container did not respond on port 8000" >&2
+              docker compose logs --tail=50 web >&2
+              exit 1
+            fi
+
+            echo "==> Deploy complete"
