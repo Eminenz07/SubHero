@@ -113,6 +113,9 @@ document.addEventListener('DOMContentLoaded', function() {
             <i data-feather="book-open" class="w-[22px] h-[22px]"></i>
         </div>
         <span class="text-[11px] font-semibold text-text-secondary text-center leading-[1.2]">Exam PIN</span>
+        {% if exam_pin_coming_soon %}
+        <span class="text-[9px] font-bold uppercase tracking-[0.3px] text-orange-600 bg-orange-50 border border-orange-200 px-1.5 py-[3px] rounded-full leading-none text-center">Coming soon</span>
+        {% endif %}
     </a>
 
     <a href="{% url 'smm:index' %}" class="bg-surface-card rounded-[14px] py-4 px-2 flex flex-col items-center gap-2 shadow-card border border-surface-border cursor-pointer active:bg-surface-page no-underline" id="qa-smm">

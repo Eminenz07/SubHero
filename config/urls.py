@@ -39,6 +39,7 @@ urlpatterns = [
     path("", TemplateView.as_view(template_name="landing.html"), name="landing"),
     path("privacy/", TemplateView.as_view(template_name="privacy.html"), name="privacy"),
     path("terms/", TemplateView.as_view(template_name="terms.html"), name="terms"),
+    path("guidelines/", TemplateView.as_view(template_name="guidelines.html"), name="guidelines"),
 
     # Auth / Accounts
     path("auth/", include("apps.accounts.urls", namespace="accounts")),

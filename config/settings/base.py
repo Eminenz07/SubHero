@@ -155,6 +155,7 @@ TEMPLATES = [
                 "apps.notifications.context_processors.unread_notifications",
                 "apps.core.context_processors.meta_pixel",
                 "apps.core.context_processors.platforms",
+                "apps.core.context_processors.service_flags",
             ],
         },
     },
@@ -236,6 +237,13 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
+
+# =============================================================
+# SERVICE LAUNCH FLAGS
+# =============================================================
+# Exam PINs (WAEC/NECO/NABTEB) are not live yet. Flip this to False on launch
+# day — the app tiles, the exam page and the purchase endpoint all follow it.
+EXAM_PIN_COMING_SOON = config("EXAM_PIN_COMING_SOON", default=True, cast=bool)
 
 # =============================================================
 # INTERNATIONALIZATION

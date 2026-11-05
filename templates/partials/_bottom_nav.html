@@ -69,6 +69,9 @@
                     {% include "icons/book-open.html" %}
                 </div>
                 <span class="text-[12px] font-semibold text-text-secondary text-center leading-[1.2]">Exam PIN</span>
+                {% if exam_pin_coming_soon %}
+                <span class="text-[9px] font-bold uppercase tracking-[0.3px] text-orange-600 bg-orange-50 border border-orange-200 px-1.5 py-[3px] rounded-full leading-none text-center">Coming soon</span>
+                {% endif %}
             </a>
         </div>
         

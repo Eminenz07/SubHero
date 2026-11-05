@@ -547,13 +547,25 @@ class BuyExamPinView(LoginRequiredMixin, PinRequiredMixin, View):
 
     def get(self, request, *args, **kwargs):
         wallet, _ = Wallet.objects.get_or_create(user=request.user)
-        return render(request, self.template_name, {
+        context = {
             "wallet": wallet,
-            "products": self._get_products(),
             "quantity_choices": ExamPinOrder.QUANTITY_CHOICES,
-        })
+            "coming_soon": settings.EXAM_PIN_COMING_SOON,
+        }
+        if settings.EXAM_PIN_COMING_SOON:
+            # Service is not launched yet — don't hit the provider API.
+            return render(request, self.template_name, context)
+        context["products"] = self._get_products()
+        return render(request, self.template_name, context)
 
     def post(self, request, *args, **kwargs):
+        if settings.EXAM_PIN_COMING_SOON:
+            messages.info(
+                request,
+                "Exam PINs are not live yet — we'll let you know as soon as they launch.",
+            )
+            return redirect("vtu:buy_exam_pin")
+
         wallet, _ = Wallet.objects.get_or_create(user=request.user)
         product_id = request.POST.get("product_id", "")
         quantity_str = request.POST.get("quantity", "1")

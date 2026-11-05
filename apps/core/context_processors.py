@@ -26,3 +26,13 @@ def platforms(request):
     Expose all platform metadata to templates for rendering icons.
     """
     return {"platforms_meta": PLATFORMS_META}
+
+
+def service_flags(request):
+    """
+    Expose service launch flags to templates, so a service that is not live yet
+    can be labelled "Coming soon" on every surface that lists it.
+    """
+    return {
+        "exam_pin_coming_soon": getattr(settings, "EXAM_PIN_COMING_SOON", False),
+    }

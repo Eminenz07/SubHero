@@ -30,6 +30,22 @@
     </div>
   </div>
 
+  {% if coming_soon %}
+  <div class="card card-padding text-center">
+    <div class="w-14 h-14 rounded-2xl bg-orange-50 text-orange-500 flex items-center justify-center mx-auto mb-4">
+      <i data-feather="clock" class="w-7 h-7"></i>
+    </div>
+    <h2 class="text-lg font-bold text-text-primary">Coming Soon</h2>
+    <p class="text-xs text-text-secondary mt-2 leading-relaxed">
+      Exam scratch cards for WAEC, NECO and NABTEB are being prepared. We will let you
+      know the moment the service goes live — keep an eye on your dashboard.
+    </p>
+    <div class="mt-4 pt-4 border-t border-surface-border text-[11px] text-text-muted">
+      In the meantime, airtime, data, cable TV and electricity are live and delivered instantly.
+    </div>
+  </div>
+  {% else %}
+
   {% if messages %}
   <div class="space-y-2 mb-5">
     {% for message in messages %}<div class="alert{% if message.tags == 'error' %}-error{% elif message.tags == 'success' %}-success{% else %}-info{% endif %}">{{ message }}</div>{% endfor %}
@@ -103,18 +119,22 @@
     </div>
 
   </form>
+  {% endif %}
 </div>
 {% endblock %}
 
 {% block page_cta %}
+{% if not coming_soon %}
 <div class="bg-white border-t border-surface-border p-4 flex-shrink-0">
   <button type="button" class="btn btn-primary btn-block text-base" id="cta-btn" onclick="continueToPin()">
     Buy Exam PIN <span id="cta-price-display"></span>
   </button>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block modals %}
+{% if not coming_soon %}
 <div class="sheet-backdrop" id="custom-backdrop" onclick="closeCustomSheets()"></div>
 <div class="bottom-sheet shadow-2xl" id="custom-sheet-pin">
   <div class="sheet-handle"></div>
@@ -224,6 +244,7 @@
   }
   selectQty(activeQty);
 </script>
+{% endif %}
 {% endblock %}
 
 {% block bottom_nav %}
