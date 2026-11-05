@@ -14,6 +14,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.core.cache import cache
 from django.core.mail import send_mail
 from django.shortcuts import redirect, render
+from django.urls import reverse
 from django.views import View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django_ratelimit.decorators import ratelimit
@@ -535,7 +536,7 @@ class SetPINView(View):
 
             messages.success(request, "Transaction PIN set successfully! Welcome to SubHero.")
             # Pass registration_complete flag to trigger Meta Pixel CompleteRegistration event
-            return redirect("dashboard?registration_complete=1")
+            return redirect(f'{reverse("dashboard")}?registration_complete=1')
 
         return render(request, self.template_name, {"form": form})
 

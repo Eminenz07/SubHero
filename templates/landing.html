@@ -253,18 +253,16 @@ section[id] { scroll-margin-top: 96px; }
 }
 .hero__badge .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
 .hero h1 {
-  font-size: clamp(1.85rem, 3.6vw, 3.1rem);
+  font-size: clamp(1.75rem, 3.6vw, 3.1rem);
   font-weight: 800;
   line-height: 1.15;
+  overflow-wrap: break-word;
 }
 .hero__line2 {
-  white-space: nowrap;
   display: inline-block;
 }
 .hero h1 .stroke {
   color: var(--accent);
-  white-space: nowrap;
-  display: inline-block;
 }
 .typing-cursor {
   display: inline-block;
@@ -284,32 +282,48 @@ section[id] { scroll-margin-top: 96px; }
 .hero__meta li { display: flex; align-items: center; gap: var(--space-2); }
 .hero__meta svg { width: 15px; height: 15px; color: var(--muted); }
 
-/* Sample app preview */
+/* Sample SMM rate card */
+.smm-ratecard-section {
+  padding-bottom: var(--section-y-phone);
+}
+@media (min-width: 640px)  { .smm-ratecard-section { padding-bottom: var(--section-y-tablet); } }
+@media (min-width: 1024px) { .smm-ratecard-section { padding-bottom: var(--section-y-desktop); } }
+
+.smm-ratecard-wrap {
+  display: flex;
+  justify-content: center;
+}
 .sample {
   position: relative;
   width: 100%;
-  max-width: 480px;
-  margin-left: auto;
+  max-width: 540px;
   border-radius: var(--radius-lg);
-  border: 1px solid var(--border);
-  background: linear-gradient(180deg, rgba(31,13,54,0.92), rgba(20,8,36,0.98));
-  box-shadow: var(--elev-raised), 0 0 0 1px rgba(200,147,255,0.12), 0 0 90px rgba(200,147,255,0.15);
-  padding: 1.5rem 1.5rem 1.25rem;
+  border: 1px solid var(--border-strong);
+  background: linear-gradient(180deg, rgba(31,13,54,0.96), rgba(20,8,36,0.99));
+  box-shadow: var(--elev-raised), 0 0 0 1px rgba(200,147,255,0.14), 0 0 80px rgba(200,147,255,0.12);
+  padding: 1.25rem;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+@media (min-width: 480px) {
+  .sample { padding: 1.5rem; }
 }
 .sample__flag {
   position: absolute; top: -11px; right: var(--space-5);
   padding: 0.18rem 0.7rem; border-radius: var(--radius-pill);
   background: var(--surface-2); border: 1px solid var(--border-strong);
   font-family: var(--font-mono); font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
-  color: var(--muted);
+  color: var(--accent);
+  white-space: nowrap;
 }
-.sample__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-3); }
+.sample__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-3); flex-wrap: wrap; gap: var(--space-2); }
 .sample__who { font-family: var(--font-display); font-weight: 700; font-size: var(--text-base); }
 .sample__who small { display: block; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; white-space: nowrap; }
-.sample__nets { display: flex; gap: var(--space-1); align-items: center; }
-.sample__nets span { font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.04em; color: var(--fg-2); padding: 0.3rem 0.55rem; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: var(--radius-pill); }
-.sample__tabs { display: flex; gap: var(--space-1); padding: 4px; background: rgba(255,255,255,0.04); border: 1px solid var(--border-soft); border-radius: var(--radius-md); margin-bottom: var(--space-3); }
-.tab { flex: 1; min-height: 40px; border: 0; background: transparent; color: var(--muted); border-radius: calc(var(--radius-md) - 4px); font-size: var(--text-sm); font-weight: 600; cursor: pointer; transition: color var(--motion-fast), background-color var(--motion-fast); }
+.sample__nets { display: flex; gap: var(--space-1); align-items: center; flex-wrap: wrap; }
+.sample__nets span { font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.04em; color: var(--fg-2); padding: 0.28rem 0.5rem; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: var(--radius-pill); }
+.sample__tabs { display: flex; gap: var(--space-1); padding: 4px; background: rgba(255,255,255,0.04); border: 1px solid var(--border-soft); border-radius: var(--radius-md); margin-bottom: var(--space-3); overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.sample__tabs::-webkit-scrollbar { display: none; }
+.tab { flex: 1; min-height: 38px; min-width: 72px; border: 0; background: transparent; color: var(--muted); border-radius: calc(var(--radius-md) - 4px); font-size: 13px; font-weight: 600; cursor: pointer; transition: color var(--motion-fast), background-color var(--motion-fast); white-space: nowrap; }
 .tab[aria-selected="true"] { background: var(--accent); color: var(--accent-on); }
 .tab:hover:not([aria-selected="true"]) { color: var(--fg); background: rgba(255,255,255,0.04); }
 .sample__panel { animation: panelFade 0.22s var(--ease-standard); }
@@ -317,25 +331,33 @@ section[id] { scroll-margin-top: 96px; }
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
 }
-.plan { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: 0.75rem 1rem; border: 1px solid var(--border); border-radius: var(--radius-md); margin-bottom: 0.5rem; transition: border-color var(--motion-fast); background: rgba(255,255,255,0.02); }
-.plan:hover { border-color: var(--accent-deep); }
-.plan__name { font-size: var(--text-sm); font-weight: 600; }
-.plan__name small { display: block; font-weight: 400; color: var(--muted); font-size: 12px; }
+.plan { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); padding: 0.7rem 0.9rem; border: 1px solid var(--border); border-radius: var(--radius-md); margin-bottom: 0.5rem; transition: border-color var(--motion-fast); background: rgba(255,255,255,0.02); flex-wrap: wrap; }
+.plan:hover { border-color: var(--border-strong); }
+.plan__name { font-size: var(--text-sm); font-weight: 600; flex: 1; min-width: 0; }
+.plan__name small { display: block; font-weight: 400; color: var(--muted); font-size: 12px; white-space: normal; }
+.plan__right { display: flex; align-items: center; gap: var(--space-2); flex-shrink: 0; }
 .plan__price { font-family: var(--font-mono); font-weight: 700; font-size: var(--text-sm); color: var(--fg); }
-.plan__price .from { color: var(--muted); font-weight: 500; font-size: 12px; margin-right: 3px; display: inline-block; }
+.plan__price .from { color: var(--muted); font-weight: 500; font-size: 12px; margin-right: 2px; display: inline-block; }
 .plan--pick { border-color: rgba(200,147,255,0.45); background: rgba(200,147,255,0.08); }
-.plan--pick .plan__pick { color: var(--accent); font-family: var(--font-mono); font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; }
+.plan__pick { color: var(--accent); font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 0.18rem 0.5rem; border: 1px solid rgba(200,147,255,0.4); border-radius: var(--radius-pill); white-space: nowrap; }
 .sample__divider { border: 0; border-top: 1px dashed var(--border); margin: var(--space-3) 0; }
 .boost { display: flex; align-items: center; gap: var(--space-3); }
-.boost__icon { width: 36px; height: 36px; border-radius: var(--radius-sm); display: grid; place-items: center; background: var(--accent-dim); color: var(--accent); flex-shrink: 0; }
+.boost__icon { width: 34px; height: 34px; border-radius: var(--radius-sm); display: grid; place-items: center; background: var(--accent-dim); color: var(--accent); flex-shrink: 0; }
 .boost__icon svg { width: 16px; height: 16px; }
-.boost__info { flex: 1; }
+.boost__info { flex: 1; min-width: 0; }
 .boost__info strong { display: block; font-size: var(--text-sm); font-weight: 600; }
 .boost__info span { font-size: var(--text-xs); color: var(--muted); }
-.boost__track { height: 6px; border-radius: var(--radius-pill); background: rgba(255,255,255,0.08); margin-top: var(--space-2); overflow: hidden; }
+.boost__track { height: 5px; border-radius: var(--radius-pill); background: rgba(255,255,255,0.08); margin-top: var(--space-2); overflow: hidden; }
+.boost__track i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), #9333ea); border-radius: var(--radius-pill); animation: trackFill 1.6s var(--ease-standard) forwards; }
+@keyframes trackFill { from { width: 0; } }
+
+.sample__cta { display: flex; justify-content: center; margin-top: var(--space-4); }
+.sample__cta a { font-family: var(--font-mono); font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); text-decoration: none; display: inline-flex; align-items: center; gap: 5px; transition: color var(--motion-fast); }
+.sample__cta a:hover { color: var(--accent-hover); }
+.sample__cta svg { width: 13px; height: 13px; }
+
 @media (min-width: 1024px) {
   .hero { padding-top: var(--space-16); }
-  .hero__grid { grid-template-columns: 1.05fr 0.95fr; gap: var(--space-10); }
 }
 .marquee-band { padding: var(--section-y-desktop) 0 var(--space-12); }
 .marquee-band .section-head { margin-bottom: var(--space-8); }
@@ -524,8 +546,8 @@ section[id] { scroll-margin-top: 96px; }
 
   <!-- ============ HERO ============ -->
   <section class="hero">
-    <div class="container hero__grid">
-      <div>
+    <div class="container">
+      <div style="max-width: 680px;">
         <h1>Pay bills, buy data,<br><span class="hero__line2">grow your <span class="stroke"><span id="typed-text">Socials</span><span class="typing-cursor">|</span></span></span></h1>
         <p class="lead">The all-in-one platform for smart Nigerians. Instant VTU, affordable data, and automated social media growth, with seamless payments in one secure app.</p>
         <div class="hero__ctas">
@@ -535,97 +557,6 @@ section[id] { scroll-margin-top: 96px; }
             <a class="btn-sh btn-sh-primary btn-sh-lg" href="{% url 'accounts:register' %}">Create free account <svg aria-hidden="true"><use href="#i-arrow"></use></svg></a>
             <a class="btn-sh btn-sh-secondary btn-sh-lg" href="{% url 'accounts:login' %}">Login to SubHero</a>
           {% endif %}
-        </div>
-      </div>
-
-      <div class="sample">
-        <span class="sample__flag" id="sample-flag">Data from ₦250/GB</span>
-        <div class="sample__head">
-          <div class="sample__who">SubHero wallet<small id="sample-sub">Data plans · sample rates</small></div>
-          <div class="sample__nets" id="sample-nets"><span>MTN</span><span>GLO</span><span>Airtel</span><span>9mobile</span></div>
-        </div>
-        <div class="sample__tabs" role="tablist" aria-label="Service type">
-          <button class="tab" type="button" role="tab" aria-selected="true" tabindex="0" id="tab-data" data-target="panel-data">Data</button>
-          <button class="tab" type="button" role="tab" aria-selected="false" tabindex="-1" id="tab-airtime" data-target="panel-airtime">Airtime</button>
-          <button class="tab" type="button" role="tab" aria-selected="false" tabindex="-1" id="tab-power" data-target="panel-power">Power</button>
-        </div>
-
-        <!-- Data Panel -->
-        <div class="sample__panel" id="panel-data" role="tabpanel" aria-labelledby="tab-data">
-          <div class="plan plan--pick">
-            <div class="plan__name">1GB · 30 days<small>MTN · GLO · Airtel · 9mobile</small></div>
-            <div class="plan__price"><span class="from">from </span>₦250</div>
-            <span class="plan__pick">Best deal</span>
-          </div>
-          <div class="plan">
-            <div class="plan__name">3.5GB · 30 days<small>Instant credit · Never throttled</small></div>
-            <div class="plan__price">₦875</div>
-          </div>
-          <div class="plan">
-            <div class="plan__name">5GB · 30 days<small>Streaming &amp; heavy downloading</small></div>
-            <div class="plan__price">₦1,250</div>
-          </div>
-          <hr class="sample__divider">
-          <div class="boost">
-            <div class="boost__icon"><svg aria-hidden="true"><use href="#i-trend"></use></svg></div>
-            <div class="boost__info">
-              <strong>Instagram boost · auto on</strong>
-              <span>Followers + Likes · running now</span>
-              <div class="boost__track"><i></i></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Airtime Panel -->
-        <div class="sample__panel" id="panel-airtime" role="tabpanel" aria-labelledby="tab-airtime" style="display:none;">
-          <div class="plan plan--pick">
-            <div class="plan__name">₦1,000 Airtime<small>MTN · GLO · Airtel · 9mobile</small></div>
-            <div class="plan__price"><span class="from">pay </span>₦960</div>
-            <span class="plan__pick">4% Off</span>
-          </div>
-          <div class="plan">
-            <div class="plan__name">₦2,500 Airtime<small>Instant wallet bonus · 0% fee</small></div>
-            <div class="plan__price">₦2,400</div>
-          </div>
-          <div class="plan">
-            <div class="plan__name">₦5,000 Airtime<small>VIP cashback rate · Auto-credited</small></div>
-            <div class="plan__price">₦4,750</div>
-          </div>
-          <hr class="sample__divider">
-          <div class="boost">
-            <div class="boost__icon"><svg aria-hidden="true"><use href="#i-percent"></use></svg></div>
-            <div class="boost__info">
-              <strong>Instant airtime cashback · active</strong>
-              <span>Save up to 5% every single time you top up</span>
-              <div class="boost__track"><i style="width:85%;"></i></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Power Panel -->
-        <div class="sample__panel" id="panel-power" role="tabpanel" aria-labelledby="tab-power" style="display:none;">
-          <div class="plan plan--pick">
-            <div class="plan__name">₦2,000 Electricity<small>IKEDC · EKEDC · AEDC · IBEDC + 7 more</small></div>
-            <div class="plan__price"><span class="from">fee </span>₦0</div>
-            <span class="plan__pick">Zero Fee</span>
-          </div>
-          <div class="plan">
-            <div class="plan__name">₦5,000 Electricity<small>Instant token via SMS &amp; WhatsApp</small></div>
-            <div class="plan__price">₦5,000</div>
-          </div>
-          <div class="plan">
-            <div class="plan__name">₦10,000 Electricity<small>Prepaid &amp; postpaid · 100% units</small></div>
-            <div class="plan__price">₦10,000</div>
-          </div>
-          <hr class="sample__divider">
-          <div class="boost">
-            <div class="boost__icon"><svg aria-hidden="true"><use href="#i-zap"></use></svg></div>
-            <div class="boost__info">
-              <strong>Token generated in &lt; 3 seconds</strong>
-              <span>Sent instantly to your phone · 24/7 uptime</span>
-              <div class="boost__track"><i style="width:100%;"></i></div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
@@ -682,6 +613,126 @@ section[id] { scroll-margin-top: 96px; }
     .chip__name { font-size: var(--text-sm); font-weight: 600; color: var(--fg); }
     .chip__tag { font-family: var(--font-mono); font-size: 11px; color: var(--muted); font-weight: 600; }
   </style>
+
+  <!-- ============ SMM RATE CARD ============ -->
+  <section class="smm-ratecard-section" aria-label="Sample SMM boost rates">
+    <div class="container smm-ratecard-wrap">
+      <div class="sample">
+        <span class="sample__flag" id="sample-flag">Live SMM boosts</span>
+        <div class="sample__head">
+          <div class="sample__who">Social Booster<small id="sample-sub">Instagram · sample rates</small></div>
+          <div class="sample__nets" id="sample-nets"><span>Quick</span><span>Growth</span><span>Elite</span></div>
+        </div>
+        <div class="sample__tabs" role="tablist" aria-label="Platform">
+          <button class="tab" type="button" role="tab" aria-selected="true" tabindex="0" id="tab-ig" data-target="panel-ig">Instagram</button>
+          <button class="tab" type="button" role="tab" aria-selected="false" tabindex="-1" id="tab-tt" data-target="panel-tt">TikTok</button>
+          <button class="tab" type="button" role="tab" aria-selected="false" tabindex="-1" id="tab-yt" data-target="panel-yt">YouTube</button>
+        </div>
+
+        <!-- Instagram Panel -->
+        <div class="sample__panel" id="panel-ig" role="tabpanel" aria-labelledby="tab-ig">
+          <div class="plan">
+            <div class="plan__name">1,000 Followers<small>Quick Boost · Instant · Short-term spike</small></div>
+            <div class="plan__right">
+              <div class="plan__price"><span class="from">from </span>₦350</div>
+            </div>
+          </div>
+          <div class="plan plan--pick">
+            <div class="plan__name">1,000 Followers<small>Growth Boost · 30-day refill · ~80% retention</small></div>
+            <div class="plan__right">
+              <div class="plan__price"><span class="from">from </span>₦1,200</div>
+              <span class="plan__pick">Popular</span>
+            </div>
+          </div>
+          <div class="plan">
+            <div class="plan__name">1,000 Followers<small>Elite Boost · Non-drop · 95%+ retention</small></div>
+            <div class="plan__right">
+              <div class="plan__price"><span class="from">from </span>₦2,800</div>
+            </div>
+          </div>
+          <hr class="sample__divider">
+          <div class="boost">
+            <div class="boost__icon"><svg aria-hidden="true"><use href="#i-trend"></use></svg></div>
+            <div class="boost__info">
+              <strong>Instagram Growth Boost · running</strong>
+              <span>Steady delivery · Starts in 15–30 mins</span>
+              <div class="boost__track"><i style="width:72%;"></i></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TikTok Panel -->
+        <div class="sample__panel" id="panel-tt" role="tabpanel" aria-labelledby="tab-tt" style="display:none;">
+          <div class="plan">
+            <div class="plan__name">1,000 Followers<small>Quick Boost · Instant · Fast delivery</small></div>
+            <div class="plan__right">
+              <div class="plan__price"><span class="from">from </span>₦280</div>
+            </div>
+          </div>
+          <div class="plan plan--pick">
+            <div class="plan__name">5,000 Views<small>Growth Boost · Real-paced · Trending push</small></div>
+            <div class="plan__right">
+              <div class="plan__price"><span class="from">from </span>₦650</div>
+              <span class="plan__pick">Popular</span>
+            </div>
+          </div>
+          <div class="plan">
+            <div class="plan__name">1,000 Likes<small>Elite Boost · High retention · Non-drop</small></div>
+            <div class="plan__right">
+              <div class="plan__price"><span class="from">from </span>₦900</div>
+            </div>
+          </div>
+          <hr class="sample__divider">
+          <div class="boost">
+            <div class="boost__icon"><svg aria-hidden="true"><use href="#i-trend"></use></svg></div>
+            <div class="boost__info">
+              <strong>TikTok Views boost · active</strong>
+              <span>Natural-paced delivery · Trending now</span>
+              <div class="boost__track"><i style="width:58%;"></i></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- YouTube Panel -->
+        <div class="sample__panel" id="panel-yt" role="tabpanel" aria-labelledby="tab-yt" style="display:none;">
+          <div class="plan">
+            <div class="plan__name">1,000 Views<small>Quick Boost · High-speed · Short retention</small></div>
+            <div class="plan__right">
+              <div class="plan__price"><span class="from">from </span>₦180</div>
+            </div>
+          </div>
+          <div class="plan plan--pick">
+            <div class="plan__name">500 Subscribers<small>Growth Boost · Monitised-safe · Gradual</small></div>
+            <div class="plan__right">
+              <div class="plan__price"><span class="from">from </span>₦3,500</div>
+              <span class="plan__pick">Popular</span>
+            </div>
+          </div>
+          <div class="plan">
+            <div class="plan__name">4,000 Watch Hours<small>Elite Boost · Monetisation-ready · Safe</small></div>
+            <div class="plan__right">
+              <div class="plan__price"><span class="from">from </span>₦8,500</div>
+            </div>
+          </div>
+          <hr class="sample__divider">
+          <div class="boost">
+            <div class="boost__icon"><svg aria-hidden="true"><use href="#i-trend"></use></svg></div>
+            <div class="boost__info">
+              <strong>YouTube Watch Hours · active</strong>
+              <span>Safe delivery · Monitisation compliant</span>
+              <div class="boost__track"><i style="width:88%;"></i></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sample__cta">
+          <a href="{% if request.user.is_authenticated %}{% url 'smm:index' %}{% else %}{% url 'accounts:register' %}{% endif %}">
+            See all 26+ platforms <svg aria-hidden="true"><use href="#i-arrow"></use></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <!-- ============ SERVICES / BENTO ============ -->
   <section class="section" id="services">
@@ -949,22 +1000,22 @@ section[id] { scroll-margin-top: 96px; }
     setTimeout(typeEffect, 2000);
   }
 
-  // ── 2. Interactive Sample Card Tabs ──
-  var sampleMeta = {
-    'tab-data': {
-      flag: 'Data from ₦250/GB',
-      sub: 'Data plans · sample rates',
-      nets: ['MTN', 'GLO', 'Airtel', '9mobile']
+  // ── 2. Interactive SMM Sample Card Tabs ──
+  var smmMeta = {
+    'tab-ig': {
+      flag: 'Instagram boosts',
+      sub: 'Instagram · sample rates',
+      tiers: ['Quick', 'Growth', 'Elite']
     },
-    'tab-airtime': {
-      flag: 'Cashback up to 5%',
-      sub: 'Instant airtime · discounted rates',
-      nets: ['MTN', 'GLO', 'Airtel', '9mobile']
+    'tab-tt': {
+      flag: 'TikTok boosts',
+      sub: 'TikTok · sample rates',
+      tiers: ['Quick', 'Growth', 'Elite']
     },
-    'tab-power': {
-      flag: 'Zero convenience fee',
-      sub: 'Prepaid & postpaid · 0% fee',
-      nets: ['IKEDC', 'EKEDC', 'AEDC', 'IBEDC']
+    'tab-yt': {
+      flag: 'YouTube boosts',
+      sub: 'YouTube · sample rates',
+      tiers: ['Quick', 'Growth', 'Elite']
     }
   };
 
@@ -977,7 +1028,7 @@ section[id] { scroll-margin-top: 96px; }
   tabs.forEach(function (tab) {
     tab.addEventListener('click', function () {
       var targetId = tab.getAttribute('data-target');
-      var meta = sampleMeta[tab.id];
+      var meta = smmMeta[tab.id];
 
       // Update tab buttons
       tabs.forEach(function (t) {
@@ -1001,7 +1052,7 @@ section[id] { scroll-margin-top: 96px; }
         if (flagEl) flagEl.textContent = meta.flag;
         if (subEl) subEl.textContent = meta.sub;
         if (netsEl) {
-          netsEl.innerHTML = meta.nets.map(function (n) {
+          netsEl.innerHTML = meta.tiers.map(function (n) {
             return '<span>' + n + '</span>';
           }).join('');
         }

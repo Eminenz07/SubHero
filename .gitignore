@@ -23,7 +23,8 @@ staticfiles/
 
 # Node / Tailwind
 node_modules/
-package-lock.json
+# package-lock.json is intentionally tracked: the Docker build runs `npm ci`,
+# which requires a committed lock file to reproduce the exact dependency tree.
 
 # IDE
 .vscode/

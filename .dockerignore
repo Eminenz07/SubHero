@@ -13,7 +13,7 @@ __pycache__/
 .vscode/
 .idea/
 node_modules/
-package-lock.json
+# package-lock.json is intentionally included: the Docker build runs `npm ci`.
 logs/
 staticfiles/
 media/

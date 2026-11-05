@@ -1,20 +1,20 @@
 // Service Worker for SubHero PWA
-// Version: subhero-v4
+// Version: subhero-v5
 
-const CACHE_NAME = 'subhero-v4';
+const CACHE_NAME = 'subhero-v5';
 const ASSETS_TO_CACHE = [
   '/',
   '/static/css/app.css',
   '/static/js/app.js',
   '/static/js/feather.min.js',
-  '/static/fonts/BricolageGrotesque-VariableFont_opsz,wght.ttf',
-  '/static/fonts/DMSans-VariableFont_opsz,wght.ttf',
-  '/static/fonts/DMMono-VariableFont_opsz,wght.ttf',
+  '/static/fonts/bricolage-grotesque-latin-wght-normal.woff2',
+  '/static/fonts/dm-sans-latin-wght-normal.woff2',
+  '/static/fonts/dm-mono-latin-400-normal.woff2',
+  '/static/fonts/dm-mono-latin-500-normal.woff2',
   '/manifest.json',
-  '/favicon.ico',
-  '/favicon.svg',
-  '/favicon.png',
-  '/offline.html'
+  '/static/favicon.ico',
+  '/static/favicon.svg',
+  '/static/favicon.png'
 ];
 
 // Install event - cache assets
@@ -77,8 +77,8 @@ self.addEventListener('fetch', (event) => {
 
           return response;
         }).catch(() => {
-          // If fetch fails, return offline page
-          return caches.match('/offline.html');
+          // If fetch fails, fall back to the cached landing shell
+          return caches.match('/');
         });
       })
   );
