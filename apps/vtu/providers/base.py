@@ -56,6 +56,12 @@ class VTUProvider(ABC):
 
     name = "base"
 
+    max_airtime_amount: Decimal | None = None
+    """Largest airtime value the provider accepts in a single transaction.
+
+    ``None`` means the provider has no per-transaction cap.
+    """
+
     @abstractmethod
     def get_balance(self) -> Decimal:
         """Current merchant wallet balance in NGN."""
@@ -87,6 +93,14 @@ class VTUProvider(ABC):
     @abstractmethod
     def resolve_airtime_product(self, network: str) -> str:
         """Provider product name for a SubHero network slug, e.g. mtn -> 'MTN Airtime'."""
+
+    @abstractmethod
+    def resolve_cable_product(self, provider: str) -> str:
+        """Provider product label for a SubHero cable slug, e.g. gotv -> 'GOTV'."""
+
+    @abstractmethod
+    def resolve_electricity_biller(self, biller_code: str) -> str:
+        """Provider biller code for a SubHero DISCO code, e.g. EKEDC -> 'EKEDC'."""
 
     @abstractmethod
     def buy_data(self, plan_id: str, phone: str, reference: str) -> PurchaseResult:

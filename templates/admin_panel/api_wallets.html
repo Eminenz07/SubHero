@@ -31,28 +31,16 @@
                     <input type="email" name="alert_email" value="{{ alert_config.alert_email }}" required class="w-full px-3 py-2 text-xs bg-slate-900 border border-white/[0.06] rounded-lg text-white">
                 </div>
 
-                <!-- Sabuss Warning Threshold -->
+                <!-- VTU Provider Warning Threshold -->
                 <div>
-                    <label class="block text-slate-400 uppercase mb-2">Sabuss VTU Warning (₦)</label>
-                    <input type="number" name="sabuss_warning_threshold" value="{{ alert_config.sabuss_warning_threshold }}" required class="w-full px-3 py-2 text-xs bg-slate-900 border border-white/[0.06] rounded-lg text-white font-mono">
+                    <label class="block text-slate-400 uppercase mb-2">{{ provider_label }} VTU Warning (₦)</label>
+                    <input type="number" name="provider_warning_threshold" value="{{ alert_config.provider_warning_threshold }}" required class="w-full px-3 py-2 text-xs bg-slate-900 border border-white/[0.06] rounded-lg text-white font-mono">
                 </div>
 
-                <!-- Sabuss Critical Threshold -->
+                <!-- VTU Provider Critical Threshold -->
                 <div>
-                    <label class="block text-slate-400 uppercase mb-2">Sabuss VTU Critical (₦)</label>
-                    <input type="number" name="sabuss_critical_threshold" value="{{ alert_config.sabuss_critical_threshold }}" required class="w-full px-3 py-2 text-xs bg-slate-900 border border-white/[0.06] rounded-lg text-white font-mono">
-                </div>
-
-                <!-- CheapDataHub Warning Threshold -->
-                <div>
-                    <label class="block text-slate-400 uppercase mb-2">CheapDataHub Warning (₦)</label>
-                    <input type="number" name="cdh_warning_threshold" value="{{ alert_config.cdh_warning_threshold }}" required class="w-full px-3 py-2 text-xs bg-slate-900 border border-white/[0.06] rounded-lg text-white font-mono">
-                </div>
-
-                <!-- CheapDataHub Critical Threshold -->
-                <div>
-                    <label class="block text-slate-400 uppercase mb-2">CheapDataHub Critical (₦)</label>
-                    <input type="number" name="cdh_critical_threshold" value="{{ alert_config.cdh_critical_threshold }}" required class="w-full px-3 py-2 text-xs bg-slate-900 border border-white/[0.06] rounded-lg text-white font-mono">
+                    <label class="block text-slate-400 uppercase mb-2">{{ provider_label }} VTU Critical (₦)</label>
+                    <input type="number" name="provider_critical_threshold" value="{{ alert_config.provider_critical_threshold }}" required class="w-full px-3 py-2 text-xs bg-slate-900 border border-white/[0.06] rounded-lg text-white font-mono">
                 </div>
 
                 <!-- Ogaviral Warning Threshold -->
@@ -139,27 +127,14 @@
     <div class="lg:col-span-2 space-y-8">
         
         <!-- Live status -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <!-- Sabuss balance -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- VTU provider balance -->
             <div class="admin-card p-5 border border-white/[0.05]">
-                <div class="text-[11px] uppercase tracking-wider font-semibold text-slate-400 mb-2">Sabuss Live Balance</div>
-                <div class="text-3xl font-extrabold text-white font-mono">₦{{ sabuss_balance|floatformat:2 }}</div>
+                <div class="text-[11px] uppercase tracking-wider font-semibold text-slate-400 mb-2">{{ provider_label }} Live Balance</div>
+                <div class="text-3xl font-extrabold text-white font-mono">₦{{ provider_balance|floatformat:2 }}</div>
                 <div class="mt-4 flex justify-between items-center text-xs">
-                    <span class="text-slate-500 font-medium">Critical: ₦{{ alert_config.sabuss_critical_threshold }}</span>
-                    <a href="https://sabuss.com" target="_blank" class="text-emerald-400 hover:underline font-bold flex items-center gap-1">
-                        Fund Now
-                        <i data-feather="external-link" class="w-3.5 h-3.5"></i>
-                    </a>
-                </div>
-            </div>
-
-            <!-- CDH balance -->
-            <div class="admin-card p-5 border border-white/[0.05]">
-                <div class="text-[11px] uppercase tracking-wider font-semibold text-slate-400 mb-2">CheapDataHub Live Balance</div>
-                <div class="text-3xl font-extrabold text-white font-mono">₦{{ cdh_balance|floatformat:2 }}</div>
-                <div class="mt-4 flex justify-between items-center text-xs">
-                    <span class="text-slate-500 font-medium">Critical: ₦{{ alert_config.cdh_critical_threshold }}</span>
-                    <a href="https://cheapdatahub.com.ng" target="_blank" class="text-emerald-400 hover:underline font-bold flex items-center gap-1">
+                    <span class="text-slate-500 font-medium">Critical: ₦{{ alert_config.provider_critical_threshold }}</span>
+                    <a href="https://dancity.app" target="_blank" class="text-emerald-400 hover:underline font-bold flex items-center gap-1">
                         Fund Now
                         <i data-feather="external-link" class="w-3.5 h-3.5"></i>
                     </a>
@@ -197,14 +172,13 @@
     document.addEventListener("DOMContentLoaded", function() {
         const rawData = JSON.parse('{{ history_data|safe }}');
         const labels = rawData.map(d => d.date);
-        const sabussBalances = rawData.map(d => d.sabuss);
-        const cdhBalances = rawData.map(d => d.cdh || 0);
+        const providerBalances = rawData.map(d => d.provider || 0);
         const ogaviralBalances = rawData.map(d => d.ogaviral || 0);
 
-        renderHistoryChart(labels, sabussBalances, cdhBalances, ogaviralBalances);
+        renderHistoryChart(labels, providerBalances, ogaviralBalances);
     });
 
-    function renderHistoryChart(labels, sabuss, cdh, ogaviral) {
+    function renderHistoryChart(labels, provider, ogaviral) {
         const ctx = document.getElementById('balanceHistoryChart').getContext('2d');
         new Chart(ctx, {
             type: 'line',
@@ -212,18 +186,9 @@
                 labels: labels,
                 datasets: [
                     {
-                        label: 'Sabuss (₦)',
-                        data: sabuss,
+                        label: '{{ provider_label }} (₦)',
+                        data: provider,
                         borderColor: '#10b981', // emerald-500
-                        backgroundColor: 'transparent',
-                        tension: 0.2,
-                        borderWidth: 2,
-                        pointHoverRadius: 5
-                    },
-                    {
-                        label: 'CheapDataHub (₦)',
-                        data: cdh,
-                        borderColor: '#eab308', // yellow-500
                         backgroundColor: 'transparent',
                         tension: 0.2,
                         borderWidth: 2,

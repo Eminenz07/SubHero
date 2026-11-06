@@ -50,29 +50,56 @@
                 <span class="text-[12px] font-semibold text-text-secondary text-center leading-[1.2]">Airtime</span>
             </a>
             
+            {% if vtu_electricity_soon %}
+            <div class="bg-surface-card rounded-[14px] py-4 px-2 flex flex-col items-center gap-2 shadow-card border border-surface-border relative overflow-hidden">
+                <div class="w-[44px] h-[44px] rounded-xl bg-yellow-50 text-yellow-500 flex items-center justify-center">
+                    {% include "icons/zap.html" %}
+                </div>
+                <span class="text-[12px] font-semibold text-text-secondary text-center leading-[1.2]">Power</span>
+                <span class="text-[9px] font-bold text-amber-600 bg-amber-50 rounded-pill px-1.5 py-0.5 scale-90 -mt-1 uppercase tracking-wider">Soon</span>
+            </div>
+            {% else %}
             <a href="{% url 'vtu:buy_electricity' %}" class="bg-surface-card rounded-[14px] py-4 px-2 flex flex-col items-center gap-2 shadow-card border border-surface-border cursor-pointer active:bg-surface-page no-underline">
                 <div class="w-[44px] h-[44px] rounded-xl bg-yellow-50 text-yellow-500 flex items-center justify-center">
                     {% include "icons/zap.html" %}
                 </div>
                 <span class="text-[12px] font-semibold text-text-secondary text-center leading-[1.2]">Power</span>
             </a>
+            {% endif %}
             
+            {% if vtu_cable_soon %}
+            <div class="bg-surface-card rounded-[14px] py-4 px-2 flex flex-col items-center gap-2 shadow-card border border-surface-border relative overflow-hidden">
+                <div class="w-[44px] h-[44px] rounded-xl bg-purple-50 text-purple-500 flex items-center justify-center">
+                    {% include "icons/tv.html" %}
+                </div>
+                <span class="text-[12px] font-semibold text-text-secondary text-center leading-[1.2]">Cable TV</span>
+                <span class="text-[9px] font-bold text-amber-600 bg-amber-50 rounded-pill px-1.5 py-0.5 scale-90 -mt-1 uppercase tracking-wider">Soon</span>
+            </div>
+            {% else %}
             <a href="{% url 'vtu:buy_cable' %}" class="bg-surface-card rounded-[14px] py-4 px-2 flex flex-col items-center gap-2 shadow-card border border-surface-border cursor-pointer active:bg-surface-page no-underline">
                 <div class="w-[44px] h-[44px] rounded-xl bg-purple-50 text-purple-500 flex items-center justify-center">
                     {% include "icons/tv.html" %}
                 </div>
                 <span class="text-[12px] font-semibold text-text-secondary text-center leading-[1.2]">Cable TV</span>
             </a>
+            {% endif %}
             
+            {% if vtu_exam_soon %}
+            <div class="bg-surface-card rounded-[14px] py-4 px-2 flex flex-col items-center gap-2 shadow-card border border-surface-border relative overflow-hidden">
+                <div class="w-[44px] h-[44px] rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center">
+                    {% include "icons/book-open.html" %}
+                </div>
+                <span class="text-[12px] font-semibold text-text-secondary text-center leading-[1.2]">Exam PIN</span>
+                <span class="text-[9px] font-bold text-amber-600 bg-amber-50 rounded-pill px-1.5 py-0.5 scale-90 -mt-1 uppercase tracking-wider">Soon</span>
+            </div>
+            {% else %}
             <a href="{% url 'vtu:buy_exam_pin' %}" class="bg-surface-card rounded-[14px] py-4 px-2 flex flex-col items-center gap-2 shadow-card border border-surface-border cursor-pointer active:bg-surface-page no-underline">
                 <div class="w-[44px] h-[44px] rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center">
                     {% include "icons/book-open.html" %}
                 </div>
                 <span class="text-[12px] font-semibold text-text-secondary text-center leading-[1.2]">Exam PIN</span>
-                {% if exam_pin_coming_soon %}
-                <span class="text-[9px] font-bold uppercase tracking-[0.3px] text-orange-600 bg-orange-50 border border-orange-200 px-1.5 py-[3px] rounded-full leading-none text-center">Coming soon</span>
-                {% endif %}
             </a>
+            {% endif %}
         </div>
         
         <div class="pt-2">

@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ service_label }} | SubHero{% endblock %}
+
+{% block top_bar %}
+{% include 'partials/_top_bar.html' with page_title=service_label show_back=True %}
+{% endblock %}
+
+{% block content %}
+<div class="px-4 py-4">
+  <div class="card card-padding text-center">
+    <div class="w-14 h-14 rounded-2xl bg-amber-50 text-amber-500 flex items-center justify-center mx-auto mb-4">
+      <i data-feather="clock" class="w-7 h-7"></i>
+    </div>
+    <h2 class="text-lg font-bold text-text-primary">Soon</h2>
+    <p class="text-xs text-text-secondary mt-2 leading-relaxed">
+      {{ service_label }} is being switched on. We will let you know the moment it goes
+      live — keep an eye on your dashboard.
+    </p>
+    <div class="mt-4 pt-4 border-t border-surface-border text-[11px] text-text-muted">
+      In the meantime, airtime and data are live and delivered instantly.
+    </div>
+    <a href="{% url 'vtu:buy_data' %}" class="btn btn-primary btn-block mt-4 text-center">
+      Buy Data
+    </a>
+  </div>
+</div>
+{% endblock %}

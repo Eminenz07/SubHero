@@ -75,32 +75,11 @@ def get_other_order_stats(start_date=None):
     return rev, profit
 
 
-def fetch_cheapdatahub_balance():
+def fetch_provider_balance():
+    """Live balance of the configured outbound VTU provider."""
     try:
-        url = f"{settings.CHEAPDATAHUB_BASE_URL}/balance/"
-        r = requests.get(
-            url,
-            headers={"Authorization": f"Token {settings.CHEAPDATAHUB_API_KEY}"},
-            timeout=8
-        )
-        if r.status_code == 200:
-            return Decimal(str(r.json()['balance']))
-    except Exception:
-        pass
-    return Decimal("0.00")
-
-
-def fetch_sabuss_balance():
-    try:
-        api_key = getattr(settings, "SABUSS_API_KEY", "")
-        pin = getattr(settings, "SABUSS_PIN", "")
-        base_url = getattr(settings, "SABUSS_BASE_URL", "https://sabuss.com")
-        url = f"{base_url}/vtu/api/balance/{api_key}"
-        response = requests.post(url, data={'pin': pin}, timeout=8)
-        if response.status_code == 200:
-            data = response.json()
-            if str(data.get("code")) == "200":
-                return Decimal(str(data.get("balance", "0")))
+        from apps.vtu.providers import get_provider
+        return get_provider().get_balance()
     except Exception:
         pass
     return Decimal("0.00")
@@ -144,29 +123,22 @@ def dashboard(request):
     )
     
     # Live balance fetch
-    sabuss_balance = fetch_sabuss_balance()
-    cdh_balance = fetch_cheapdatahub_balance()
+    provider_balance = fetch_provider_balance()
+    provider_label = getattr(settings, "VTU_PROVIDER", "dancity").title()
     ogaviral_balance = fetch_ogaviral_balance()
-    
+
     alert_config = AlertConfig.objects.first()
     if not alert_config:
         alert_config = AlertConfig.objects.create(alert_email="admin@subhero.com.ng")
-        
+
     # Threshold checks
-    if sabuss_balance <= alert_config.sabuss_critical_threshold:
-        sabuss_status = "critical"
-    elif sabuss_balance <= alert_config.sabuss_warning_threshold:
-        sabuss_status = "warning"
+    if provider_balance <= alert_config.provider_critical_threshold:
+        provider_status = "critical"
+    elif provider_balance <= alert_config.provider_warning_threshold:
+        provider_status = "warning"
     else:
-        sabuss_status = "healthy"
-        
-    if cdh_balance <= alert_config.cdh_critical_threshold:
-        cdh_status = "critical"
-    elif cdh_balance <= alert_config.cdh_warning_threshold:
-        cdh_status = "warning"
-    else:
-        cdh_status = "healthy"
-        
+        provider_status = "healthy"
+
     if ogaviral_balance <= alert_config.ogaviral_critical_threshold:
         ogaviral_status = "critical"
     elif ogaviral_balance <= alert_config.ogaviral_warning_threshold:
@@ -204,10 +176,9 @@ def dashboard(request):
         "total_profit": stats.total_profit,
         "total_deposits": stats.total_deposits,
         "active_orders": active_orders,
-        "sabuss_balance": sabuss_balance,
-        "sabuss_status": sabuss_status,
-        "cdh_balance": cdh_balance,
-        "cdh_status": cdh_status,
+        "provider_balance": provider_balance,
+        "provider_status": provider_status,
+        "provider_label": provider_label,
         "ogaviral_balance": ogaviral_balance,
         "ogaviral_status": ogaviral_status,
         "alert_config": alert_config,
@@ -1053,50 +1024,45 @@ def api_wallets(request):
         
     if request.method == "POST":
         alert_config.alert_email = request.POST.get("alert_email", "").strip()
-        alert_config.sabuss_warning_threshold = Decimal(request.POST.get("sabuss_warning_threshold", "10000"))
-        alert_config.sabuss_critical_threshold = Decimal(request.POST.get("sabuss_critical_threshold", "3000"))
-        alert_config.cdh_warning_threshold = Decimal(request.POST.get("cdh_warning_threshold", "10000"))
-        alert_config.cdh_critical_threshold = Decimal(request.POST.get("cdh_critical_threshold", "3000"))
+        alert_config.provider_warning_threshold = Decimal(request.POST.get("provider_warning_threshold", "10000"))
+        alert_config.provider_critical_threshold = Decimal(request.POST.get("provider_critical_threshold", "3000"))
         alert_config.ogaviral_warning_threshold = Decimal(request.POST.get("ogaviral_warning_threshold", "10000"))
         alert_config.ogaviral_critical_threshold = Decimal(request.POST.get("ogaviral_critical_threshold", "3000"))
         alert_config.save()
-        
-        detail = f"Updated API Wallet configuration: email={alert_config.alert_email}, sabuss_warn={alert_config.sabuss_warning_threshold}, cdh_warn={alert_config.cdh_warning_threshold}, ogaviral_warn={alert_config.ogaviral_warning_threshold}"
+
+        detail = f"Updated API Wallet configuration: email={alert_config.alert_email}, provider_warn={alert_config.provider_warning_threshold}, ogaviral_warn={alert_config.ogaviral_warning_threshold}"
         log_admin_action(request.user, "ALERT_CONFIG_UPDATE", "AlertConfig", alert_config.id, detail, request)
-        
+
         return redirect("admin_panel:api_wallets")
-        
-    sabuss_balance = fetch_sabuss_balance()
-    cdh_balance = fetch_cheapdatahub_balance()
+
+    provider_balance = fetch_provider_balance()
+    provider_label = getattr(settings, "VTU_PROVIDER", "dancity").title()
     ogaviral_balance = fetch_ogaviral_balance()
-    
+
     # 14-day history trend
     history_data = []
     today = timezone.now().date()
     import random
-    s_base = float(sabuss_balance) if sabuss_balance > 0 else 12000.0
-    c_base = float(cdh_balance) if cdh_balance > 0 else 12000.0
+    p_base = float(provider_balance) if provider_balance > 0 else 12000.0
     o_base = float(ogaviral_balance) if ogaviral_balance > 0 else 15000.0
 
     for i in range(13, -1, -1):
         day = today - datetime.timedelta(days=i)
         # Smooth historical drift guaranteed to stay positive
-        s_val = max(500.0, s_base + (13 - i) * random.randint(-200, 400))
-        c_val = max(500.0, c_base + (13 - i) * random.randint(-200, 400))
+        p_val = max(500.0, p_base + (13 - i) * random.randint(-200, 400))
         o_val = max(500.0, o_base + (13 - i) * random.randint(-300, 600))
-        
+
         history_data.append({
             "date": day.strftime("%b %d"),
-            "sabuss": round(s_val, 2),
-            "cdh": round(c_val, 2),
+            "provider": round(p_val, 2),
             "ogaviral": round(o_val, 2),
         })
-        
+
     context = {
         "active_nav": "api_wallets",
         "alert_config": alert_config,
-        "sabuss_balance": sabuss_balance,
-        "cdh_balance": cdh_balance,
+        "provider_balance": provider_balance,
+        "provider_label": provider_label,
         "ogaviral_balance": ogaviral_balance,
         "history_data": json.dumps(history_data),
     }
@@ -1114,8 +1080,7 @@ def test_alert_email(request):
             send_mail(
                 subject="SubHero HQ: API Wallet Alert (TEST)",
                 message=f"This is a test notification from SubHero HQ.\n\n"
-                        f"- Sabuss Warning: ₦{alert_config.sabuss_warning_threshold:,.2f} | Critical: ₦{alert_config.sabuss_critical_threshold:,.2f}\n"
-                        f"- CheapDataHub Warning: ₦{alert_config.cdh_warning_threshold:,.2f} | Critical: ₦{alert_config.cdh_critical_threshold:,.2f}\n"
+                        f"- VTU Provider Warning: ₦{alert_config.provider_warning_threshold:,.2f} | Critical: ₦{alert_config.provider_critical_threshold:,.2f}\n"
                         f"- Ogaviral Warning: ₦{alert_config.ogaviral_warning_threshold:,.2f} | Critical: ₦{alert_config.ogaviral_critical_threshold:,.2f}\n",
                 from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@subhero.com.ng"),
                 recipient_list=[alert_config.alert_email],

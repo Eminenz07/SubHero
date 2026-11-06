@@ -105,6 +105,13 @@
       <label class="form-label" for="phone_number">Phone Number (for token delivery)</label>
       <input class="form-input" type="tel" name="phone_number" id="phone_number" placeholder="e.g. 08012345678" inputmode="tel" required value="{{ form_data.phone_number|default:'' }}">
     </div>
+
+    <!-- Service Address -->
+    <div class="form-group">
+      <label class="form-label" for="address">Service Address</label>
+      <input class="form-input" type="text" name="address" id="address" placeholder="e.g. 12 Allen Avenue, Ikeja, Lagos" maxlength="200" required value="{{ form_data.address|default:'' }}">
+      <p class="text-[11px] text-text-muted mt-1">The address on your electricity bill. It is passed to the provider for the purchase.</p>
+    </div>
   </form>
 </div>
 {% endblock %}
@@ -208,6 +215,7 @@
     const disco = document.getElementById('disco_id').value;
     const meter = document.getElementById('meter_number').value.trim();
     const type = document.querySelector('input[name="meter_type"]:checked').value;
+    const amount = document.getElementById('id_amount').value.trim();
     const box = document.getElementById('meter-verification-box');
     const badge = document.getElementById('meter-verification-badge');
     const icon = document.getElementById('meter-verification-icon');
@@ -225,7 +233,7 @@
     text.textContent = "Verifying meter number...";
     if (typeof feather !== 'undefined') feather.replace();
 
-    fetch(`/vtu/api/verify-utility/?action=electricity&disco_id=${disco}&number=${meter}&meter_type=${type}`)
+    fetch(`/vtu/api/verify-utility/?action=electricity&disco_id=${disco}&number=${meter}&meter_type=${type}&amount=${amount}`)
       .then(res => res.json())
       .then(data => {
         const currentIcon = document.getElementById('meter-verification-icon');

@@ -31,8 +31,13 @@ def platforms(request):
 def service_flags(request):
     """
     Expose service launch flags to templates, so a service that is not live yet
-    can be labelled "Coming soon" on every surface that lists it.
+    can be labelled "Soon" on every surface that lists it.
     """
     return {
         "exam_pin_coming_soon": getattr(settings, "EXAM_PIN_COMING_SOON", False),
+        "vtu_data_enabled": getattr(settings, "VTU_ENABLE_DATA", True),
+        "vtu_airtime_enabled": getattr(settings, "VTU_ENABLE_AIRTIME", True),
+        "vtu_cable_soon": not getattr(settings, "VTU_ENABLE_CABLE", False),
+        "vtu_electricity_soon": not getattr(settings, "VTU_ENABLE_ELECTRICITY", False),
+        "vtu_exam_soon": not getattr(settings, "VTU_ENABLE_EXAM", False),
     }

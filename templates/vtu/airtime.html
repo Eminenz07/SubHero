@@ -140,7 +140,7 @@
         <div class="amount-chip" onclick="setAmount('{{ amt }}')">₦{{ amt }}</div>
         {% endfor %}
       </div>
-      <input class="form-input" type="number" name="amount" id="id_amount" placeholder="Or enter custom amount" inputmode="numeric" min="100" max="50000" value="{{ form_data.amount|default:'' }}" required oninput="syncChips(this.value)">
+      <input class="form-input" type="number" name="amount" id="id_amount" placeholder="Or enter custom amount" inputmode="numeric" min="100" max="10000" value="{{ form_data.amount|default:'' }}" required oninput="syncChips(this.value)">
     </div>
   </form>
 </div>

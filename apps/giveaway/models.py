@@ -18,7 +18,7 @@ class Giveaway(models.Model):
     title           = models.CharField(max_length=100, default='Data Giveaway')
     giveaway_type   = models.CharField(max_length=10, choices=TYPES)
     network         = models.CharField(max_length=10, choices=NETWORKS)
-    plan_id         = models.CharField(max_length=50, blank=True)
+    plan_id         = models.CharField(max_length=80, blank=True)
     amount_per_slot = models.DecimalField(max_digits=10, decimal_places=2)
     total_slots     = models.IntegerField()
     claimed_slots   = models.IntegerField(default=0)

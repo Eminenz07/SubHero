@@ -74,10 +74,8 @@ class AlertConfig(models.Model):
     Singleton configuration for external API balance thresholds and system rate configurations.
     """
     alert_email = models.EmailField()
-    sabuss_warning_threshold = models.DecimalField(max_digits=12, decimal_places=2, default=10000.00)
-    sabuss_critical_threshold = models.DecimalField(max_digits=12, decimal_places=2, default=3000.00)
-    cdh_warning_threshold = models.DecimalField(max_digits=12, decimal_places=2, default=10000.00)
-    cdh_critical_threshold = models.DecimalField(max_digits=12, decimal_places=2, default=3000.00)
+    provider_warning_threshold = models.DecimalField(max_digits=12, decimal_places=2, default=10000.00)
+    provider_critical_threshold = models.DecimalField(max_digits=12, decimal_places=2, default=3000.00)
     ogaviral_warning_threshold = models.DecimalField(max_digits=12, decimal_places=2, default=10000.00)
     ogaviral_critical_threshold = models.DecimalField(max_digits=12, decimal_places=2, default=3000.00)
     jap_warning_threshold = models.DecimalField(max_digits=10, decimal_places=2, default=5.00)

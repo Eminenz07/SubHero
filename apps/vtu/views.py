@@ -19,6 +19,8 @@ from apps.vtu.models import (
     ElectricityOrder, DISCO_CHOICES, DISCO_NAMES,
     ExamProduct, ExamPinOrder,
 )
+from apps.vtu.providers import get_provider
+from apps.vtu.providers.errors import ProviderError
 from apps.vtu.tasks import (
     process_vtu_order,
     process_airtime_order,
@@ -32,6 +34,29 @@ from apps.vtu.tasks import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+class VtuServiceDisabledMixin:
+    """Blocks a VTU service that is not switched on yet.
+
+    The URL stays reachable so the page can be flipped on with an env change,
+    but it renders a "Soon" notice instead of hitting the provider.
+    """
+
+    setting_name = ""
+    service_label = ""
+
+    def dispatch(self, request, *args, **kwargs):
+        if not getattr(settings, self.setting_name, True):
+            from django.shortcuts import render
+
+            return render(
+                request,
+                "vtu/soon.html",
+                {"service_label": self.service_label},
+                status=503,
+            )
+        return super().dispatch(request, *args, **kwargs)
 
 
 # ────────────────────────────────────────────────────────────
@@ -93,7 +118,7 @@ def _atomic_debit(wallet, amount, reference, txn_type, description, ip, status=W
 # ────────────────────────────────────────────────────────────
 
 class BuyDataView(LoginRequiredMixin, PinRequiredMixin, View):
-    """Buy Mobile Data Package View with active CheapDataHub background integration."""
+    """Buy Mobile Data Package View with the active VTU provider adapter."""
     template_name = "vtu/data.html"
 
     def get(self, request, *args, **kwargs):
@@ -200,7 +225,7 @@ class BuyDataView(LoginRequiredMixin, PinRequiredMixin, View):
 # ────────────────────────────────────────────────────────────
 
 class BuyAirtimeView(LoginRequiredMixin, PinRequiredMixin, View):
-    """Buy Airtime View — MTN, Airtel, Glo, 9mobile via CheapDataHub."""
+    """Buy Airtime View — MTN, Airtel, Glo, 9mobile via the active VTU provider."""
     template_name = "vtu/airtime.html"
 
     def _context(self, request):
@@ -231,10 +256,10 @@ class BuyAirtimeView(LoginRequiredMixin, PinRequiredMixin, View):
 
         try:
             amount = Decimal(amount_str)
-            if amount < Decimal("100") or amount > Decimal("50000"):
+            if amount < Decimal("100") or amount > Decimal("10000"):
                 raise ValueError
         except (ValueError, Exception):
-            messages.error(request, "Airtime amount must be between ₦100 and ₦50,000.")
+            messages.error(request, "Airtime amount must be between ₦100 and ₦10,000.")
             return render(request, self.template_name, context)
 
         normalized_phone = normalize_phone(phone_number)
@@ -304,8 +329,10 @@ class BuyAirtimeView(LoginRequiredMixin, PinRequiredMixin, View):
 # CABLE TV
 # ────────────────────────────────────────────────────────────
 
-class BuyCableView(LoginRequiredMixin, PinRequiredMixin, View):
-    """Cable TV subscription — DStv, GOtv, Startimes via CheapDataHub."""
+class BuyCableView(VtuServiceDisabledMixin, LoginRequiredMixin, PinRequiredMixin, View):
+    setting_name = "VTU_ENABLE_CABLE"
+    service_label = "Cable TV"
+    """Cable TV subscription — DStv, GOtv, Startimes via the active VTU provider."""
     template_name = "vtu/cable.html"
 
     def _get_plans(self):
@@ -347,6 +374,23 @@ class BuyCableView(LoginRequiredMixin, PinRequiredMixin, View):
             messages.error(request, "Please enter a valid 11-digit Nigerian phone number.")
             return render(request, self.template_name, context)
 
+        if not card_number.isdigit() or not (10 <= len(card_number) <= 11):
+            messages.error(request, "Please enter a valid Smart Card / IUC number (10-11 digits).")
+            return render(request, self.template_name, context)
+
+        customer_name = ""
+        try:
+            vtu_provider = get_provider()
+            cable_product = vtu_provider.resolve_cable_product(provider)
+            customer_name = vtu_provider.validate_cable(card_number, cable_product)
+        except ProviderError as exc:
+            messages.error(request, str(exc))
+            return render(request, self.template_name, context)
+        except Exception:
+            logger.exception("Cable smartcard validation failed")
+            messages.error(request, "We could not verify that Smart Card number. Please check it and try again.")
+            return render(request, self.template_name, context)
+
         pin_ok, pin_response = _check_pin(request, context, self.template_name)
         if not pin_ok:
             return pin_response
@@ -369,6 +413,7 @@ class BuyCableView(LoginRequiredMixin, PinRequiredMixin, View):
                 order = CableOrder.objects.create(
                     user=request.user, provider=provider, plan_id=plan_id,
                     plan_name=plan.name, card_number=card_number, phone=normalized_phone,
+                    customer_name=customer_name, provider_product=cable_product,
                     amount=plan.subhero_price, api_cost=plan.amount, reference=reference, status=CableOrder.Status.PROCESSING,
                 )
 
@@ -409,8 +454,10 @@ class BuyCableView(LoginRequiredMixin, PinRequiredMixin, View):
 # ELECTRICITY
 # ────────────────────────────────────────────────────────────
 
-class BuyElectricityView(LoginRequiredMixin, PinRequiredMixin, View):
-    """Electricity token vending — all major DISCOs via CheapDataHub."""
+class BuyElectricityView(VtuServiceDisabledMixin, LoginRequiredMixin, PinRequiredMixin, View):
+    setting_name = "VTU_ENABLE_ELECTRICITY"
+    service_label = "Electricity"
+    """Electricity token vending — all supported DISCOs via the active VTU provider."""
     template_name = "vtu/electricity.html"
 
     def get(self, request, *args, **kwargs):
@@ -428,6 +475,7 @@ class BuyElectricityView(LoginRequiredMixin, PinRequiredMixin, View):
         meter_type = request.POST.get("meter_type", "").lower()
         phone_number = request.POST.get("phone_number", "").strip()
         amount_str = request.POST.get("amount", "").strip()
+        address = request.POST.get("address", "").strip()
         context = {
             "wallet": wallet,
             "discos": DISCO_CHOICES,
@@ -437,11 +485,12 @@ class BuyElectricityView(LoginRequiredMixin, PinRequiredMixin, View):
                 "meter_number": meter_number,
                 "meter_type": meter_type,
                 "phone_number": phone_number,
-                "amount": amount_str
+                "amount": amount_str,
+                "address": address
             }
         }
 
-        if not disco_id or not meter_number or not meter_type or not phone_number or not amount_str:
+        if not disco_id or not meter_number or not meter_type or not phone_number or not amount_str or not address:
             messages.error(request, "All fields are required.")
             return render(request, self.template_name, context)
 
@@ -471,6 +520,23 @@ class BuyElectricityView(LoginRequiredMixin, PinRequiredMixin, View):
             messages.error(request, "Please enter a valid 11-digit Nigerian phone number.")
             return render(request, self.template_name, context)
 
+        if len(address) < 5:
+            messages.error(request, "Please enter a valid service address (at least 5 characters).")
+            return render(request, self.template_name, context)
+
+        customer_name = ""
+        try:
+            vtu_provider = get_provider()
+            biller_code = vtu_provider.resolve_electricity_biller(disco_id)
+            customer_name = vtu_provider.validate_meter(meter_number, biller_code, amount, meter_type)
+        except ProviderError as exc:
+            messages.error(request, str(exc))
+            return render(request, self.template_name, context)
+        except Exception:
+            logger.exception("Electricity meter validation failed")
+            messages.error(request, "We could not verify that meter number. Please check it and try again.")
+            return render(request, self.template_name, context)
+
         pin_ok, pin_response = _check_pin(request, context, self.template_name)
         if not pin_ok:
             return pin_response
@@ -493,6 +559,7 @@ class BuyElectricityView(LoginRequiredMixin, PinRequiredMixin, View):
                 order = ElectricityOrder.objects.create(
                     user=request.user, disco_id=disco_id, disco_name=disco_name,
                     meter_number=meter_number, meter_type=meter_type,
+                    customer_name=customer_name, address=address,
                     phone=normalized_phone, amount=amount, api_cost=amount, reference=reference,
                     status=ElectricityOrder.Status.PROCESSING,
                 )
@@ -535,7 +602,7 @@ class BuyElectricityView(LoginRequiredMixin, PinRequiredMixin, View):
 # ────────────────────────────────────────────────────────────
 
 class BuyExamPinView(LoginRequiredMixin, PinRequiredMixin, View):
-    """Exam PIN purchase — WAEC, NECO, NABTEB via CheapDataHub."""
+    """Exam PIN purchase — WAEC, NECO, NABTEB via the active VTU provider."""
     template_name = "vtu/exam_pin.html"
 
     def _get_products(self):
@@ -550,16 +617,16 @@ class BuyExamPinView(LoginRequiredMixin, PinRequiredMixin, View):
         context = {
             "wallet": wallet,
             "quantity_choices": ExamPinOrder.QUANTITY_CHOICES,
-            "coming_soon": settings.EXAM_PIN_COMING_SOON,
+            "coming_soon": not settings.VTU_ENABLE_EXAM,
         }
-        if settings.EXAM_PIN_COMING_SOON:
+        if not settings.VTU_ENABLE_EXAM:
             # Service is not launched yet — don't hit the provider API.
             return render(request, self.template_name, context)
         context["products"] = self._get_products()
         return render(request, self.template_name, context)
 
     def post(self, request, *args, **kwargs):
-        if settings.EXAM_PIN_COMING_SOON:
+        if not settings.VTU_ENABLE_EXAM:
             messages.info(
                 request,
                 "Exam PINs are not live yet — we'll let you know as soon as they launch.",
@@ -775,51 +842,80 @@ class ReceiptStatusAjaxView(LoginRequiredMixin, View):
 class VerifyUtilityAjaxView(LoginRequiredMixin, View):
     """
     AJAX view to verify electricity meter numbers and cable TV smartcard numbers.
-    Provides standard fallback verification if API returns 404 or offline.
+
+    Validation is performed by the active VTU provider so the name shown to the
+    customer is the same one the provider will charge against.
     """
     def get(self, request, *args, **kwargs):
         from django.http import JsonResponse
-        import requests
-        
+
         action = request.GET.get("action", "").strip().lower()
-        
+        number = request.GET.get("number", "").strip()
+
+        if not number:
+            return JsonResponse({"status": "error", "message": "A number is required."})
+
+        provider = get_provider()
+
         if action == "electricity":
             disco_id = request.GET.get("disco_id", "").strip()
-            number = request.GET.get("number", "").strip()
             meter_type = request.GET.get("meter_type", "prepaid").strip().lower()
-            
-            if not disco_id or not number:
-                return JsonResponse({"status": "error", "message": "Distribution Company and Meter Number are required."})
-            
-            disco_name = DISCO_NAMES.get(disco_id, "Unknown DisCo")
-            
-            # Format validation (11 to 13 digits)
+            amount_str = request.GET.get("amount", "").strip()
+
+            if not disco_id:
+                return JsonResponse({"status": "error", "message": "Distribution Company is required."})
+
+            if meter_type not in ("prepaid", "postpaid"):
+                return JsonResponse({"status": "error", "message": "Invalid meter type."})
+
             if not number.isdigit() or not (11 <= len(number) <= 13):
                 return JsonResponse({"status": "error", "message": "Invalid meter number format (11-13 digits required)."})
-                
+
+            try:
+                amount = Decimal(amount_str) if amount_str else Decimal("500")
+            except (ValueError, ArithmeticError):
+                return JsonResponse({"status": "error", "message": "Invalid amount."})
+
+            try:
+                biller_code = provider.resolve_electricity_biller(disco_id)
+                customer_name = provider.validate_meter(number, biller_code, amount, meter_type)
+            except ProviderError as exc:
+                logger.info("Electricity validation failed: %s", exc)
+                return JsonResponse({"status": "error", "message": str(exc)})
+            except Exception:
+                logger.exception("Electricity validation errored")
+                return JsonResponse({"status": "error", "message": "Validation could not be completed right now."})
+
             return JsonResponse({
                 "status": "success",
-                "customer_name": f"Format Valid ({disco_name} {meter_type.upper()})"
+                "customer_name": customer_name,
             })
-                
+
         elif action == "cable":
-            provider = request.GET.get("provider", "").strip().lower()
-            number = request.GET.get("number", "").strip()
-            
-            if not provider or not number:
-                return JsonResponse({"status": "error", "message": "Provider and Smart Card number are required."})
-            
-            # Format validation (10 or 11 digits)
+            provider_slug = request.GET.get("provider", "").strip().lower()
+
+            if not provider_slug:
+                return JsonResponse({"status": "error", "message": "Provider is required."})
+
             if not number.isdigit() or not (10 <= len(number) <= 11):
                 return JsonResponse({"status": "error", "message": "Invalid Smartcard number format (10-11 digits)."})
-                
+
+            try:
+                cable_product = provider.resolve_cable_product(provider_slug)
+                customer_name = provider.validate_cable(number, cable_product)
+            except ProviderError as exc:
+                logger.info("Cable validation failed: %s", exc)
+                return JsonResponse({"status": "error", "message": str(exc)})
+            except Exception:
+                logger.exception("Cable validation errored")
+                return JsonResponse({"status": "error", "message": "Validation could not be completed right now."})
+
             return JsonResponse({
                 "status": "success",
-                "customer_name": f"Format Valid ({provider.upper()} Decoder)"
+                "customer_name": customer_name,
             })
-                
-        else:
-            return JsonResponse({"status": "error", "message": "Invalid action specified."})
+
+        return JsonResponse({"status": "error", "message": "Invalid action specified."})
 
 
 

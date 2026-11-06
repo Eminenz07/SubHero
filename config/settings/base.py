@@ -245,6 +245,10 @@ AUTH_PASSWORD_VALIDATORS = [
 # day — the app tiles, the exam page and the purchase endpoint all follow it.
 EXAM_PIN_COMING_SOON = config("EXAM_PIN_COMING_SOON", default=True, cast=bool)
 
+# Whether the exam PIN service is actually live. EXAM_PIN_COMING_SOON above is
+# the legacy switch; VTU_ENABLE_EXAM is authoritative for the exam service.
+VTU_ENABLE_EXAM = config("VTU_ENABLE_EXAM", default=False, cast=bool)
+
 # =============================================================
 # INTERNATIONALIZATION
 # =============================================================
@@ -313,7 +317,7 @@ PROVIDUS_WEBHOOK_SECRET = config("PROVIDUS_WEBHOOK_SECRET", default="")
 PROVIDUS_BASE_URL = config("PROVIDUS_BASE_URL", default="https://vps.providusbank.com/vps/api")
 PROVIDUS_MOCK = config("PROVIDUS_MOCK", default=True, cast=bool)
 
-# VTU/CheapDataHub/Sabuss Mock Toggle
+# Outbound VTU provider mock toggle
 VTU_MOCK = config("VTU_MOCK", default=True, cast=bool)
 
 # =============================================================
@@ -411,18 +415,20 @@ MAX_PIN_ATTEMPTS = 3
 PIN_LOCKOUT_SECONDS = 900  # 15 minutes
 
 # =============================================================
-# CHEAPDATAHUB — Outbound VTU API
+# DANCITY — Outbound VTU API (data, airtime, cable, electricity, exam pins)
 # =============================================================
-CHEAPDATAHUB_API_KEY = config("CHEAPDATAHUB_API_KEY", default="")
-CHEAPDATAHUB_BASE_URL = config("CHEAPDATAHUB_BASE_URL", default="https://www.cheapdatahub.ng")
+VTU_PROVIDER = config("VTU_PROVIDER", default="dancity")
+DANCITY_API_KEY = config("DANCITY_API_KEY", default="")
+DANCITY_BASE_URL = config("DANCITY_BASE_URL", default="https://api.dancity.app")
+DANCITY_WEBHOOK_SECRET = config("DANCITY_WEBHOOK_SECRET", default="")
+DANCITY_TIMEOUT = config("DANCITY_TIMEOUT", default=30, cast=int)
 
-# =============================================================
-# SABUSS — Outbound Data & Airtime API
-# =============================================================
-SABUSS_API_KEY = config("SABUSS_API_KEY", default="")
-SABUSS_PIN = config("SABUSS_PIN", default="")
-SABUSS_BASE_URL = config("SABUSS_BASE_URL", default="https://sabuss.com")
-SABUSS_PROFIT_MARGIN = config("SABUSS_PROFIT_MARGIN", default=0.10, cast=float)
+# Per-service rollout switches. Disabled services are hidden behind a "Soon"
+# badge instead of 404-ing, so the pages can be switched on without a deploy.
+VTU_ENABLE_DATA = config("VTU_ENABLE_DATA", default=True, cast=bool)
+VTU_ENABLE_AIRTIME = config("VTU_ENABLE_AIRTIME", default=True, cast=bool)
+VTU_ENABLE_CABLE = config("VTU_ENABLE_CABLE", default=False, cast=bool)
+VTU_ENABLE_ELECTRICITY = config("VTU_ENABLE_ELECTRICITY", default=False, cast=bool)
 
 
 # =============================================================
@@ -460,6 +466,10 @@ CELERY_BEAT_SCHEDULE = {
     'check-api-wallet-balance': {
         'task': 'apps.vtu.tasks.check_api_wallet_balance',
         'schedule': crontab(minute=0, hour='*/2'),
+    },
+    'poll-pending-vtu-orders': {
+        'task': 'apps.vtu.tasks.poll_pending_vtu_orders',
+        'schedule': crontab(minute='*/5'),
     },
     'expire-giveaways': {
         'task': 'apps.giveaway.tasks.expire_giveaways',

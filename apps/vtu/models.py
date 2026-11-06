@@ -8,15 +8,16 @@ from django.conf import settings
 
 class VTUPlan(models.Model):
     """
-    Local cache of data plans synced from CheapDataHub API.
+    Local cache of data plans synced from the outbound VTU provider.
     All client pricing is computed using this table.
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    plan_id = models.CharField(max_length=50, unique=True, help_text="CheapDataHub plan ID")
+    plan_id = models.CharField(max_length=80, unique=True, help_text="Provider plan identifier used when buying")
+    provider_product = models.CharField(max_length=80, blank=True, default="", help_text="Provider product label, e.g. MTN GIFTING")
     network = models.CharField(max_length=20, help_text="e.g. mtn, airtel, glo, 9mobile")
     plan_type = models.CharField(max_length=30, blank=True, default="", help_text="Plan category, e.g. SME, SME2, SMART, DATA, CG, AWOOF")
     name = models.CharField(max_length=100)
-    provider_price = models.DecimalField(max_digits=10, decimal_places=2, help_text="CheapDataHub cost price")
+    provider_price = models.DecimalField(max_digits=10, decimal_places=2, help_text="Provider cost price")
     subhero_price = models.DecimalField(max_digits=10, decimal_places=2, help_text="Price charged to SubHero customers")
     validity = models.CharField(max_length=50, blank=True, default="")
     markup_type = models.CharField(
@@ -43,7 +44,7 @@ class VTUPlan(models.Model):
 
 class VTUOrder(models.Model):
     """
-    Stores data/VTU orders and tracks fulfillment status from CheapDataHub outbound API.
+    Stores data/VTU orders and tracks fulfillment status from the outbound VTU provider.
     """
     class Status(models.TextChoices):
         PENDING = "PENDING", "Pending"
@@ -59,7 +60,7 @@ class VTUOrder(models.Model):
     )
     network = models.CharField(max_length=20)
     recipient = models.CharField(max_length=20, help_text="Target phone number or meter number")
-    plan_id = models.CharField(max_length=50)
+    plan_id = models.CharField(max_length=80)
     plan_name = models.CharField(max_length=100)
     amount = models.DecimalField(max_digits=10, decimal_places=2, help_text="Price paid by customer")
     api_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Cost price from provider API")
@@ -81,17 +82,18 @@ class VTUOrder(models.Model):
 # AIRTIME
 # ─────────────────────────────────────────────
 
-# Network provider IDs on CheapDataHub
+# Supported mobile networks. The provider product name is resolved at runtime
+# from the live catalogue, so a provider rename needs no code change.
 AIRTIME_NETWORKS = {
-    "mtn":     {"provider_id": 1, "label": "MTN"},
-    "airtel":  {"provider_id": 2, "label": "Airtel"},
-    "glo":     {"provider_id": 3, "label": "Glo"},
-    "9mobile": {"provider_id": 4, "label": "9mobile"},
+    "mtn":     {"label": "MTN"},
+    "airtel":  {"label": "Airtel"},
+    "glo":     {"label": "Glo"},
+    "9mobile": {"label": "9mobile"},
 }
 
 
 class AirtimeOrder(models.Model):
-    """Tracks airtime top-up orders via CheapDataHub."""
+    """Tracks airtime top-up orders via the outbound VTU provider."""
     class Status(models.TextChoices):
         PENDING    = "PENDING", "Pending"
         PROCESSING = "PROCESSING", "Processing"
@@ -101,6 +103,7 @@ class AirtimeOrder(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="airtime_orders")
     network = models.CharField(max_length=20)
+    provider_product = models.CharField(max_length=80, blank=True, default="", help_text="Provider airtime product name")
     recipient = models.CharField(max_length=20)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     api_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
@@ -124,10 +127,11 @@ class AirtimeOrder(models.Model):
 
 class CablePlan(models.Model):
     """
-    Local cache of Cable TV subscription plans from CheapDataHub.
+    Local cache of Cable TV subscription plans from the outbound VTU provider.
     """
-    plan_id = models.CharField(max_length=50, unique=True, help_text="CheapDataHub cable plan ID")
+    plan_id = models.CharField(max_length=80, unique=True, help_text="Provider cable plan identifier")
     provider = models.CharField(max_length=20, help_text="dstv, gotv, startimes")
+    provider_product = models.CharField(max_length=40, blank=True, default="", help_text="Provider product label, e.g. GOTV")
     name = models.CharField(max_length=150, help_text="Package name e.g. DStv Compact")
     amount = models.DecimalField(max_digits=10, decimal_places=2, help_text="Subscription amount in NGN")
     subhero_price = models.DecimalField(max_digits=10, decimal_places=2, help_text="Price charged to customer")
@@ -143,7 +147,7 @@ class CablePlan(models.Model):
 
 
 class CableOrder(models.Model):
-    """Tracks cable TV subscription orders via CheapDataHub."""
+    """Tracks cable TV subscription orders via the outbound VTU provider."""
     class Status(models.TextChoices):
         PENDING    = "PENDING", "Pending"
         PROCESSING = "PROCESSING", "Processing"
@@ -153,9 +157,11 @@ class CableOrder(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="cable_orders")
     provider = models.CharField(max_length=20)
-    plan_id = models.CharField(max_length=50)
+    provider_product = models.CharField(max_length=40, blank=True, default="", help_text="Provider product label used for validation")
+    plan_id = models.CharField(max_length=80)
     plan_name = models.CharField(max_length=150)
     card_number = models.CharField(max_length=30, help_text="Smart card / IUC number")
+    customer_name = models.CharField(max_length=120, blank=True, default="", help_text="Subscriber name returned by provider validation")
     phone = models.CharField(max_length=20)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     api_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
@@ -177,26 +183,27 @@ class CableOrder(models.Model):
 # ELECTRICITY
 # ─────────────────────────────────────────────
 
-# Distribution companies (DISCOs) supported by CheapDataHub
+# Distribution companies (DISCOs). The code is the provider biller code;
+# it is reconciled against the live provider catalogue at purchase time.
 DISCO_CHOICES = [
-    ("1",  "Ikeja Electric (IKEDC)"),
-    ("2",  "Eko Electric (EKEDC)"),
-    ("3",  "Kano Electric (KEDCO)"),
-    ("4",  "Port Harcourt Electric (PHEDC)"),
-    ("5",  "Jos Electric (JED)"),
-    ("6",  "Ibadan Electric (IBEDC)"),
-    ("7",  "Kaduna Electric (KAEDCO)"),
-    ("8",  "Abuja Electric (AEDC)"),
-    ("9",  "Enugu Electric (EEDC)"),
-    ("10", "Benin Electric (BEDC)"),
-    ("11", "Yola Electric (YEDC)"),
+    ("IKEDC",  "Ikeja Electric (IKEDC)"),
+    ("EKEDC",  "Eko Electric (EKEDC)"),
+    ("KEDCO",  "Kano Electric (KEDCO)"),
+    ("PHEDC",  "Port Harcourt Electric (PHEDC)"),
+    ("JED",    "Jos Electric (JED)"),
+    ("IBEDC",  "Ibadan Electric (IBEDC)"),
+    ("KAEDCO", "Kaduna Electric (KAEDCO)"),
+    ("AEDC",   "Abuja Electric (AEDC)"),
+    ("EEDC",   "Enugu Electric (EEDC)"),
+    ("BEDC",   "Benin Electric (BEDC)"),
+    ("YEDC",   "Yola Electric (YEDC)"),
 ]
 
 DISCO_NAMES = {d[0]: d[1] for d in DISCO_CHOICES}
 
 
 class ElectricityOrder(models.Model):
-    """Tracks prepaid/postpaid electricity token purchases via CheapDataHub."""
+    """Tracks prepaid/postpaid electricity token purchases via the outbound VTU provider."""
     class Status(models.TextChoices):
         PENDING    = "PENDING", "Pending"
         PROCESSING = "PROCESSING", "Processing"
@@ -209,10 +216,12 @@ class ElectricityOrder(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="electricity_orders")
-    disco_id = models.CharField(max_length=5)
+    disco_id = models.CharField(max_length=20)
     disco_name = models.CharField(max_length=80)
     meter_number = models.CharField(max_length=30)
     meter_type = models.CharField(max_length=10, choices=MeterType.choices)
+    customer_name = models.CharField(max_length=120, blank=True, default="", help_text="Account holder name returned by provider validation")
+    address = models.CharField(max_length=200, blank=True, default="", help_text="Customer address supplied to the provider")
     phone = models.CharField(max_length=20)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     api_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
@@ -238,10 +247,10 @@ class ElectricityOrder(models.Model):
 
 class ExamProduct(models.Model):
     """
-    Exam PIN products fetched from CheapDataHub.
+    Exam PIN products fetched from the outbound VTU provider.
     Synced periodically (every 6 hours).
     """
-    product_id = models.CharField(max_length=20, unique=True)
+    product_id = models.CharField(max_length=80, unique=True, help_text="Provider exam product name")
     exam_name = models.CharField(max_length=50, help_text="e.g. WAEC, NECO, NABTEB")
     price_per_pin = models.DecimalField(max_digits=10, decimal_places=2)
     subhero_price_per_pin = models.DecimalField(max_digits=10, decimal_places=2)
@@ -257,7 +266,7 @@ class ExamProduct(models.Model):
 
 
 class ExamPinOrder(models.Model):
-    """Tracks exam PIN purchases and stores delivered PINs from CheapDataHub."""
+    """Tracks exam PIN purchases and stores delivered PINs from the provider."""
     class Status(models.TextChoices):
         PENDING    = "PENDING", "Pending"
         PROCESSING = "PROCESSING", "Processing"
@@ -268,7 +277,7 @@ class ExamPinOrder(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="exam_pin_orders")
-    product_id = models.CharField(max_length=20)
+    product_id = models.CharField(max_length=80)
     exam_name = models.CharField(max_length=50)
     quantity = models.PositiveSmallIntegerField(choices=QUANTITY_CHOICES, default=1)
     amount = models.DecimalField(max_digits=10, decimal_places=2)

@@ -8,6 +8,8 @@ from django.db.models import F
 from django.conf import settings
 from django.utils.timezone import now
 from apps.giveaway.models import Giveaway, GiveawayClaim, GiveawayEscrow
+from apps.vtu.providers import get_provider
+from apps.vtu.providers.base import PurchaseStatus
 from apps.wallet.models import WalletTransaction
 from apps.notifications.models import Notification
 
@@ -46,7 +48,7 @@ def get_network_by_prefix(phone: str) -> str:
 def process_giveaway_claim(claim_id):
     """
     Processes a claimed slot: purchases data/airtime, marks claim success/failure.
-    Uses Sabuss API.
+    Uses the configured VTU provider.
     """
     try:
         claim = GiveawayClaim.objects.select_related('giveaway', 'giveaway__escrow').get(id=claim_id)
@@ -59,67 +61,45 @@ def process_giveaway_claim(claim_id):
     
     from apps.core.utils import generate_reference
 
-    api_key = getattr(settings, "SABUSS_API_KEY", "")
-    pin = getattr(settings, "SABUSS_PIN", "")
-    base_url = getattr(settings, "SABUSS_BASE_URL", "https://sabuss.com")
     vtu_mock = getattr(settings, "VTU_MOCK", False)
-    
+
     success = False
     provider_ref = ""
-    
-    if vtu_mock or not api_key:
-        logger.info("VTU_MOCK is True (%s) or api_key missing (%s). Simulating VTU success for claim %s.", vtu_mock, bool(api_key), claim_id)
+
+    if vtu_mock:
+        logger.info("VTU_MOCK is True (%s). Simulating VTU success for claim %s.", vtu_mock, claim_id)
         success = True
-        provider_ref = "MOCK-SABUSS-GWY"
+        provider_ref = "MOCK-DANCITY-GWY"
     else:
         try:
             order_ref = generate_reference(prefix="GWY")
+            provider = get_provider()
+            phone = _format_phone(claim.phone_number)
+
             if giveaway.giveaway_type == 'DATA':
-                url = f"{base_url}/vtu/api/buy/{api_key}"
-                payload = {
-                    "pin": pin,
-                    "plan_id": str(giveaway.plan_id),
-                    "phone": _format_phone(claim.phone_number),
-                    "reference": order_ref
-                }
+                result = provider.buy_data(str(giveaway.plan_id), phone, order_ref)
             else:
-                url = f"{base_url}/vtu/api/buy/{api_key}"
                 network_to_use = giveaway.network
                 if network_to_use == 'all':
-                    network_to_use = get_network_by_prefix(_format_phone(claim.phone_number)) or 'mtn'
-                
-                net_map = {
-                    "mtn": "10",
-                    "airtel": "11",
-                    "glo": "12",
-                    "9mobile": "1651"
-                }
-                plan_id = net_map.get(str(network_to_use).lower(), "10")
-                
-                payload = {
-                    "pin": pin,
-                    "plan_id": plan_id,
-                    "phone": _format_phone(claim.phone_number),
-                    "amount": str(int(giveaway.amount_per_slot)),
-                    "reference": order_ref
-                }
-                
-            logger.info("Calling Sabuss API for claim %s (%s %s to %s, ref: %s)", claim_id, giveaway.giveaway_type, giveaway.amount_per_slot, claim.phone_number, order_ref)
-            response = requests.post(url, data=payload, timeout=25)
-            logger.info("Sabuss API response for claim %s: HTTP %s, body: %s", claim_id, response.status_code, response.text[:200])
+                    network_to_use = get_network_by_prefix(phone) or 'mtn'
+                product = provider.resolve_airtime_product(network_to_use)
+                result = provider.buy_airtime(
+                    product, phone, Decimal(giveaway.amount_per_slot), order_ref
+                )
 
-            if response.status_code in [200, 201]:
-                response_data = response.json()
-                code = str(response_data.get("code"))
-                if code in ["200", "400"]:
-                    success = True
-                    provider_ref = response_data.get("reference", response_data.get("id", order_ref))
-                else:
-                    logger.error(f"Sabuss API rejected claim {claim_id}: {response_data}")
+            logger.info(
+                "Provider response for claim %s (%s %s to %s, ref: %s): status=%s ref=%s message=%s",
+                claim_id, giveaway.giveaway_type, giveaway.amount_per_slot,
+                claim.phone_number, order_ref, result.status, result.provider_ref, result.message,
+            )
+
+            if result.status == PurchaseStatus.SUCCESS:
+                success = True
+                provider_ref = result.provider_ref or order_ref
             else:
-                logger.error(f"Sabuss API connection error for claim {claim_id}: HTTP {response.status_code}")
+                logger.error("Provider has not settled claim %s yet (status=%s).", claim_id, result.status)
         except Exception as e:
-            logger.error(f"Sabuss API exception for claim {claim_id}: {str(e)}")
+            logger.error("VTU provider exception for claim %s: %s", claim_id, str(e))
             
     try:
         if success:

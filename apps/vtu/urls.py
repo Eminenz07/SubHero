@@ -5,6 +5,7 @@ VTU — URL Configuration
 
 from django.urls import path
 from . import views
+from . import webhooks
 
 app_name = "vtu"
 
@@ -31,4 +32,7 @@ urlpatterns = [
 
     # Utility Verification
     path("api/verify-utility/", views.VerifyUtilityAjaxView.as_view(), name="verify_utility"),
+
+    # Provider Webhooks
+    path("webhooks/dancity/", webhooks.DancityWebhookView.as_view(), name="dancity_webhook"),
 ]

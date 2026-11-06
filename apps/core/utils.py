@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 def generate_reference(prefix="SH"):
     """
     Generate a unique transaction reference.
-    Format: SH{timestamp_hex}{random_chars}  (no hyphens — Sabuss rejects them)
+    Format: SH{timestamp_hex}{random_chars}  (no hyphens — provider rejects them)
     """
     ts = hex(int(time.time()))[2:]
     rand = "".join(random.choices(string.ascii_uppercase + string.digits, k=6))

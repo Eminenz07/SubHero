@@ -16,43 +16,23 @@
 
 {% block admin_content %}
 <!-- Live API Wallets Banners -->
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-    <!-- Sabuss Balance Banner -->
-    <div class="p-5 rounded-xl border flex items-center justify-between transition-all {% if sabuss_status == 'critical' %}bg-red-950/20 border-red-500/30 text-red-200{% elif sabuss_status == 'warning' %}bg-yellow-950/20 border-yellow-500/30 text-yellow-200{% else %}bg-emerald-950/20 border-emerald-500/30 text-emerald-200{% endif %}">
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    <!-- VTU Provider Balance Banner -->
+    <div class="p-5 rounded-xl border flex items-center justify-between transition-all {% if provider_status == 'critical' %}bg-red-950/20 border-red-500/30 text-red-200{% elif provider_status == 'warning' %}bg-yellow-950/20 border-yellow-500/30 text-yellow-200{% else %}bg-emerald-950/20 border-emerald-500/30 text-emerald-200{% endif %}">
         <div class="flex items-center gap-4">
-            <div class="w-12 h-12 rounded-lg flex items-center justify-center border {% if sabuss_status == 'critical' %}bg-red-500/10 border-red-500/20 text-red-400{% elif sabuss_status == 'warning' %}bg-yellow-500/10 border-yellow-500/20 text-yellow-400{% else %}bg-emerald-500/10 border-emerald-500/20 text-emerald-400{% endif %}">
+            <div class="w-12 h-12 rounded-lg flex items-center justify-center border {% if provider_status == 'critical' %}bg-red-500/10 border-red-500/20 text-red-400{% elif provider_status == 'warning' %}bg-yellow-500/10 border-yellow-500/20 text-yellow-400{% else %}bg-emerald-500/10 border-emerald-500/20 text-emerald-400{% endif %}">
                 {% include "icons/database.html" %}
             </div>
             <div>
-                <div class="text-[11px] uppercase tracking-wider font-semibold opacity-75">Sabuss VTU Wallet</div>
-                <div class="text-2xl font-bold font-mono mt-0.5">₦{{ sabuss_balance|floatformat:2 }}</div>
+                <div class="text-[11px] uppercase tracking-wider font-semibold opacity-75">{{ provider_label }} VTU Wallet</div>
+                <div class="text-2xl font-bold font-mono mt-0.5">₦{{ provider_balance|floatformat:2 }}</div>
                 <div class="text-[11px] mt-1 flex items-center gap-1">
-                    <span class="w-2 h-2 rounded-full {% if sabuss_status == 'critical' %}bg-red-500 animate-pulse{% elif sabuss_status == 'warning' %}bg-yellow-500 animate-pulse{% else %}bg-emerald-500{% endif %}"></span>
-                    {% if sabuss_status == 'critical' %}Critical Threshold Reached!{% elif sabuss_status == 'warning' %}Warning Threshold Reached{% else %}API Wallet Healthy{% endif %}
+                    <span class="w-2 h-2 rounded-full {% if provider_status == 'critical' %}bg-red-500 animate-pulse{% elif provider_status == 'warning' %}bg-yellow-500 animate-pulse{% else %}bg-emerald-500{% endif %}"></span>
+                    {% if provider_status == 'critical' %}Critical Threshold Reached!{% elif provider_status == 'warning' %}Warning Threshold Reached{% else %}API Wallet Healthy{% endif %}
                 </div>
             </div>
         </div>
-        <a href="https://sabuss.com" target="_blank" class="px-4 py-2 rounded-lg text-xs font-bold border transition-all hover:scale-[1.02] {% if sabuss_status == 'critical' %}bg-red-500 text-white border-transparent hover:bg-red-600{% elif sabuss_status == 'warning' %}bg-yellow-500 text-slate-950 border-transparent hover:bg-yellow-600{% else %}bg-emerald-600 text-white border-transparent hover:bg-emerald-700{% endif %}">
-            Fund Now
-        </a>
-    </div>
-
-    <!-- CheapDataHub Balance Banner -->
-    <div class="p-5 rounded-xl border flex items-center justify-between transition-all {% if cdh_status == 'critical' %}bg-red-950/20 border-red-500/30 text-red-200{% elif cdh_status == 'warning' %}bg-yellow-950/20 border-yellow-500/30 text-yellow-200{% else %}bg-emerald-950/20 border-emerald-500/30 text-emerald-200{% endif %}">
-        <div class="flex items-center gap-4">
-            <div class="w-12 h-12 rounded-lg flex items-center justify-center border {% if cdh_status == 'critical' %}bg-red-500/10 border-red-500/20 text-red-400{% elif cdh_status == 'warning' %}bg-yellow-500/10 border-yellow-500/20 text-yellow-400{% else %}bg-emerald-500/10 border-emerald-500/20 text-emerald-400{% endif %}">
-                {% include "icons/database.html" %}
-            </div>
-            <div>
-                <div class="text-[11px] uppercase tracking-wider font-semibold opacity-75">CheapDataHub Wallet</div>
-                <div class="text-2xl font-bold font-mono mt-0.5">₦{{ cdh_balance|floatformat:2 }}</div>
-                <div class="text-[11px] mt-1 flex items-center gap-1">
-                    <span class="w-2 h-2 rounded-full {% if cdh_status == 'critical' %}bg-red-500 animate-pulse{% elif cdh_status == 'warning' %}bg-yellow-500 animate-pulse{% else %}bg-emerald-500{% endif %}"></span>
-                    {% if cdh_status == 'critical' %}Critical Threshold Reached!{% elif cdh_status == 'warning' %}Warning Threshold Reached{% else %}API Wallet Healthy{% endif %}
-                </div>
-            </div>
-        </div>
-        <a href="https://cheapdatahub.com.ng" target="_blank" class="px-4 py-2 rounded-lg text-xs font-bold border transition-all hover:scale-[1.02] {% if cdh_status == 'critical' %}bg-red-500 text-white border-transparent hover:bg-red-600{% elif cdh_status == 'warning' %}bg-yellow-500 text-slate-950 border-transparent hover:bg-yellow-600{% else %}bg-emerald-600 text-white border-transparent hover:bg-emerald-700{% endif %}">
+        <a href="https://dancity.app" target="_blank" class="px-4 py-2 rounded-lg text-xs font-bold border transition-all hover:scale-[1.02] {% if provider_status == 'critical' %}bg-red-500 text-white border-transparent hover:bg-red-600{% elif provider_status == 'warning' %}bg-yellow-500 text-slate-950 border-transparent hover:bg-yellow-600{% else %}bg-emerald-600 text-white border-transparent hover:bg-emerald-700{% endif %}">
             Fund Now
         </a>
     </div>
