@@ -13,7 +13,9 @@ import logging
 
 from django.conf import settings
 from django.http import JsonResponse
+from django.utils.decorators import method_decorator
 from django.views import View
+from django.views.decorators.csrf import csrf_exempt
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +30,7 @@ def verify_signature(raw_body: bytes, signature: str, secret: str) -> bool:
     return hmac.compare_digest(expected, signature)
 
 
+@method_decorator(csrf_exempt, name="dispatch")
 class DancityWebhookView(View):
     """Receives Dancity transaction events and reconciles matching orders."""
 

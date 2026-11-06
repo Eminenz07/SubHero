@@ -28,13 +28,15 @@ class MaintenanceModeMiddleware:
             admin_hq_path = f"/{settings.ADMIN_HQ_URL.lstrip('/')}"
             admin_django_path = f"/{settings.ADMIN_URL.lstrip('/')}"
 
-            # 3. Allow static files, media files, auth URLs, and admin HQ paths to prevent lockouts
+            # 3. Allow static files, media files, auth URLs, admin HQ paths and
+            #    provider webhook callbacks to prevent lockouts and dropped events
             if not (
                 path.startswith(admin_hq_path) or
                 path.startswith(admin_django_path) or
                 path.startswith("/auth/") or
                 path.startswith("/static/") or
                 path.startswith("/media/") or
+                path.startswith("/vtu/webhooks/") or
                 path.startswith("/manifest.json") or
                 path.startswith("/sw.js")
             ):
