@@ -71,8 +71,64 @@ SubHero is hosted on a Contabo VPS with the domain subhero.com.ng. Cloudflare is
 
 3. **Deployment Steps**:
    - The application is deployed on a Contabo VPS.
-   - Cloudflare is configured as a proxy to handle the domain and provide security features.
+   - Cloudflare is configured as a proxy to handle the domain and provide additional security features.
    - Email routing is managed by Cloudflare.
+
+### Manual Deploy
+
+GitHub Actions does not run reliably for this repo, so the VPS is updated by hand.
+On the VPS (`/home/subhero_admin/SubHero`):
+
+```bash
+git fetch --prune origin main
+git reset --hard origin/main
+git clean -fd -e .env -e config/local_settings.py
+docker compose up -d --build --remove-orphans web
+```
+
+`start.sh` runs the migrations when the container starts. Watch the boot with
+`docker logs -f subhero_web`.
+
+### VTU Providers
+
+Outbound data and airtime purchases go through a provider chain, configured with
+`VTU_PROVIDER_ORDER`. The first provider that can deliver serves the order; the
+rest are fallbacks. A purchase that fails with an unclear outcome is checked
+with the provider before the next one is tried, so an order is never delivered
+twice.
+
+```env
+VTU_PROVIDER_ORDER=gsubz,dancity
+
+GSUBZ_API_KEY=
+GSUBZ_BASE_URL=https://api.gsubz.com
+GSUBZ_WEBHOOK_SECRET=
+GSUBZ_TIMEOUT=60
+
+DANCITY_API_KEY=
+DANCITY_BASE_URL=https://api.dancity.app
+DANCITY_WEBHOOK_SECRET=
+DANCITY_TIMEOUT=30
+```
+
+Each provider has its own plan identifiers. `VTUPlan.provider_plan_ids` stores
+the id each provider uses for the same bundle, so the same plan can be bought
+from either provider.
+
+Provider webhooks:
+
+- GSUBZ: `https://subhero.com.ng/vtu/webhooks/gsubz/` — signed with
+  `sha256=` + HMAC-SHA256 of `timestamp + "." + raw body`.
+- Dancity: `https://subhero.com.ng/vtu/webhooks/dancity/` — signed with
+  HMAC-SHA256 of the raw body.
+
+The plan catalogue is synced by the `sync_vtu_plans` Celery task. To run it by
+hand:
+
+```bash
+docker compose exec web python manage.py shell -c "from apps.vtu.tasks import sync_vtu_plans; sync_vtu_plans()"
+```
+
 
 ## Setup and Installation
 
