@@ -1,0 +1,63 @@
+name: Diagnostic - Cool-sub Provider Probe
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: diag-coolsub
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    name: Probe cool-sub from the VPS
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Prepare SSH key
+        env:
+          RAW_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          if printf '%s' "$RAW_SSH_KEY" | grep -q 'BEGIN .*PRIVATE KEY'; then
+            KEY="$RAW_SSH_KEY"
+          else
+            KEY=$(printf '%s' "$RAW_SSH_KEY" | base64 -d)
+          fi
+          if [ -z "$KEY" ]; then
+            echo "VPS_SSH_KEY secret is empty or not a valid private key" >&2
+            exit 1
+          fi
+          {
+            echo 'RESOLVED_SSH_KEY<<GITHUB_ENV_EOF'
+            printf '%s\n' "$KEY"
+            echo 'GITHUB_ENV_EOF'
+          } >> "$GITHUB_ENV"
+
+      - name: Probe from VPS
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ env.RESOLVED_SSH_KEY }}
+          passphrase: ${{ secrets.VPS_SSH_KEY_PASSPHRASE }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          script_stop: true
+          script: |
+            set -e
+            cd "${{ secrets.VPS_DEPLOY_PATH || '/home/subhero_admin/SubHero' }}"
+
+            echo "==> VPS egress IP"
+            curl -s https://api.ipify.org || true
+            echo
+
+            echo "==> Cool-sub balance with DANCITY key"
+            set -a
+            . ./.env
+            set +a
+            curl -s -w "\nHTTP %{http_code}\n" \
+              https://v2.cool-sub.com/api/user/ \
+              -H "Authorization: Token $DANCITY_API_KEY" \
+              -H "Content-Type: application/json" || true
+
+            echo "==> Cool-sub health"
+            curl -s -w "\nHTTP %{http_code}\n" \
+              https://v2.cool-sub.com/api/health || true
