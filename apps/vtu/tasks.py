@@ -17,12 +17,18 @@ from apps.vtu.models import (
     ExamProduct, ExamPinOrder,
 )
 from apps.vtu.providers import get_provider
-from apps.vtu.providers.base import PurchaseStatus, derive_network, derive_plan_type
+from apps.vtu.providers.base import (
+    PurchaseStatus,
+    derive_network,
+    derive_plan_type,
+    plan_match_key,
+)
 from apps.vtu.providers.errors import (
     ProviderAuthError,
     ProviderDeclinedError,
     ProviderError,
     ProviderNotFoundError,
+    ProviderPartialDeliveryError,
     ProviderRateLimitedError,
     ProviderTransientError,
     ProviderValidationError,
@@ -46,6 +52,9 @@ def _is_definitive(exc: Exception) -> bool:
             ProviderValidationError,
             ProviderNotFoundError,
             ProviderDeclinedError,
+            # Part of the value was already delivered, so retrying would
+            # deliver it twice.
+            ProviderPartialDeliveryError,
         ),
     )
 
@@ -153,6 +162,10 @@ def process_vtu_order(self, order_id):
                 order.api_cost = result.amount_paid
             order.delivered_at = timezone.now()
             order.save(update_fields=["status", "provider_ref", "api_cost", "delivered_at"])
+
+            served_by = (result.extra or {}).get("provider")
+            if served_by:
+                logger.info("VTU order %s was served by %s.", order_id, served_by)
 
             WalletTransaction.objects.filter(reference=order.reference).update(status=WalletTransaction.Status.SUCCESS)
 
@@ -269,13 +282,28 @@ def refund_vtu_order(order_id):
 
 
 @shared_task
+def _provider_chain() -> list:
+    """Every configured provider, in the order it should be tried."""
+    from apps.vtu.providers import _provider_order, _build
+
+    chain = []
+    for name in _provider_order():
+        try:
+            chain.append(_build(name))
+        except Exception as exc:
+            logger.warning("Could not build VTU provider '%s': %s", name, exc)
+    return chain
+
+
 def sync_vtu_plans():
     """
-    Background synchronisation of active data plans from the configured VTU provider.
-    """
-    provider = get_provider()
-    logger.info("%s VTU data plans synchronization triggered.", provider.name)
+    Synchronise active data plans from every configured VTU provider.
 
+    The primary provider owns ``plan_id`` (the id SubHero stores on orders and
+    shows to the admin). Plans from the other providers are matched onto the
+    same logical bundle and stored under ``provider_plan_ids`` so the failover
+    provider can buy the same bundle from a different provider.
+    """
     from apps.admin_panel.models import SystemSetting
     try:
         vtu_margin_pct = Decimal(SystemSetting.get("vtu_profit_margin", "10.00"))
@@ -283,28 +311,71 @@ def sync_vtu_plans():
         vtu_margin_pct = Decimal("10.00")
     margin = vtu_margin_pct / Decimal("100")
 
-    try:
-        plans = provider.list_data_plans()
-    except ProviderError as exc:
-        logger.error("Error fetching data plans from %s: %s. Keeping existing plans active.", provider.name, exc)
-        return
-    except Exception as exc:
-        logger.error("Unexpected error fetching data plans from %s: %s", provider.name, exc)
+    chain = _provider_chain()
+    if not chain:
+        logger.error("No VTU provider is configured. Keeping existing plans active.")
         return
 
-    if not plans:
-        logger.warning("%s returned an empty data plan catalogue. Keeping existing plans active.", provider.name)
+    primary = chain[0]
+    logger.info("%s VTU data plans synchronization triggered.", primary.name)
+
+    catalogues: dict[str, list] = {}
+    for provider in chain:
+        try:
+            plans = provider.list_data_plans()
+        except ProviderError as exc:
+            logger.error(
+                "Error fetching data plans from %s: %s. Keeping existing plans active.",
+                provider.name, exc,
+            )
+            continue
+        except Exception as exc:
+            logger.error("Unexpected error fetching data plans from %s: %s", provider.name, exc)
+            continue
+
+        if not plans:
+            logger.warning("%s returned an empty data plan catalogue.", provider.name)
+            continue
+        catalogues[provider.name] = plans
+        logger.info("Fetched %s data plans from %s.", len(plans), provider.name)
+
+    if primary.name not in catalogues:
+        logger.error(
+            "The primary provider %s returned no catalogue. Keeping existing plans active.",
+            primary.name,
+        )
         return
+
+    # Index the secondary catalogues by their logical plan key.
+    secondary_index: dict[str, dict[str, object]] = {}
+    for provider_name, plans in catalogues.items():
+        if provider_name == primary.name:
+            continue
+        index: dict[str, object] = {}
+        for plan in plans:
+            key = _plan_key(plan)
+            if key:
+                index.setdefault(key, plan)
+        secondary_index[provider_name] = index
 
     active_plan_ids = []
-    for plan in plans:
+    for plan in catalogues[primary.name]:
         provider_price = plan.price
         subhero_price = (provider_price * (Decimal("1") + margin)).quantize(Decimal("0.01"))
+
+        provider_plan_ids = {primary.name: plan.plan_id}
+        key = _plan_key(plan)
+        if key:
+            for provider_name, index in secondary_index.items():
+                match = index.get(key)
+                if match is not None:
+                    provider_plan_ids[provider_name] = match.plan_id
 
         VTUPlan.objects.update_or_create(
             plan_id=plan.plan_id,
             defaults={
                 "provider_product": plan.provider_product,
+                "provider_plan_ids": provider_plan_ids,
                 "network": derive_network(plan.provider_product) if plan.provider_product else "other",
                 "plan_type": derive_plan_type(plan.provider_product) if plan.provider_product else "DATA",
                 "name": plan.name[:100],
@@ -317,7 +388,26 @@ def sync_vtu_plans():
         active_plan_ids.append(plan.plan_id)
 
     VTUPlan.objects.exclude(plan_id__in=active_plan_ids).update(is_active=False)
-    logger.info("Successfully synced %s data plans from %s.", len(active_plan_ids), provider.name)
+    logger.info("Successfully synced %s data plans from %s.", len(active_plan_ids), primary.name)
+
+
+def _plan_key(plan) -> str:
+    """Build the cross-provider matching key for a data plan."""
+    size = getattr(plan, "size", "") or ""
+    if not size:
+        # Fall back to parsing the size out of the plan name.
+        name = (plan.name or "").upper()
+        for token in name.replace("(", " ").replace(")", " ").split():
+            if "GB" in token or "MB" in token:
+                size = token.strip("-.,")
+                break
+
+    return plan_match_key(
+        derive_network(plan.provider_product) if plan.provider_product else "other",
+        derive_plan_type(plan.provider_product) if plan.provider_product else "DATA",
+        size,
+        plan.validity,
+    )
 
 
 @shared_task
@@ -339,7 +429,8 @@ def check_api_wallet_balance():
  
     # 1. Fetch the VTU provider wallet balance
     provider_balance = Decimal("0.00")
-    provider_label = getattr(settings, "VTU_PROVIDER", "dancity")
+    from apps.vtu.providers import provider_label as _provider_label
+    provider_label = _provider_label()
     try:
         provider_balance = get_provider().get_balance()
     except Exception as e:
@@ -521,15 +612,18 @@ def process_airtime_order(self, order_id):
     provider_refs: list[str] = []
     last_message = ""
 
-    for chunk in chunks:
+    for index, chunk in enumerate(chunks):
         result = None
+        # Every chunk needs its own reference so the provider does not treat
+        # the second chunk as a repeat of the first.
+        chunk_ref = order.reference if len(chunks) == 1 else f"{order.reference}-{index + 1}"
         for attempt in range(1, MAX_PROVIDER_ATTEMPTS + 1):
             try:
                 logger.info(
                     "Airtime order %s: buying ₦%s via %s (attempt %s/%s)",
                     order_id, chunk, provider.name, attempt, MAX_PROVIDER_ATTEMPTS,
                 )
-                result = provider.buy_airtime(provider_product, phone, chunk, order.reference)
+                result = provider.buy_airtime(provider_product, phone, chunk, chunk_ref)
 
                 if result.status in (PurchaseStatus.PENDING, PurchaseStatus.PROCESSING):
                     order.provider_ref = result.provider_ref or order.reference
@@ -545,6 +639,19 @@ def process_airtime_order(self, order_id):
                     "Airtime order %s: attempt %s of %s failed: %s",
                     order_id, attempt, MAX_PROVIDER_ATTEMPTS, str(exc),
                 )
+
+                if isinstance(exc, ProviderPartialDeliveryError):
+                    delivered_amount += exc.delivered_amount
+                    logger.error(
+                        "Airtime order %s: only ₦%s was delivered before the failure.",
+                        order_id, delivered_amount,
+                    )
+                    order.status = AirtimeOrder.Status.FAILED
+                    order.provider_ref = last_message
+                    order.save(update_fields=["status", "provider_ref"])
+                    refund_airtime_order(order_id, partial_amount=order.amount - delivered_amount)
+                    return
+
                 if attempt == MAX_PROVIDER_ATTEMPTS or _is_definitive(exc):
                     logger.error("Airtime order %s failed permanently: %s", order_id, str(exc))
                     order.status = AirtimeOrder.Status.FAILED
@@ -1073,10 +1180,19 @@ def _find_order_by_identifiers(identifiers: list[str]):
     if not clean:
         return None, None
 
+    # A split purchase sends one reference per chunk, e.g. "AIR123-2".
+    bases = []
+    for value in clean:
+        head, sep, tail = value.rpartition("-")
+        if sep and tail.isdigit() and head:
+            bases.append(head)
+
+    candidates = clean + bases
+
     for model, refund_task in _ORDER_MODELS_WITH_REFUNDS:
-        order = model.objects.filter(reference__in=clean).first()
+        order = model.objects.filter(reference__in=candidates).first()
         if order is None:
-            order = model.objects.filter(provider_ref__in=clean).first()
+            order = model.objects.filter(provider_ref__in=candidates).first()
         if order is not None:
             return order, refund_task
     return None, None
@@ -1157,6 +1273,74 @@ def reconcile_dancity_event(event: str, data: dict):
         order.save(update_fields=["status", "provider_ref"])
         refund_task(order.id)
         logger.info("Webhook marked %s %s as FAILED and refunded.", model.__name__, order.reference)
+
+
+@shared_task
+def reconcile_gsubz_event(event: str, payload: dict):
+    """
+    Applies a GSUBZ webhook event to the matching SubHero order.
+
+    GSUBZ sends the whole order with every event, and the same event can be
+    delivered more than once, so the handler is idempotent.
+    """
+    event = (event or "").strip().lower()
+    data = payload.get("data") or {}
+    change = data.get("change") or {}
+    transaction = data.get("transaction") or {}
+
+    status = str(transaction.get("status") or "").strip().lower()
+    change_type = str(change.get("type") or "").strip().upper()
+
+    if event != "transaction.updated":
+        logger.info("Ignoring GSUBZ webhook event %s.", event or "none")
+        return
+
+    succeeded = status in ("successful", "success")
+    failed = status in ("failed", "failure") or change_type == "REFUNDED"
+
+    if not succeeded and not failed:
+        logger.info("Ignoring GSUBZ webhook event %s with status %s.", event, status or "none")
+        return
+
+    identifiers = [
+        transaction.get("requestID"),
+        transaction.get("transactionID"),
+    ]
+
+    order, refund_task = _find_order_by_identifiers(identifiers)
+
+    if order is None:
+        logger.info(
+            "GSUBZ webhook identifiers %s did not match any SubHero order.",
+            [str(value) for value in identifiers if value],
+        )
+        return
+
+    model = type(order)
+
+    if order.status == model.Status.SUCCESS and not failed:
+        return
+
+    if succeeded:
+        order.status = model.Status.SUCCESS
+        order.provider_ref = str(transaction.get("transactionID") or order.provider_ref)
+        order.delivered_at = timezone.now()
+        order.save(update_fields=["status", "provider_ref", "delivered_at"])
+        WalletTransaction.objects.filter(reference=order.reference).update(
+            status=WalletTransaction.Status.SUCCESS
+        )
+        logger.info("GSUBZ webhook marked %s %s as SUCCESS.", model.__name__, order.reference)
+        return
+
+    # A REFUNDED event means the provider reversed a purchase that had already
+    # succeeded, so the customer is refunded even though the order was SUCCESS.
+    order.status = model.Status.FAILED
+    order.provider_ref = str(
+        transaction.get("description") or "Provider transaction failed"
+    )[:100]
+    order.save(update_fields=["status", "provider_ref"])
+    refund_task(order.id)
+    logger.info("GSUBZ webhook marked %s %s as FAILED and refunded.", model.__name__, order.reference)
 
 
 @shared_task

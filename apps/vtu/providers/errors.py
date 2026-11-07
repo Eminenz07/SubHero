@@ -34,3 +34,15 @@ class ProviderTransientError(ProviderError):
 
 class ProviderPendingError(ProviderError):
     """Provider accepted the request but has not settled it yet."""
+
+
+class ProviderPartialDeliveryError(ProviderError):
+    """A purchase delivered part of the value before failing.
+
+    ``delivered_amount`` is what the provider already fulfilled, so the
+    remainder can be refunded instead of the full order value.
+    """
+
+    def __init__(self, message: str, delivered_amount):
+        super().__init__(message)
+        self.delivered_amount = delivered_amount

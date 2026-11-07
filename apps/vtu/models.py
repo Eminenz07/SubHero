@@ -13,6 +13,11 @@ class VTUPlan(models.Model):
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     plan_id = models.CharField(max_length=80, unique=True, help_text="Provider plan identifier used when buying")
+    provider_plan_ids = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Plan identifier per provider, e.g. {\"gsubz\": \"mtn_sme:260\", \"dancity\": \"abc123\"}",
+    )
     provider_product = models.CharField(max_length=80, blank=True, default="", help_text="Provider product label, e.g. MTN GIFTING")
     network = models.CharField(max_length=20, help_text="e.g. mtn, airtel, glo, 9mobile")
     plan_type = models.CharField(max_length=30, blank=True, default="", help_text="Plan category, e.g. SME, SME2, SMART, DATA, CG, AWOOF")

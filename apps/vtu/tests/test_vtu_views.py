@@ -66,7 +66,7 @@ class VtuViewFlowTests(TestCase):
         order = VTUOrder.objects.get()
         self.assertEqual(order.status, VTUOrder.Status.SUCCESS)
         self.assertEqual(order.plan_id, plan.plan_id)
-        self.assertEqual(order.api_cost, plan.subhero_price)
+        self.assertEqual(order.api_cost, plan.provider_price)
 
     @override_settings(VTU_MOCK=True)
     @patch("apps.vtu.tasks.send_transaction_sms")
@@ -90,13 +90,13 @@ class VtuViewFlowTests(TestCase):
     def test_cable_is_gated_behind_soon_notice(self):
         response = self.client.get(reverse("vtu:buy_cable"))
         self.assertEqual(response.status_code, 503)
-        self.assertContains(response, "Soon")
+        self.assertContains(response, "Soon", status_code=503)
 
     @override_settings(VTU_ENABLE_ELECTRICITY=False)
     def test_electricity_is_gated_behind_soon_notice(self):
         response = self.client.get(reverse("vtu:buy_electricity"))
         self.assertEqual(response.status_code, 503)
-        self.assertContains(response, "Soon")
+        self.assertContains(response, "Soon", status_code=503)
 
     @override_settings(VTU_ENABLE_EXAM=False)
     def test_exam_is_gated_behind_soon_notice(self):

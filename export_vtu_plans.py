@@ -26,6 +26,7 @@ try:
         writer = csv.writer(f)
         writer.writerow([
             "Plan ID",
+            "Provider Plan IDs",
             "Provider Product",
             "Network",
             "Plan Name",
@@ -36,6 +37,7 @@ try:
         for p in plans:
             writer.writerow([
                 p.plan_id,
+                "; ".join(f"{k}={v}" for k, v in (p.provider_plan_ids or {}).items()),
                 p.provider_product,
                 p.network.upper(),
                 p.name,

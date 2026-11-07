@@ -134,7 +134,7 @@
                 <div class="text-3xl font-extrabold text-white font-mono">₦{{ provider_balance|floatformat:2 }}</div>
                 <div class="mt-4 flex justify-between items-center text-xs">
                     <span class="text-slate-500 font-medium">Critical: ₦{{ alert_config.provider_critical_threshold }}</span>
-                    <a href="https://dancity.app" target="_blank" class="text-emerald-400 hover:underline font-bold flex items-center gap-1">
+                    <a href="{{ provider_fund_url }}" target="_blank" rel="noopener" class="text-emerald-400 hover:underline font-bold flex items-center gap-1">
                         Fund Now
                         <i data-feather="external-link" class="w-3.5 h-3.5"></i>
                     </a>

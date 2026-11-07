@@ -415,9 +415,20 @@ MAX_PIN_ATTEMPTS = 3
 PIN_LOCKOUT_SECONDS = 900  # 15 minutes
 
 # =============================================================
-# DANCITY — Outbound VTU API (data, airtime, cable, electricity, exam pins)
+# OUTBOUND VTU PROVIDERS
 # =============================================================
-VTU_PROVIDER = config("VTU_PROVIDER", default="dancity")
+# The provider chain, in the order it is tried. The first provider that can
+# deliver serves the order; the rest are fallbacks.
+VTU_PROVIDER_ORDER = config("VTU_PROVIDER_ORDER", default="gsubz,dancity")
+VTU_PROVIDER = config("VTU_PROVIDER", default="gsubz")
+
+# GSUBZ — primary provider for data and airtime
+GSUBZ_API_KEY = config("GSUBZ_API_KEY", default="")
+GSUBZ_BASE_URL = config("GSUBZ_BASE_URL", default="https://api.gsubz.com")
+GSUBZ_WEBHOOK_SECRET = config("GSUBZ_WEBHOOK_SECRET", default="")
+GSUBZ_TIMEOUT = config("GSUBZ_TIMEOUT", default=60, cast=int)
+
+# DANCITY — fallback provider (data, airtime, cable, electricity, exam pins)
 DANCITY_API_KEY = config("DANCITY_API_KEY", default="")
 DANCITY_BASE_URL = config("DANCITY_BASE_URL", default="https://api.dancity.app")
 DANCITY_WEBHOOK_SECRET = config("DANCITY_WEBHOOK_SECRET", default="")

@@ -18,6 +18,7 @@ class DataPlan:
     provider_product: str
     price: Decimal
     validity: str = ""
+    size: str = ""
 
 
 @dataclass(frozen=True)
@@ -194,3 +195,81 @@ def to_decimal(value: Any, default: str = "0") -> Decimal:
         return Decimal(str(value).replace(",", "").strip())
     except Exception:
         return Decimal(default)
+
+
+def normalize_size(value: str) -> str:
+    """Normalise a data bundle size so two catalogues can be compared."""
+    label = (value or "").strip().upper().replace(" ", "")
+    if not label:
+        return ""
+    if label.endswith("GB"):
+        number = label[:-2]
+    elif label.endswith("MB"):
+        number = label[:-2] + "MB"
+    else:
+        return label
+    try:
+        amount = float(number)
+    except ValueError:
+        return label
+    if amount.is_integer():
+        number = str(int(amount))
+    return number + ("MB" if label.endswith("MB") else "GB")
+
+
+def normalize_validity(value: str) -> str:
+    """Normalise a validity period so two catalogues can be compared."""
+    label = (value or "").strip().lower()
+    if not label:
+        return ""
+    label = label.replace("days", "").replace("day", "").strip()
+    if label.endswith("."):
+        label = label[:-1]
+    try:
+        amount = float(label)
+    except ValueError:
+        return label
+    if amount.is_integer():
+        return str(int(amount))
+    return label
+
+
+def plan_match_key(network: str, plan_type: str, size: str, validity: str) -> str:
+    """
+    Build the key used to match the same logical plan across two providers.
+
+    GSUBZ and Dancity label the same bundle differently, but the network, the
+    plan family, the bundle size and the validity period line up.
+    """
+    return "|".join(
+        [
+            (network or "other").strip().lower(),
+            (plan_type or "DATA").strip().upper(),
+            normalize_size(size),
+            normalize_validity(validity),
+        ]
+    )
+
+
+def split_amount(amount: Decimal, cap: Optional[Decimal]) -> list[Decimal]:
+    """
+    Split an amount into pieces no larger than the provider's cap.
+
+    ``cap`` of ``None`` means the provider takes the whole amount in one
+    transaction.
+    """
+    amount = Decimal(str(amount))
+    if cap is None:
+        return [amount]
+
+    cap = Decimal(str(cap))
+    if cap <= 0:
+        return [amount]
+
+    pieces: list[Decimal] = []
+    remaining = amount
+    while remaining > 0:
+        piece = min(remaining, cap)
+        pieces.append(piece)
+        remaining -= piece
+    return pieces or [amount]

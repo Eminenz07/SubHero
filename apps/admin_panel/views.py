@@ -124,7 +124,9 @@ def dashboard(request):
     
     # Live balance fetch
     provider_balance = fetch_provider_balance()
-    provider_label = getattr(settings, "VTU_PROVIDER", "dancity").title()
+    from apps.vtu.providers import provider_fund_url, provider_label as _provider_label
+    provider_label = _provider_label()
+    provider_fund_url = provider_fund_url()
     ogaviral_balance = fetch_ogaviral_balance()
 
     alert_config = AlertConfig.objects.first()
@@ -179,6 +181,7 @@ def dashboard(request):
         "provider_balance": provider_balance,
         "provider_status": provider_status,
         "provider_label": provider_label,
+        "provider_fund_url": provider_fund_url,
         "ogaviral_balance": ogaviral_balance,
         "ogaviral_status": ogaviral_status,
         "alert_config": alert_config,
@@ -1036,7 +1039,9 @@ def api_wallets(request):
         return redirect("admin_panel:api_wallets")
 
     provider_balance = fetch_provider_balance()
-    provider_label = getattr(settings, "VTU_PROVIDER", "dancity").title()
+    from apps.vtu.providers import provider_fund_url, provider_label as _provider_label
+    provider_label = _provider_label()
+    provider_fund_url = provider_fund_url()
     ogaviral_balance = fetch_ogaviral_balance()
 
     # 14-day history trend
@@ -1063,6 +1068,7 @@ def api_wallets(request):
         "alert_config": alert_config,
         "provider_balance": provider_balance,
         "provider_label": provider_label,
+        "provider_fund_url": provider_fund_url,
         "ogaviral_balance": ogaviral_balance,
         "history_data": json.dumps(history_data),
     }

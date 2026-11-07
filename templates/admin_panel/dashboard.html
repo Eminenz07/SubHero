@@ -32,7 +32,7 @@
                 </div>
             </div>
         </div>
-        <a href="https://dancity.app" target="_blank" class="px-4 py-2 rounded-lg text-xs font-bold border transition-all hover:scale-[1.02] {% if provider_status == 'critical' %}bg-red-500 text-white border-transparent hover:bg-red-600{% elif provider_status == 'warning' %}bg-yellow-500 text-slate-950 border-transparent hover:bg-yellow-600{% else %}bg-emerald-600 text-white border-transparent hover:bg-emerald-700{% endif %}">
+        <a href="{{ provider_fund_url }}" target="_blank" rel="noopener" class="px-4 py-2 rounded-lg text-xs font-bold border transition-all hover:scale-[1.02] {% if provider_status == 'critical' %}bg-red-500 text-white border-transparent hover:bg-red-600{% elif provider_status == 'warning' %}bg-yellow-500 text-slate-950 border-transparent hover:bg-yellow-600{% else %}bg-emerald-600 text-white border-transparent hover:bg-emerald-700{% endif %}">
             Fund Now
         </a>
     </div>

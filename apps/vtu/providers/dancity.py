@@ -45,12 +45,12 @@ class DancityProvider(VTUProvider):
     name = "dancity"
     max_airtime_amount = Decimal("1000")
 
-    def __init__(self, api_key: Optional[str] = None, base_url: Optional[str] = None, timeout: int = DEFAULT_TIMEOUT):
+    def __init__(self, api_key: Optional[str] = None, base_url: Optional[str] = None, timeout: Optional[int] = None):
         self.api_key = api_key if api_key is not None else getattr(settings, "DANCITY_API_KEY", "")
         self.base_url = (
             base_url if base_url is not None else getattr(settings, "DANCITY_BASE_URL", "https://api.dancity.app")
         ).rstrip("/")
-        self.timeout = timeout
+        self.timeout = timeout if timeout is not None else getattr(settings, "DANCITY_TIMEOUT", DEFAULT_TIMEOUT)
 
     # ─────────────────────────── HTTP ───────────────────────────
 
@@ -210,6 +210,7 @@ class DancityProvider(VTUProvider):
                     provider_product=product,
                     price=to_decimal(entry.get("price")),
                     validity=str(entry.get("validity") or "").strip(),
+                    size=size,
                 )
             )
         return out

@@ -35,4 +35,5 @@ urlpatterns = [
 
     # Provider Webhooks
     path("webhooks/dancity/", webhooks.DancityWebhookView.as_view(), name="dancity_webhook"),
+    path("webhooks/gsubz/", webhooks.GsubzWebhookView.as_view(), name="gsubz_webhook"),
 ]
