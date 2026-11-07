@@ -420,6 +420,9 @@ def wallet_toggle_freeze(request, user_id):
 
 @admin_required
 def vtu_pricing_manager(request):
+    from apps.vtu.providers import provider_fund_url as _provider_fund_url
+    from apps.vtu.providers import provider_label as _provider_label
+
     networks = ["mtn", "airtel", "glo", "9mobile"]
     plans_by_network = {}
     
@@ -445,8 +448,49 @@ def vtu_pricing_manager(request):
         "airtime_settings": airtime_settings,
         "networks": networks,
         "vtu_profit_margin": vtu_profit_margin,
+        "provider_label": _provider_label(),
+        "provider_fund_url": _provider_fund_url(),
     }
     return render(request, "admin_panel/vtu_pricing.html", context)
+
+
+@admin_required
+def vtu_plans_sync(request):
+    """
+    Pull the live plan catalogue from the configured provider chain.
+
+    The sync writes the provider cost price to every plan and reprices the
+    plans that have no custom markup, so the admin always sees the current
+    catalogue before setting a profit on top of it.
+    """
+    if request.method != "POST":
+        return HttpResponse("Invalid request", status=400)
+
+    from apps.vtu.tasks import sync_vtu_plans
+
+    try:
+        sync_vtu_plans()
+    except Exception as exc:
+        logger.exception("Admin-triggered VTU plan sync failed: %s", exc)
+        return HttpResponse(
+            f'<div class="bg-red-950/40 text-red-400 border border-red-900/30 p-3 rounded-lg text-xs font-semibold">'
+            f"Plan sync failed: {str(exc)}</div>",
+            status=500,
+        )
+
+    total = VTUPlan.objects.filter(is_active=True).count()
+    log_admin_action(
+        request.user,
+        "PRICING_UPDATE",
+        "VTU_PLAN",
+        "SYNC",
+        f"Synced VTU plan catalogue from the provider chain ({total} active plans)",
+        request,
+    )
+    return HttpResponse(
+        f'<div class="bg-emerald-950/40 text-emerald-400 border border-emerald-900/30 p-3 rounded-lg text-xs font-semibold">'
+        f"Catalogue synced. {total} active plans. Reload the page to see the current prices.</div>"
+    )
 
 
 @admin_required

@@ -12,6 +12,31 @@
 
 {% block admin_content %}
 <div class="flex flex-col gap-8" x-data="{ activeNetwork: 'mtn' }">
+    <!-- Provider banner + catalogue sync -->
+    <div class="admin-card p-5 flex flex-wrap items-center justify-between gap-4">
+        <div class="min-w-0">
+            <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Live Catalogue</h4>
+            <p class="text-[11px] text-slate-500 mt-1 leading-normal">
+                Plans are pulled from <span class="text-slate-300 font-semibold">{{ provider_label }}</span>.
+                Sync to refresh the cost prices, then set your profit markup on each plan.
+                {% if provider_fund_url %}
+                <a href="{{ provider_fund_url }}" target="_blank" rel="noopener" class="text-emerald-400 hover:text-emerald-300 font-semibold">Top up provider wallet &rarr;</a>
+                {% endif %}
+            </p>
+        </div>
+        <div class="flex items-center gap-3">
+            <div id="plan-sync-result"></div>
+            <button hx-post="{% url 'admin_panel:vtu_plans_sync' %}"
+                    hx-target="#plan-sync-result"
+                    hx-swap="innerHTML"
+                    hx-indicator="#plan-sync-spinner"
+                    class="px-4 py-2.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors shrink-0">
+                Sync Catalogue
+            </button>
+            <span id="plan-sync-spinner" class="htmx-indicator text-slate-400 text-xs">Syncing&hellip;</span>
+        </div>
+    </div>
+
     <!-- Network Tab Headers -->
     <div class="border-b border-white/[0.06] flex gap-2">
         {% for net in networks %}

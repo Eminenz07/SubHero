@@ -26,6 +26,7 @@ urlpatterns = [
     path("vtu-pricing/save/", views.vtu_pricing_save, name="vtu_pricing_save"),
     path("vtu-pricing/bulk-update/", views.vtu_pricing_bulk_update, name="vtu_pricing_bulk_update"),
     path("vtu-pricing/airtime-save/", views.vtu_airtime_pricing_save, name="vtu_airtime_pricing_save"),
+    path("vtu-pricing/sync-plans/", views.vtu_plans_sync, name="vtu_plans_sync"),
 
     # SMM Pricing
     path("smm-pricing/", views.smm_pricing_manager, name="smm_pricing"),

@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 
 CATALOG_CACHE_TTL = 1800
 DEFAULT_TIMEOUT = 30
+DEFAULT_BASE_URL = "https://v2.cool-sub.com"
 
 _SERVICE_KEYWORDS = {
     "airtime": "AIRTIME",
@@ -38,17 +39,32 @@ _SERVICE_KEYWORDS = {
     "exam": "EXAM",
 }
 
+# Cool-sub lists some data bundles without a product label. They are all MTN
+# SME bundles, so they are filed under that product.
+_UNTAGGED_DATA_PRODUCT = "MTN SME"
+
+# Cool-sub's product names for the networks SubHero sells. 9mobile airtime
+# is branded "T2 Mobile Airtime" on their side.
+_AIRTIME_ALIASES = {
+    "9mobile": ("t2 mobile", "t2mobile", "9mobile", "etisalat"),
+}
+
 
 class DancityProvider(VTUProvider):
-    """Dancity merchant API (https://api.dancity.app/api/v1)."""
+    """Cool-sub merchant API (https://v2.cool-sub.com/api/v1).
+
+    Cool-sub runs the merchant platform Dancity's API key is issued against.
+    The merchant endpoints live under ``/api/v1``; the legacy MSORG slots
+    (``/api/data``, ``/api/topup``) serve the same catalogue.
+    """
 
     name = "dancity"
-    max_airtime_amount = Decimal("1000")
+    max_airtime_amount = Decimal("10000")
 
     def __init__(self, api_key: Optional[str] = None, base_url: Optional[str] = None, timeout: Optional[int] = None):
         self.api_key = api_key if api_key is not None else getattr(settings, "DANCITY_API_KEY", "")
         self.base_url = (
-            base_url if base_url is not None else getattr(settings, "DANCITY_BASE_URL", "https://api.dancity.app")
+            base_url if base_url is not None else getattr(settings, "DANCITY_BASE_URL", DEFAULT_BASE_URL)
         ).rstrip("/")
         self.timeout = timeout if timeout is not None else getattr(settings, "DANCITY_TIMEOUT", DEFAULT_TIMEOUT)
 
@@ -57,6 +73,7 @@ class DancityProvider(VTUProvider):
     def _headers(self) -> dict:
         return {
             "Authorization": f"Bearer {self.api_key}",
+            "X-API-Key": self.api_key,
             "Content-Type": "application/json",
             "Accept": "application/json",
             "channel": "API",
@@ -122,8 +139,13 @@ class DancityProvider(VTUProvider):
 
     # ────────────────────────── catalog ──────────────────────────
 
+    # Cool-sub wraps catalogue payloads under a different key per endpoint:
+    # the service list uses "allServices", the product list uses "allProduct"
+    # and the plan lists use "data".
+    _CATALOG_KEYS = ("data", "allProduct", "allServices", "plans", "products")
+
     def _catalog_get(self, path: str, params: Optional[dict] = None):
-        cache_key = f"dancity:catalog:{path}:{sorted((params or {}).items())}"
+        cache_key = f"dancity:catalog:{path}:{sorted((params or None or {}).items())}"
         try:
             cached = cache.get(cache_key)
         except Exception:
@@ -132,7 +154,12 @@ class DancityProvider(VTUProvider):
             return cached
 
         body = self._request("GET", path, params=params)
-        data = body.get("data")
+        data = None
+        for key in self._CATALOG_KEYS:
+            candidate = body.get(key)
+            if isinstance(candidate, list):
+                data = candidate
+                break
         if data is None:
             data = body
 
@@ -202,6 +229,12 @@ class DancityProvider(VTUProvider):
                 continue
             product = str(entry.get("product") or "").strip()
             size = str(entry.get("plan") or "").strip()
+            validity = str(entry.get("validity") or "").strip()
+            if not product:
+                # Cool-sub leaves the product blank on a batch of MTN SME
+                # bundles. Fill it in so they are filed under the right
+                # network and category instead of being dropped.
+                product = _UNTAGGED_DATA_PRODUCT
             name = " ".join(part for part in (product, size) if part) or plan_id
             out.append(
                 DataPlan(
@@ -209,7 +242,7 @@ class DancityProvider(VTUProvider):
                     name=name,
                     provider_product=product,
                     price=to_decimal(entry.get("price")),
-                    validity=str(entry.get("validity") or "").strip(),
+                    validity=validity,
                     size=size,
                 )
             )
@@ -250,6 +283,8 @@ class DancityProvider(VTUProvider):
         target = (network or "").strip().lower()
         products = self.list_airtime_products()
 
+        # Cool-sub sells 9mobile as "T2 Mobile Airtime".
+        aliases = _AIRTIME_ALIASES.get(target, ())
         for product in products:
             label = product.name.lower()
             if target in label and "airtime" in label:
@@ -257,6 +292,10 @@ class DancityProvider(VTUProvider):
         for product in products:
             if target in product.name.lower():
                 return product.name
+        for alias in aliases:
+            for product in products:
+                if alias in product.name.lower():
+                    return product.name
         raise ProviderNotFoundError(f"Dancity exposes no airtime product for network '{network}'.")
 
     def resolve_cable_product(self, provider: str) -> str:
@@ -435,7 +474,8 @@ class DancityProvider(VTUProvider):
         if not wallets:
             return Decimal("0.00")
         for wallet in wallets:
-            if str(wallet.get("wallettype") or "").strip().lower() == "main":
+            label = str(wallet.get("wallettype") or wallet.get("name") or "").strip().lower()
+            if label == "main" or label.startswith("main wallet"):
                 return to_decimal(wallet.get("balance"))
         return sum((to_decimal(wallet.get("balance")) for wallet in wallets), Decimal("0.00"))
 

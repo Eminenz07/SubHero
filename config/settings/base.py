@@ -419,18 +419,23 @@ PIN_LOCKOUT_SECONDS = 900  # 15 minutes
 # =============================================================
 # The provider chain, in the order it is tried. The first provider that can
 # deliver serves the order; the rest are fallbacks.
-VTU_PROVIDER_ORDER = config("VTU_PROVIDER_ORDER", default="gsubz,dancity")
-VTU_PROVIDER = config("VTU_PROVIDER", default="gsubz")
+#
+# Cool-sub (registered in the code as "dancity") is the working provider.
+# GSUBZ stays in the chain as a fallback: its API key is valid but the account
+# has not been upgraded for API purchases yet, so every call to it is refused.
+VTU_PROVIDER_ORDER = config("VTU_PROVIDER_ORDER", default="dancity,gsubz")
+VTU_PROVIDER = config("VTU_PROVIDER", default="dancity")
 
-# GSUBZ — primary provider for data and airtime
+# GSUBZ — fallback provider for data and airtime
 GSUBZ_API_KEY = config("GSUBZ_API_KEY", default="")
 GSUBZ_BASE_URL = config("GSUBZ_BASE_URL", default="https://api.gsubz.com")
 GSUBZ_WEBHOOK_SECRET = config("GSUBZ_WEBHOOK_SECRET", default="")
 GSUBZ_TIMEOUT = config("GSUBZ_TIMEOUT", default=60, cast=int)
 
-# DANCITY — fallback provider (data, airtime, cable, electricity, exam pins)
+# DANCITY / COOL-SUB — primary provider (data, airtime, cable, electricity, exam pins)
+# The merchant API is served from https://v2.cool-sub.com/api/v1
 DANCITY_API_KEY = config("DANCITY_API_KEY", default="")
-DANCITY_BASE_URL = config("DANCITY_BASE_URL", default="https://api.dancity.app")
+DANCITY_BASE_URL = config("DANCITY_BASE_URL", default="https://v2.cool-sub.com")
 DANCITY_WEBHOOK_SECRET = config("DANCITY_WEBHOOK_SECRET", default="")
 DANCITY_TIMEOUT = config("DANCITY_TIMEOUT", default=30, cast=int)
 

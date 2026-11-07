@@ -35,6 +35,32 @@ from apps.vtu.tasks import (
 
 logger = logging.getLogger(__name__)
 
+# Networks SubHero sells data for, in the order they are shown to customers.
+DATA_NETWORK_ORDER = ("mtn", "airtel", "glo", "9mobile")
+
+# Display names for the network tabs.
+NETWORK_LABELS = {
+    "mtn": "MTN",
+    "airtel": "Airtel",
+    "glo": "Glo",
+    "9mobile": "9mobile",
+}
+
+
+def available_data_networks(plans) -> list:
+    """Networks that currently have at least one active data plan.
+
+    The provider catalogue decides which networks exist. A network the
+    provider does not carry (Cool-sub sells no 9mobile data) is left out of
+    the customer tabs instead of showing an empty network.
+    """
+    networks = {
+        plan.network
+        for plan in plans
+        if getattr(plan, "network", None) in DATA_NETWORK_ORDER
+    }
+    return [net for net in DATA_NETWORK_ORDER if net in networks]
+
 
 class VtuServiceDisabledMixin:
     """Blocks a VTU service that is not switched on yet.
@@ -724,10 +750,10 @@ class VtuPlansAjaxView(LoginRequiredMixin, View):
 
     # Define canonical category order per network
     CATEGORY_ORDER = {
-        "mtn":     ["SME", "SME2", "SMART", "DATA"],
-        "airtel":  ["CG", "SMART", "DATA"],
-        "glo":     ["CG", "AWOOF", "DATA"],
-        "9mobile": ["CG", "DATA"],
+        "mtn":     ["SME", "SME2", "GIFTING", "SMART", "DATA"],
+        "airtel":  ["CG", "GIFTING", "SMART", "DATA"],
+        "glo":     ["CG", "GIFTING", "AWOOF", "DATA"],
+        "9mobile": ["CG", "GIFTING", "DATA"],
     }
 
     def get(self, request, *args, **kwargs):

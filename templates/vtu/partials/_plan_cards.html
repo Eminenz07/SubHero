@@ -58,7 +58,7 @@
 <div class="category-select-wrapper">
   <select class="category-select" id="plan-category-select" onchange="filterByCategory(this.value)">
     {% for cat_name, cat_plans in grouped_plans %}
-    <option value="{{ cat_name }}">{{ cat_name }}{% if cat_name == "SME" %} (Corporate){% elif cat_name == "SME2" %} (Gifting){% elif cat_name == "CG" %} (Corporate Gifting){% elif cat_name == "AWOOF" %} (Daily Deals){% elif cat_name == "SMART" %} (Smart){% endif %}</option>
+    <option value="{{ cat_name }}">{{ cat_name }}{% if cat_name == "SME" %} (Corporate){% elif cat_name == "SME2" %} (Gifting){% elif cat_name == "GIFTING" %} (Gifting){% elif cat_name == "CG" %} (Corporate Gifting){% elif cat_name == "AWOOF" %} (Daily Deals){% elif cat_name == "SMART" %} (Smart){% endif %}</option>
     {% endfor %}
   </select>
 </div>
@@ -89,6 +89,12 @@
 {% else %}
 <div class="text-center py-8 text-text-muted text-sm">
   <div class="text-2xl mb-2">📭</div>
-  No active plans found for this network.
+  {% if network == "9mobile" %}
+    No data plans available for 9mobile right now.
+    <div class="text-xs mt-1 opacity-60">9mobile plans may not be supported by the current provider. Check back after a catalogue sync.</div>
+  {% else %}
+    No active plans found for this network.
+    <div class="text-xs mt-1 opacity-60">Tap <strong>Sync Catalogue</strong> in the admin panel to pull the latest plans.</div>
+  {% endif %}
 </div>
 {% endif %}

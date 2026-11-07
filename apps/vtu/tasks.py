@@ -361,7 +361,6 @@ def sync_vtu_plans():
     active_plan_ids = []
     for plan in catalogues[primary.name]:
         provider_price = plan.price
-        subhero_price = (provider_price * (Decimal("1") + margin)).quantize(Decimal("0.01"))
 
         provider_plan_ids = {primary.name: plan.plan_id}
         key = _plan_key(plan)
@@ -371,20 +370,40 @@ def sync_vtu_plans():
                 if match is not None:
                     provider_plan_ids[provider_name] = match.plan_id
 
-        VTUPlan.objects.update_or_create(
-            plan_id=plan.plan_id,
-            defaults={
-                "provider_product": plan.provider_product,
-                "provider_plan_ids": provider_plan_ids,
-                "network": derive_network(plan.provider_product) if plan.provider_product else "other",
-                "plan_type": derive_plan_type(plan.provider_product) if plan.provider_product else "DATA",
-                "name": plan.name[:100],
-                "provider_price": provider_price,
-                "subhero_price": subhero_price,
-                "validity": plan.validity,
-                "is_active": True,
-            },
-        )
+        defaults = {
+            "provider_product": plan.provider_product,
+            "provider_plan_ids": provider_plan_ids,
+            "network": derive_network(plan.provider_product) if plan.provider_product else "other",
+            "plan_type": derive_plan_type(plan.provider_product) if plan.provider_product else "DATA",
+            "name": plan.name[:100],
+            "provider_price": provider_price,
+            "validity": plan.validity,
+            "is_active": True,
+        }
+
+        # A plan the admin already priced keeps its markup. Only plans that
+        # follow the global margin are repriced, so a sync never silently
+        # removes the profit the admin set.
+        existing = VTUPlan.objects.filter(plan_id=plan.plan_id).only(
+            "markup_type", "markup_value"
+        ).first()
+        if existing is not None and existing.markup_value:
+            markup_type = existing.markup_type
+            markup_value = existing.markup_value
+            if markup_type == "percent":
+                subhero_price = (provider_price * (Decimal("1") + markup_value / Decimal("100"))).quantize(
+                    Decimal("0.01")
+                )
+            else:
+                subhero_price = (provider_price + markup_value).quantize(Decimal("0.01"))
+        else:
+            defaults["markup_type"] = "percent"
+            defaults["markup_value"] = Decimal("0.00")
+            subhero_price = (provider_price * (Decimal("1") + margin)).quantize(Decimal("0.01"))
+
+        defaults["subhero_price"] = subhero_price
+
+        VTUPlan.objects.update_or_create(plan_id=plan.plan_id, defaults=defaults)
         active_plan_ids.append(plan.plan_id)
 
     VTUPlan.objects.exclude(plan_id__in=active_plan_ids).update(is_active=False)

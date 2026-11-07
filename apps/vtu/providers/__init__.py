@@ -9,7 +9,7 @@ _PROVIDERS = {
 }
 
 _FUND_URLS = {
-    "dancity": "https://dancity.app",
+    "dancity": "https://app.dancity.app",
     "gsubz": "https://gsubz.com/dashboard",
 }
 
