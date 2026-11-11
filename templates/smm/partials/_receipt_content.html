@@ -59,6 +59,16 @@
             <span class="text-sm font-bold text-text-primary">{{ service_name }}</span>
         </div>
 
+        {% if tier_meta %}
+        <div class="pb-3 border-b border-surface-border" id="receipt-tier-row">
+            <div class="flex justify-between items-center">
+                <span class="text-xs font-semibold text-text-muted uppercase">Boost Tier</span>
+                <span class="text-sm font-bold text-text-primary">{{ tier_meta.icon }} {{ tier_meta.label }}</span>
+            </div>
+            <p class="mt-1 text-[11px] leading-snug text-text-muted text-right">{{ tier_meta.receipt_line }}</p>
+        </div>
+        {% endif %}
+
         <div class="flex justify-between items-center pb-3 border-b border-surface-border">
             <span class="text-xs font-semibold text-text-muted uppercase">Target URL</span>
             <span class="text-sm font-medium text-text-primary truncate max-w-[200px]" title="{{ url }}">{{ url }}</span>

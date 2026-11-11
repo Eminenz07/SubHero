@@ -86,34 +86,25 @@ class SMMService(models.Model):
         return None
 
     @property
+    def _tier_meta(self):
+        from apps.smm.tier_info import TIER_INFO
+        return TIER_INFO.get(self.tier or "")
+
+    @property
     def retention_label(self):
-        if self.tier == "basic":
-            return "Short-term spike · Lower retention"
-        elif self.tier == "standard":
-            return "30-Day Refill Guarantee · ~70-85% retention"
-        elif self.tier == "premium":
-            return "Permanent / Non-Drop · 95%+ high retention"
-        return "Standard retention"
+        meta = self._tier_meta
+        return f"Drop risk: {meta['drop_level'].lower()}" if meta else "Drop risk: not specified"
 
     @property
     def delivery_speed(self):
-        if self.tier == "basic":
-            return "Instant (Starts in 5–15 mins)"
-        elif self.tier == "standard":
-            return "Steady Delivery (Starts in 15–30 mins)"
-        elif self.tier == "premium":
-            return "Natural Paced (Starts in 20–45 mins)"
-        return "Starts in ~15 mins"
+        from apps.smm.tier_info import parse_service_facts
+        start = parse_service_facts(self)["start_time"]
+        return f"Start time: {start}"
 
     @property
     def tier_honest_description(self):
-        if self.tier == "basic":
-            return "Fast & affordable — best for quick visibility, engagement may drop over time."
-        elif self.tier == "standard":
-            return "Balanced speed and retention — reliable momentum with refill protection."
-        elif self.tier == "premium":
-            return "Real, active engagement, highest retention, slower natural-paced delivery."
-        return ""
+        meta = self._tier_meta
+        return meta["what_it_is"] if meta else ""
 
 
     def __str__(self):

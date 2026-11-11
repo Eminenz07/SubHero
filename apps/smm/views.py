@@ -16,6 +16,7 @@ from apps.wallet.services import InsufficientBalanceError, WalletFrozenError
 from apps.smm.models import SMMService, SMMOrder
 from apps.smm.tasks import process_smm_order, refund_smm_order
 from apps.smm.platforms import get_active_platforms, PLATFORMS_META, get_platform_meta
+from apps.smm.tier_info import TIER_INFO, TIER_FOOTER, ACK_DROP_TEXT, parse_service_facts
 
 logger = logging.getLogger(__name__)
 
@@ -47,10 +48,19 @@ class SmmIndexView(LoginRequiredMixin, PinRequiredMixin, View):
         all_services = SMMService.objects.filter(is_active=True, tier__isnull=False).exclude(tier="")
 
         if not all_services.exists():
-            # Trigger sync if catalogue is empty (no tier-classified services)
-            from apps.smm.tasks import sync_smm_catalogue
-            sync_smm_catalogue()
-            all_services = SMMService.objects.filter(is_active=True, tier__isnull=False).exclude(tier="")
+            # Catalogue empty (no tier-classified services): kick off a sync in the
+            # background, at most once per 10 minutes, instead of blocking the request.
+            if cache.add("smm_catalogue_sync_lock", 1, 600):
+                import threading
+                from apps.smm.tasks import sync_smm_catalogue
+
+                def _bg_sync():
+                    try:
+                        sync_smm_catalogue()
+                    except Exception:
+                        logger.exception("Background SMM catalogue sync failed")
+
+                threading.Thread(target=_bg_sync, daemon=True).start()
 
         # Collect platform slugs that actually have classified services (dynamic, not hardcoded)
         active_platform_slugs = list(
@@ -69,6 +79,10 @@ class SmmIndexView(LoginRequiredMixin, PinRequiredMixin, View):
         return {
             "wallet": wallet,
             "platforms_meta": platforms_meta,
+            "tier_info": TIER_INFO,
+            "tier_info_js": {"tiers": TIER_INFO, "footer": TIER_FOOTER},
+            "tier_footer": TIER_FOOTER,
+            "ack_drop_text": ACK_DROP_TEXT,
             "PLATFORMS_META_JSON": {slug: {
                 "name": m["name"],
                 "brand_color": m["brand_color"],
@@ -158,6 +172,10 @@ class SmmIndexView(LoginRequiredMixin, PinRequiredMixin, View):
             messages.error(request, "Selected SMM service is invalid, currently inactive, or not yet classified.")
             return render(request, self.template_name, context)
 
+        if service.tier == "basic" and request.POST.get("ack_drop") != "1":
+            messages.error(request, "Please confirm you understand some engagement may drop over time before ordering a Quick Boost.")
+            return render(request, self.template_name, context)
+
         if quantity < service.provider_min or quantity > service.provider_max:
             messages.error(request, f"Invalid quantity. Min: {service.provider_min:,} | Max: {service.provider_max:,}.")
             return render(request, self.template_name, context)
@@ -190,7 +208,7 @@ class SmmIndexView(LoginRequiredMixin, PinRequiredMixin, View):
         if cache.get(idempotency_key) and request.POST.get("confirm_duplicate") != "1":
             messages.warning(request, "Duplicate Order Notice: An identical social boost order was placed less than a minute ago. Tap 'Confirm & Process Duplicate' below if you intend to place another order.")
             context["show_duplicate_confirm"] = True
-            context["form_data"] = {"platform": platform, "service_id": service_id, "service_name": service_name, "url": url, "quantity": quantity_str}
+            context["form_data"] = {"platform": platform, "service_id": service_id, "service_name": service_name, "url": url, "quantity": quantity_str, "ack_drop": request.POST.get("ack_drop", "")}
             return render(request, self.template_name, context)
 
         # 9. Execute atomic wallet debit and dispatch task
@@ -243,6 +261,7 @@ class SmmIndexView(LoginRequiredMixin, PinRequiredMixin, View):
                 "url": url,
                 "quantity": quantity,
                 "amount": amount,
+                "tier_meta": TIER_INFO.get(service.tier),
             }
             return render(request, "smm/receipt.html", receipt_context)
 
@@ -381,6 +400,7 @@ class SmmServicesListAjaxView(LoginRequiredMixin, View):
 
         for s in services:
             s.unit_price = s.subhero_price_per_1k / Decimal("1000.00")
+            s.facts = parse_service_facts(s)
 
         return render(request, self.template_name, {
             "services": services,
@@ -457,6 +477,7 @@ class SmmReceiptStatusAjaxView(LoginRequiredMixin, View):
             "url": order.target_url,
             "quantity": order.quantity,
             "amount": order.amount,
+            "tier_meta": TIER_INFO.get(order.service.tier),
         }
         return render(request, self.template_name, context)
 

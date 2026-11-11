@@ -22,7 +22,7 @@
     <p class="text-[11px] text-amber-200/80 leading-relaxed mt-0.5">
       Buying Quick Boost <strong>4× over 30 days</strong> costs <span class="line-through text-red-400">₦{{ price_anchor.basic_true_cost|floatformat:0|intcomma }}</span>.
       Elite Boost once = <span class="text-emerald-400 font-bold">₦{{ price_anchor.premium_one_cost|floatformat:0|intcomma }}</span>.
-      You save <span class="text-emerald-300 font-bold">₦{{ price_anchor.savings|floatformat:0|intcomma }}</span> and get lasting results.
+      Difference: <span class="text-emerald-300 font-bold">₦{{ price_anchor.savings|floatformat:0|intcomma }}</span>. Some drop can happen on any tier.
     </p>
   </div>
 </div>
@@ -59,7 +59,7 @@
           <div class="text-slate-300 text-[10px]">{{ svc.delivery_speed }}</div>
         </div>
         <div class="bg-blue-950/30 rounded-lg p-2 text-center">
-          <div class="text-blue-300 text-[10px] font-bold">📊 Retention</div>
+          <div class="text-blue-300 text-[10px] font-bold">📊 Drop risk</div>
           <div class="text-slate-300 text-[10px]">{{ svc.retention_label }}</div>
         </div>
       </div>
@@ -114,7 +114,7 @@
           <div class="text-slate-300 text-[10px]">{{ svc.delivery_speed }}</div>
         </div>
         <div class="bg-violet-950/30 rounded-lg p-2 text-center">
-          <div class="text-violet-300 text-[10px] font-bold">📊 Retention</div>
+          <div class="text-violet-300 text-[10px] font-bold">📊 Drop risk</div>
           <div class="text-slate-300 text-[10px]">{{ svc.retention_label }}</div>
         </div>
       </div>
@@ -154,7 +154,7 @@
           </div>
           <div>
             <div class="text-white font-bold text-base">Elite Boost</div>
-            <div class="text-amber-400/80 text-[10px] font-medium">Real · High Retention · Non-Drop</div>
+            <div class="text-amber-400/80 text-[10px] font-medium">Built to last · Lower drop risk</div>
           </div>
         </div>
         <div class="text-right">
@@ -181,7 +181,7 @@
           <div class="text-slate-300 text-[10px]">{{ svc.delivery_speed }}</div>
         </div>
         <div class="bg-amber-950/20 rounded-lg p-2 text-center">
-          <div class="text-amber-300 text-[10px] font-bold">📊 Retention</div>
+          <div class="text-amber-300 text-[10px] font-bold">📊 Drop risk</div>
           <div class="text-slate-300 text-[10px]">{{ svc.retention_label }}</div>
         </div>
       </div>

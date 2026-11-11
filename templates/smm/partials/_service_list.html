@@ -9,7 +9,10 @@ in index.html (robust against service names containing quotes).{% endcomment %}
      data-name="{{ service.name }}"
      data-unit="{{ service.unit_price }}"
      data-min="{{ service.provider_min }}"
-     data-max="{{ service.provider_max }}">
+     data-max="{{ service.provider_max }}"
+     data-refill="{{ service.facts.refill }}"
+     data-start="{{ service.facts.start_time }}"
+     data-speed="{{ service.facts.speed }}">
 
   {% if "Follower" in service.name or "Subscriber" in service.name or "Member" in service.name %}
     <div class="smm-icon-bg" style="background: #EFF6FF; color: #2563EB;">👥</div>
@@ -28,7 +31,9 @@ in index.html (robust against service names containing quotes).{% endcomment %}
   <div class="smm-info">
     <div class="smm-name">{{ service.name }}</div>
     <div class="smm-desc">Min: {{ service.provider_min|floatformat:"0" }} · Max: {{ service.provider_max|floatformat:"0" }}</div>
-    {% if service.description %}
+    <div class="smm-facts"><span>⏱ Start: {{ service.facts.start_time }}</span><span>♻️ Refill: {{ service.facts.refill }}</span></div>
+    {% comment %}Raw supplier description intentionally not rendered.{% endcomment %}
+    {% if False %}
     <button type="button" class="smm-rules-btn mt-1.5 text-[11px] font-semibold text-[#7C3AED] dark:text-[#C893FF] hover:text-[#6D28D9] dark:hover:text-[#E9D5FF] flex items-center gap-1 hover:underline cursor-pointer transition-colors"
             onclick="event.stopPropagation(); document.getElementById('desc-{{ service.id }}').classList.toggle('hidden');">
       <i data-feather="info" class="w-3.5 h-3.5 shrink-0"></i> View Details & Rules
