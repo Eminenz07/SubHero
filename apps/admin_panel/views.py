@@ -128,6 +128,7 @@ def dashboard(request):
     provider_label = _provider_label()
     provider_fund_url = provider_fund_url()
     ogaviral_balance = fetch_ogaviral_balance()
+    total_user_balance = Wallet.objects.filter(user__is_staff=False).aggregate(total=Sum("balance"))["total"] or Decimal("0")
 
     alert_config = AlertConfig.objects.first()
     if not alert_config:
@@ -177,6 +178,7 @@ def dashboard(request):
         "total_revenue": stats.total_revenue,
         "total_profit": stats.total_profit,
         "total_deposits": stats.total_deposits,
+        "total_user_balance": total_user_balance,
         "active_orders": active_orders,
         "provider_balance": provider_balance,
         "provider_status": provider_status,
