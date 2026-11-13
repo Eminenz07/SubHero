@@ -64,6 +64,11 @@
                 height: 100dvh !important;
             }
         }
+
+        /* Momentum scrolling on iOS so long tables (e.g. User Management) reach the bottom */
+        main {
+            -webkit-overflow-scrolling: touch;
+        }
     </style>
     {% block extra_head %}{% endblock %}
 </head>

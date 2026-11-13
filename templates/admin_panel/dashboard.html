@@ -4,8 +4,8 @@
 {% block title %}HQ Dashboard | SubHero{% endblock %}
 
 {% block extra_head %}
-<!-- Chart.js CDN -->
-<script src="{% static 'js/chart.js' %}"></script>
+<!-- Chart.js (vendored copy missing; load from CDN so metric charts render on mobile and PC) -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 {% endblock %}
 
 {% block header_title %}Dashboard{% endblock %}

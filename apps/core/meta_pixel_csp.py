@@ -25,7 +25,7 @@ class MetaPixelCSPMiddleware:
             # Build CSP directives
             csp_directives = [
                 "default-src 'self'",
-                "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://connect.facebook.net https://www.facebook.com https://static.cloudflareinsights.com",
+                "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://connect.facebook.net https://www.facebook.com https://static.cloudflareinsights.com https://cdn.jsdelivr.net",
                 "style-src 'self' 'unsafe-inline'",
                 "font-src 'self' data:",
                 "img-src 'self' data: https://www.facebook.com",
