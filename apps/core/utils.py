@@ -6,6 +6,7 @@ UUID generation, IP extraction, OTP helpers.
 
 import hashlib
 import logging
+import math
 import random
 import string
 import time
@@ -14,6 +15,7 @@ import uuid
 import requests
 from django.conf import settings
 from django.core.cache import cache
+from django.utils.http import url_has_allowed_host_and_scheme
 
 logger = logging.getLogger(__name__)
 
@@ -326,3 +328,21 @@ def normalize_phone(phone_number):
         return phone  # Return as-is; validation will catch it
 
     return phone
+
+
+def is_safe_return_to(url, host):
+    """
+    Validate that a return_to URL is a same-site relative path.
+
+    Accepts only paths starting with "/", never "//" (protocol-relative
+    absolute URLs). Delegates scheme/host checking to Django's
+    url_has_allowed_host_and_scheme so absolute URLs (https://evil.com)
+    and unsafe schemes (javascript:...) are rejected.
+    """
+    if not url:
+        return False
+    if not url.startswith("/"):
+        return False
+    if url.startswith("//"):
+        return False
+    return url_has_allowed_host_and_scheme(url, allowed_hosts=[host])

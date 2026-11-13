@@ -28,6 +28,7 @@ from apps.payments.services import (
 )
 from apps.payments.tasks import credit_wallet
 from apps.core.meta_pixel import track_purchase
+from apps.core.utils import is_safe_return_to
 
 logger = logging.getLogger(__name__)
 
@@ -206,6 +207,10 @@ def payment_callback(request):
                         raw_payload=res
                     )
                     messages.success(request, f"Wallet successfully funded with ₦{amount_naira:,.2f}! ⚡")
+                    # Card payment: return to the stored ?return_to= if safe, else dashboard
+                    return_to = request.session.pop("return_to", None)
+                    if return_to and is_safe_return_to(return_to, request.get_host()):
+                        return redirect(return_to)
                     return redirect("dashboard")
         except Exception as e:
             logger.error("Direct payment verification failed on callback for ref=%s: %s", reference, str(e))

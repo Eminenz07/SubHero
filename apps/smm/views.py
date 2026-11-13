@@ -197,6 +197,10 @@ class SmmIndexView(LoginRequiredMixin, PinRequiredMixin, View):
             round_to = Decimal("500")
             topup_suggestion = ((shortfall / round_to).to_integral_value(rounding="ROUND_CEILING")) * round_to
             topup_suggestion = max(topup_suggestion, Decimal("500"))
+            # Add deposit fee so the net credited amount covers the shortfall.
+            # Squad deducts ₦20 below ₦1,000 and ₦50 at ₦1,000 and above.
+            deposit_fee = Decimal("20.00") if topup_suggestion < Decimal("1000.00") else Decimal("50.00")
+            topup_suggestion += deposit_fee
             messages.error(
                 request,
                 f"INSUFFICIENT_BALANCE|{amount:.2f}|{wallet.balance:.2f}|{shortfall:.2f}|{topup_suggestion:.0f}|{platform}|{service.tier}"
@@ -269,6 +273,9 @@ class SmmIndexView(LoginRequiredMixin, PinRequiredMixin, View):
             shortfall = amount - wallet.balance
             round_to = Decimal("500")
             topup_suggestion = ((shortfall / round_to).to_integral_value(rounding="ROUND_CEILING")) * round_to
+            # Add deposit fee so the net credited amount covers the shortfall.
+            deposit_fee = Decimal("20.00") if topup_suggestion < Decimal("1000.00") else Decimal("50.00")
+            topup_suggestion += deposit_fee
             messages.error(
                 request,
                 f"INSUFFICIENT_BALANCE|{amount:.2f}|{wallet.balance:.2f}|{shortfall:.2f}|{topup_suggestion:.0f}|{platform}|{service.tier}"

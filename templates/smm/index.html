@@ -527,11 +527,13 @@
             You have <strong class="text-text-primary dark:text-white">₦{{ parts.1 }}</strong>.
             Top up <strong class="text-emerald-600 dark:text-emerald-400">₦{{ parts.4 }}</strong> to unlock & continue.
           </div>
-          <a href="/wallet/fund/?amount={{ parts.4 }}&return_to=/smm/?platform={{ parts.5 }}&tier={{ parts.6 }}"
+          {% with return_to="/smm/?platform="|add:parts.5|add:"&tier="|add:parts.6 %}
+          <a href="/wallet/fund/?amount={{ parts.4 }}&amp;return_to={{ return_to|urlencode }}"
              class="mt-2 flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white font-bold text-xs transition-all">
             <i data-feather="zap" class="w-3.5 h-3.5"></i>
             Top Up ₦{{ parts.4 }} & Continue Boosting
           </a>
+          {% endwith %}
         </div>
       </div>
     </div>

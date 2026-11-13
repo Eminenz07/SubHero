@@ -7,6 +7,8 @@ All views require login + PIN (via mixins).
 """
 
 import logging
+import math
+from decimal import Decimal, InvalidOperation
 
 from django.conf import settings
 from django.contrib import messages
@@ -19,7 +21,7 @@ from django.views import View
 from django_ratelimit.decorators import ratelimit
 
 from apps.core.mixins import LoginRequiredMixin, PinRequiredMixin
-from apps.core.utils import get_client_ip, normalize_phone
+from apps.core.utils import get_client_ip, normalize_phone, is_safe_return_to
 from .forms import P2PTransferForm
 from .models import Wallet, WalletTransaction
 from .services import (
@@ -63,12 +65,40 @@ class FundWalletView(LoginRequiredMixin, PinRequiredMixin, View):
     def get(self, request):
         wallet = get_object_or_404(Wallet, user=request.user)
 
+        # --- Prefill amount from ?amount= (e.g. SMM insufficient-balance nudge) ---
+        prefill_amount = None
+        amount_str = request.GET.get("amount", "").strip()
+        if amount_str:
+            try:
+                amount = Decimal(amount_str)
+                # Ignore NaN, infinity, zero, negatives
+                if amount.is_nan() or amount.is_infinite() or amount <= 0:
+                    raise ValueError
+                # Round up to whole naira
+                amount = int(math.ceil(amount))
+                # Clamp to funding limits
+                prefill_amount = max(
+                    settings.FUND_MIN_AMOUNT,
+                    min(settings.FUND_MAX_AMOUNT, amount),
+                )
+            except (InvalidOperation, ValueError, TypeError):
+                # Invalid input (non-numeric, negative, NaN) — ignore silently
+                prefill_amount = None
+
+        # --- Handle ?return_to= (same-site relative paths only) ---
+        return_to = request.GET.get("return_to", "").strip()
+        if return_to and is_safe_return_to(return_to, request.get_host()):
+            request.session["return_to"] = return_to
+        else:
+            request.session.pop("return_to", None)
+
         return render(request, self.template_name, {
             "wallet": wallet,
             "squad_public_key": settings.SQUAD_PUBLIC_KEY,
             "min_amount": settings.FUND_MIN_AMOUNT,
             "max_amount": settings.FUND_MAX_AMOUNT,
             "daily_limit": settings.FUND_DAILY_LIMIT,
+            "prefill_amount": prefill_amount,
         })
 
 
