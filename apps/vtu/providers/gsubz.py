@@ -361,6 +361,12 @@ class GsubzProvider(VTUProvider):
     def buy_exam_pin(self, exam_name: str, quantity: int, reference: str, exam_number: str = "") -> PurchaseResult:
         raise ProviderNotFoundError("GSUBZ exam pins are not enabled on SubHero yet.")
 
+    def list_betting_products(self) -> list[ServiceProduct]:
+        raise ProviderNotFoundError("GSUBZ does not offer betting markets on SubHero yet.")
+
+    def buy_betting(self, event_id: str, selection: str, stake: Decimal, reference: str) -> PurchaseResult:
+        raise ProviderNotFoundError("GSUBZ does not offer betting markets on SubHero yet.")
+
     # ────────────────────────── account ──────────────────────────
 
     def get_wallets(self) -> list[dict]:

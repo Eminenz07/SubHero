@@ -37,6 +37,7 @@ _SERVICE_KEYWORDS = {
     "cable": "CABLE",
     "electricity": "ELECTRIC",
     "exam": "EXAM",
+    "betting": "BETTING",
 }
 
 # Cool-sub lists some data bundles without a product label. They are all MTN
@@ -458,6 +459,25 @@ class DancityProvider(VTUProvider):
         if exam_number:
             payload["examNumber"] = exam_number
         body = self._request("POST", "/education-pin/purchase", json_body=payload)
+        return self._purchase_result(body, reference)
+
+    def list_betting_products(self) -> list[ServiceProduct]:
+        """Fetch available betting markets from Dancity."""
+        products = self._products_for("betting")
+        return products
+
+    def buy_betting(self, event_id: str, selection: str, stake: Decimal, reference: str) -> PurchaseResult:
+        """Place a bet on an event selection via Dancity."""
+        body = self._request(
+            "POST",
+            "/betting/buy",
+            json_body={
+                "event_id": event_id,
+                "selection": selection,
+                "stake": _money(stake),
+                "customerRef": reference,
+            },
+        )
         return self._purchase_result(body, reference)
 
     # ────────────────────────── account ──────────────────────────

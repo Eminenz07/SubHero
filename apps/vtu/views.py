@@ -18,6 +18,7 @@ from apps.vtu.models import (
     CablePlan, CableOrder,
     ElectricityOrder, DISCO_CHOICES, DISCO_NAMES,
     ExamProduct, ExamPinOrder,
+    BettingProduct, BettingOrder,
 )
 from apps.vtu.providers import get_provider
 from apps.vtu.providers.errors import ProviderError
@@ -27,10 +28,11 @@ from apps.vtu.tasks import (
     process_cable_order,
     process_electricity_order,
     process_exam_pin_order,
-    sync_cable_plans, sync_exam_products,
+    process_betting_order,
+    sync_cable_plans, sync_exam_products, sync_betting_products,
     refund_vtu_order, refund_airtime_order,
     refund_cable_order, refund_electricity_order,
-    refund_exam_pin_order,
+    refund_exam_pin_order, refund_betting_order,
 )
 
 logger = logging.getLogger(__name__)
@@ -155,8 +157,14 @@ class BuyDataView(LoginRequiredMixin, PinRequiredMixin, View):
             sync_vtu_plans()
             plans = VTUPlan.objects.filter(is_active=True)
 
+        networks = available_data_networks(plans)
         plans_dict = {p.plan_id: {"name": p.name, "price": p.subhero_price, "validity": p.validity, "network": p.network} for p in plans}
-        return render(request, self.template_name, {"wallet": wallet, "plans": plans_dict})
+        return render(request, self.template_name, {
+            "wallet": wallet,
+            "plans": plans_dict,
+            "data_networks": networks,
+            "network_labels": NETWORK_LABELS,
+        })
 
     def post(self, request, *args, **kwargs):
         wallet, _ = Wallet.objects.get_or_create(user=request.user)
@@ -166,12 +174,18 @@ class BuyDataView(LoginRequiredMixin, PinRequiredMixin, View):
 
         plans = VTUPlan.objects.filter(is_active=True)
         plans_dict = {p.plan_id: {"name": p.name, "price": p.subhero_price, "validity": p.validity, "network": p.network} for p in plans}
-        context = {"wallet": wallet, "plans": plans_dict, "form_data": {"network": network, "phone_number": phone_number, "plan_id": plan_id}}
+        context = {
+            "wallet": wallet,
+            "plans": plans_dict,
+            "data_networks": available_data_networks(plans),
+            "network_labels": NETWORK_LABELS,
+            "form_data": {"network": network, "phone_number": phone_number, "plan_id": plan_id},
+        }
 
         if not network or not phone_number or not plan_id:
             messages.error(request, "All fields are required.")
             return render(request, self.template_name, context)
-        if network not in ["mtn", "airtel", "glo", "9mobile"]:
+        if network not in DATA_NETWORK_ORDER:
             messages.error(request, "Invalid network selected.")
             return render(request, self.template_name, context)
 
@@ -736,6 +750,126 @@ class BuyExamPinView(LoginRequiredMixin, PinRequiredMixin, View):
                     refund_exam_pin_order(_order.id)
             except Exception as refund_err:
                 logger.exception("Emergency Exam PIN refund also failed: %s", refund_err)
+            messages.error(request, "Transaction failed. Your wallet has been refunded if any amount was deducted.")
+        return render(request, self.template_name, context)
+
+
+class BuyBettingView(LoginRequiredMixin, PinRequiredMixin, View):
+    """Betting market placement via the active VTU provider (gsubz primary, dancity fallback)."""
+    template_name = "vtu/betting.html"
+
+    def _get_products(self):
+        products = BettingProduct.objects.filter(is_active=True)
+        if not products.exists():
+            sync_betting_products()
+            products = BettingProduct.objects.filter(is_active=True)
+        return products
+
+    def get(self, request, *args, **kwargs):
+        wallet, _ = Wallet.objects.get_or_create(user=request.user)
+        context = {
+            "wallet": wallet,
+            "coming_soon": not getattr(settings, "VTU_ENABLE_BETTING", True),
+        }
+        if not getattr(settings, "VTU_ENABLE_BETTING", True):
+            return render(request, self.template_name, context)
+        context["products"] = self._get_products()
+        return render(request, self.template_name, context)
+
+    def post(self, request, *args, **kwargs):
+        if not getattr(settings, "VTU_ENABLE_BETTING", True):
+            messages.info(
+                request,
+                "Betting is not live yet — we'll let you know as soon as it launches.",
+            )
+            return redirect("vtu:buy_betting")
+
+        wallet, _ = Wallet.objects.get_or_create(user=request.user)
+        product_id = request.POST.get("product_id", "")
+        selection = request.POST.get("selection", "")
+        stake_str = request.POST.get("stake", "")
+        context = {"wallet": wallet, "products": self._get_products(), "form_data": {"product_id": product_id, "selection": selection, "stake": stake_str}}
+
+        try:
+            product = BettingProduct.objects.get(product_id=product_id, is_active=True)
+        except BettingProduct.DoesNotExist:
+            messages.error(request, "Invalid betting market selected.")
+            return render(request, self.template_name, context)
+
+        try:
+            stake = Decimal(stake_str)
+            if stake <= 0:
+                raise ValueError
+            if product.min_stake and stake < product.min_stake:
+                raise ValueError(f"Minimum stake is ₦{product.min_stake:,.2f}")
+            if product.max_stake and stake > product.max_stake:
+                raise ValueError(f"Maximum stake is ₦{product.max_stake:,.2f}")
+        except (ValueError, Exception) as exc:
+            msg = str(exc) if str(exc) else "Invalid stake amount."
+            messages.error(request, msg)
+            return render(request, self.template_name, context)
+
+        # Compute potential return using the selection's odds
+        selections = product.selections or {}
+        sel_data = selections.get(selection, {})
+        odds = Decimal(str(sel_data.get("odds", "0") or "0"))
+        potential_return = stake * odds if odds else Decimal("0")
+
+        pin_ok, pin_response = _check_pin(request, context, self.template_name)
+        if not pin_ok:
+            return pin_response
+
+        idempotency_key = f"betting_idem:{request.user.id}:{product_id}:{selection}:{stake}"
+        if cache.get(idempotency_key) and request.POST.get("confirm_duplicate") != "1":
+            messages.warning(request, "Duplicate Order Notice: An identical bet was placed less than a minute ago. Tap 'Confirm & Process Duplicate' below if you intend to place another bet.")
+            context["show_duplicate_confirm"] = True
+            return render(request, self.template_name, context)
+
+        reference = generate_reference("BET")
+        try:
+            with transaction.atomic():
+                locked_wallet, txn = _atomic_debit(
+                    wallet, stake, reference,
+                    WalletTransaction.TxnType.VTU,
+                    f"Bet · {product.event_name} ({selection})",
+                    get_client_ip(request),
+                )
+                order = BettingOrder.objects.create(
+                    user=request.user, product_id=product_id, event_name=product.event_name,
+                    selection=selection, stake=stake, odds=odds, potential_return=potential_return,
+                    api_cost=Decimal("0"), reference=reference,
+                    status=BettingOrder.Status.PROCESSING,
+                )
+
+            cache.set(idempotency_key, order.id, 60)
+            from apps.vtu.tasks import process_betting_order
+            process_betting_order(str(order.id))
+            order.refresh_from_db()
+            txn = WalletTransaction.objects.filter(reference=order.reference).first()
+            locked_wallet = Wallet.objects.get(user=request.user)
+
+            return render(request, "vtu/receipt.html", {
+                "wallet": locked_wallet, "txn": txn, "order": order,
+                "service_type": "betting", "event_name": product.event_name,
+                "selection": selection, "stake": stake, "odds": odds,
+                "potential_return": potential_return,
+                "back_url": "/vtu/betting/",
+            })
+        except InsufficientBalanceError:
+            messages.error(request, f"Insufficient balance. You need ₦{stake:,.2f} but your balance is ₦{wallet.balance:,.2f}.")
+        except WalletFrozenError:
+            messages.error(request, "Your wallet is currently frozen. Please contact support.")
+        except Exception:
+            logger.exception("Betting purchase failed")
+            try:
+                _order = locals().get('order')
+                if _order and _order.pk and _order.status not in (BettingOrder.Status.SUCCESS, BettingOrder.Status.FAILED):
+                    _order.status = BettingOrder.Status.FAILED
+                    _order.save(update_fields=["status"])
+                    WalletTransaction.objects.filter(reference=_order.reference).update(status=WalletTransaction.Status.FAILED)
+                    refund_betting_order(_order.id)
+            except Exception as refund_err:
+                logger.exception("Emergency Betting refund also failed: %s", refund_err)
             messages.error(request, "Transaction failed. Your wallet has been refunded if any amount was deducted.")
         return render(request, self.template_name, context)
 

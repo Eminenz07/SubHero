@@ -27,6 +27,9 @@ urlpatterns = [
     # Exam PINs
     path("exam-pin/",    views.BuyExamPinView.as_view(),     name="buy_exam_pin"),
 
+    # Betting
+    path("betting/",     views.BuyBettingView.as_view(),     name="buy_betting"),
+
     # Receipt Polling Ajax
     path("receipt/status/<str:order_type>/<uuid:order_id>/", views.ReceiptStatusAjaxView.as_view(), name="receipt_status"),
 

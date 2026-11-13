@@ -211,6 +211,9 @@ class FailoverProvider(VTUProvider):
     def list_exam_products(self) -> list[ServiceProduct]:
         return self.providers[0].list_exam_products()
 
+    def list_betting_products(self) -> list[ServiceProduct]:
+        return self.providers[0].list_betting_products()
+
     def resolve_airtime_product(self, network: str) -> str:
         """Returns the canonical network token; each provider maps it itself."""
         for provider in self.providers:
@@ -337,6 +340,12 @@ class FailoverProvider(VTUProvider):
             return provider.buy_exam_pin(exam_name, quantity, reference, exam_number)
 
         return self._run("exam pin purchase", reference, call)
+
+    def buy_betting(self, event_id: str, selection: str, stake: Decimal, reference: str) -> PurchaseResult:
+        def call(provider: VTUProvider) -> PurchaseResult:
+            return provider.buy_betting(event_id, selection, stake, reference)
+
+        return self._run("betting purchase", reference, call)
 
     # ────────────────────────── account ──────────────────────────
 

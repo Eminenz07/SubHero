@@ -15,6 +15,7 @@ from apps.vtu.models import (
     CablePlan, CableOrder,
     ElectricityOrder, DISCO_NAMES,
     ExamProduct, ExamPinOrder,
+    BettingProduct, BettingOrder,
 )
 from apps.vtu.providers import get_provider
 from apps.vtu.providers.base import (
@@ -1181,6 +1182,158 @@ def sync_exam_products():
 
 
 # =============================================================
+# BETTING TASKS
+# =============================================================
+
+@shared_task(bind=True, max_retries=3)
+def process_betting_order(self, order_id):
+    """Places a bet via the configured VTU provider with synchronous retries."""
+    try:
+        order = BettingOrder.objects.get(id=order_id)
+    except BettingOrder.DoesNotExist:
+        logger.error("BettingOrder not found: %s", order_id)
+        return
+
+    if order.status != BettingOrder.Status.PROCESSING:
+        return
+
+    if getattr(settings, "VTU_MOCK", False):
+        logger.info("VTU_MOCK is active. Simulating Betting success.")
+        order.status = BettingOrder.Status.SUCCESS
+        order.provider_ref = "MOCK-DANCITY-BETTING"
+        order.settled_at = timezone.now()
+        order.save(update_fields=["status", "provider_ref", "settled_at"])
+
+        WalletTransaction.objects.filter(reference=order.reference).update(status=WalletTransaction.Status.SUCCESS)
+
+        send_transaction_sms.delay(
+            order.user.phone_number,
+            f"SubHero: Bet placed on {order.event_name} ({order.selection}). Ref: {order.reference}",
+        )
+        try:
+            from apps.notifications.models import Notification
+            Notification.add(
+                user=order.user,
+                title="Bet Placed",
+                description=f"Your bet on {order.event_name} ({order.selection}) was placed successfully.",
+                level="financial"
+            )
+        except Exception as e:
+            logger.error("Notification creation failed: %s", str(e))
+        return
+
+    provider = get_provider()
+
+    for attempt in range(1, MAX_PROVIDER_ATTEMPTS + 1):
+        try:
+            logger.info(
+                "Betting order %s: placing bet via %s (attempt %s/%s)",
+                order_id, provider.name, attempt, MAX_PROVIDER_ATTEMPTS,
+            )
+            result = provider.buy_betting(
+                order.product_id, order.selection, order.stake, order.reference
+            )
+
+            if result.status in (PurchaseStatus.PENDING, PurchaseStatus.PROCESSING):
+                order.provider_ref = result.provider_ref or order.reference
+                order.save(update_fields=["provider_ref"])
+                logger.info("Betting order %s is still settling upstream (%s).", order_id, result.provider_ref)
+                return
+
+            order.status = BettingOrder.Status.SUCCESS
+            order.provider_ref = result.provider_ref or order.reference
+            order.odds = Decimal(str(result.extra.get("odds", "0") or "0")) if result.extra else Decimal("0")
+            order.potential_return = (order.stake * order.odds) if order.odds else Decimal("0")
+            if result.amount_paid is not None:
+                order.api_cost = result.amount_paid
+            order.settled_at = timezone.now()
+            order.save(update_fields=["status", "provider_ref", "odds", "potential_return", "api_cost", "settled_at"])
+
+            WalletTransaction.objects.filter(reference=order.reference).update(status=WalletTransaction.Status.SUCCESS)
+
+            send_transaction_sms.delay(
+                order.user.phone_number,
+                f"SubHero: Bet placed on {order.event_name} ({order.selection}). Ref: {order.reference}",
+            )
+            try:
+                from apps.notifications.models import Notification
+                Notification.add(
+                    user=order.user,
+                    title="Bet Placed",
+                    description=f"Your bet on {order.event_name} ({order.selection}) was placed successfully.",
+                    level="financial"
+                )
+            except Exception as e:
+                logger.error("Notification creation failed: %s", str(e))
+            return
+
+        except Exception as exc:
+            logger.warning(
+                "Betting order %s: attempt %s of %s failed: %s",
+                order_id, attempt, MAX_PROVIDER_ATTEMPTS, str(exc),
+            )
+            if attempt == MAX_PROVIDER_ATTEMPTS or _is_definitive(exc):
+                logger.error("Betting order %s failed permanently: %s", order_id, str(exc))
+                order.status = BettingOrder.Status.FAILED
+                order.provider_ref = _clean_provider_message(exc, "Betting request failed")
+                order.save(update_fields=["status", "provider_ref"])
+                refund_betting_order(order_id)
+                return
+            time.sleep(RETRY_BACKOFF_SECONDS)
+
+
+@shared_task
+def refund_betting_order(order_id):
+    try:
+        with transaction.atomic():
+            order = BettingOrder.objects.select_for_update().get(id=order_id)
+            _generic_refund(order, "Betting", "REFUND")
+    except Exception as err:
+        logger.exception("Betting refund failed: %s", str(err))
+
+
+@shared_task
+def sync_betting_products():
+    """Syncs betting markets from the configured VTU provider."""
+    provider = get_provider()
+
+    try:
+        products = provider.list_betting_products()
+    except ProviderNotFoundError as exc:
+        logger.info("Betting not offered by %s: %s", provider.name, exc)
+        return
+    except Exception as exc:
+        logger.error("Failed to fetch betting products from %s: %s", provider.name, exc)
+        return
+
+    if not products:
+        logger.warning("%s returned no betting products. Keeping existing products active.", provider.name)
+        return
+
+    active_product_ids = []
+    for product in products:
+        provider_price = product.price
+        subhero_price = (provider_price * Decimal("1.00")).quantize(Decimal("0.01"))
+        BettingProduct.objects.update_or_create(
+            product_id=product.product_id,
+            defaults={
+                "event_name": product.name[:200],
+                "sport": "",
+                "league": "",
+                "selections": product.meta or {},
+                "min_stake": Decimal("0.00"),
+                "max_stake": Decimal("0.00"),
+                "subhero_price_multiplier": Decimal("1.00"),
+                "is_active": True,
+            },
+        )
+        active_product_ids.append(product.product_id)
+
+    BettingProduct.objects.exclude(product_id__in=active_product_ids).update(is_active=False)
+    logger.info("Synced %s betting products from %s.", len(active_product_ids), provider.name)
+
+
+# =============================================================
 # PENDING ORDER RECONCILIATION
 # =============================================================
 
@@ -1190,6 +1343,7 @@ _ORDER_MODELS_WITH_REFUNDS = (
     (CableOrder, refund_cable_order),
     (ElectricityOrder, refund_electricity_order),
     (ExamPinOrder, refund_exam_pin_order),
+    (BettingOrder, refund_betting_order),
 )
 
 
@@ -1382,6 +1536,7 @@ def poll_pending_vtu_orders():
         (CableOrder, refund_cable_order),
         (ElectricityOrder, refund_electricity_order),
         (ExamPinOrder, refund_exam_pin_order),
+        (BettingOrder, refund_betting_order),
     )
 
     for model, refund_task in order_sets:

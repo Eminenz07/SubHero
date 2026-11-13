@@ -60,6 +60,9 @@ class FakeProvider(VTUProvider):
     def list_exam_products(self):
         return []
 
+    def list_betting_products(self):
+        return []
+
     def resolve_airtime_product(self, network):
         return network
 
@@ -89,6 +92,9 @@ class FakeProvider(VTUProvider):
 
     def buy_exam_pin(self, exam_name, quantity, reference, exam_number=""):
         return self._behave("buy_exam_pin")
+
+    def buy_betting(self, event_id, selection, stake, reference):
+        return self._behave("buy_betting")
 
     def get_transaction(self, transaction_ref):
         return self._transaction

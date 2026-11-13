@@ -308,3 +308,70 @@ class ExamPinOrder(models.Model):
     def __str__(self):
         return f"ExamPinOrder {self.reference} - {self.exam_name} x{self.quantity}"
 
+
+# ─────────────────────────────────────────────
+# BETTING
+# ─────────────────────────────────────────────
+
+class BettingProduct(models.Model):
+    """
+    Betting markets / events synced from the outbound VTU provider.
+    Each product represents a bettable event with its available selections.
+    """
+    product_id = models.CharField(max_length=80, unique=True, help_text="Provider betting product / event id")
+    event_name = models.CharField(max_length=200, help_text="e.g. Arsenal vs Chelsea")
+    sport = models.CharField(max_length=40, blank=True, default="", help_text="e.g. Football, Basketball, Tennis")
+    league = models.CharField(max_length=100, blank=True, default="", help_text="e.g. Premier League, NBA")
+    selections = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Available selections with odds, e.g. {\"home\": {\"name\": \"Home Win\", \"odds\": 1.85}}",
+    )
+    start_time = models.DateTimeField(null=True, blank=True, help_text="Event start time")
+    min_stake = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    max_stake = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    subhero_price_multiplier = models.DecimalField(
+        max_digits=10, decimal_places=2, default=1.00,
+        help_text="SubHero stake multiplier applied on top of the customer's stake",
+    )
+    is_active = models.BooleanField(default=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "betting_product"
+        ordering = ["sport", "league", "event_name"]
+
+    def __str__(self):
+        return f"{self.sport} - {self.event_name}"
+
+
+class BettingOrder(models.Model):
+    """Tracks betting orders placed via the outbound VTU provider."""
+    class Status(models.TextChoices):
+        PENDING    = "PENDING", "Pending"
+        PROCESSING = "PROCESSING", "Processing"
+        SUCCESS    = "SUCCESS", "Success"
+        FAILED     = "FAILED", "Failed"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="betting_orders")
+    product_id = models.CharField(max_length=80, help_text="Provider betting product / event id")
+    event_name = models.CharField(max_length=200)
+    selection = models.CharField(max_length=100, help_text="The selection bet on, e.g. Home Win")
+    stake = models.DecimalField(max_digits=10, decimal_places=2, help_text="Customer's stake amount")
+    odds = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="Odds at time of bet")
+    potential_return = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, help_text="Stake * odds")
+    api_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Cost price from provider API")
+    reference = models.CharField(max_length=50, unique=True)
+    provider_ref = models.CharField(max_length=100, blank=True, default="", help_text="Provider's bet reference")
+    status = models.CharField(max_length=15, choices=Status.choices, default=Status.PENDING)
+    settled_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        db_table = "betting_order"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"BettingOrder {self.reference} - {self.event_name} - {self.selection}"
+

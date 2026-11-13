@@ -141,6 +141,14 @@ class VTUProvider(ABC):
         """Purchase education PINs."""
 
     @abstractmethod
+    def list_betting_products(self) -> list[ServiceProduct]:
+        """Available betting markets / events from the provider."""
+
+    @abstractmethod
+    def buy_betting(self, event_id: str, selection: str, stake: Decimal, reference: str) -> PurchaseResult:
+        """Place a bet on an event selection."""
+
+    @abstractmethod
     def get_transaction(self, transaction_ref: str) -> dict:
         """Re-query a transaction by id, tranxId or customerRef."""
 
