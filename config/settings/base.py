@@ -247,7 +247,7 @@ EXAM_PIN_COMING_SOON = config("EXAM_PIN_COMING_SOON", default=True, cast=bool)
 
 # Whether the exam PIN service is actually live. EXAM_PIN_COMING_SOON above is
 # the legacy switch; VTU_ENABLE_EXAM is authoritative for the exam service.
-VTU_ENABLE_EXAM = config("VTU_ENABLE_EXAM", default=False, cast=bool)
+VTU_ENABLE_EXAM = config("VTU_ENABLE_EXAM", default=True, cast=bool)
 
 # =============================================================
 # INTERNATIONALIZATION
@@ -443,8 +443,8 @@ DANCITY_TIMEOUT = config("DANCITY_TIMEOUT", default=30, cast=int)
 # badge instead of 404-ing, so the pages can be switched on without a deploy.
 VTU_ENABLE_DATA = config("VTU_ENABLE_DATA", default=True, cast=bool)
 VTU_ENABLE_AIRTIME = config("VTU_ENABLE_AIRTIME", default=True, cast=bool)
-VTU_ENABLE_CABLE = config("VTU_ENABLE_CABLE", default=False, cast=bool)
-VTU_ENABLE_ELECTRICITY = config("VTU_ENABLE_ELECTRICITY", default=False, cast=bool)
+VTU_ENABLE_CABLE = config("VTU_ENABLE_CABLE", default=True, cast=bool)
+VTU_ENABLE_ELECTRICITY = config("VTU_ENABLE_ELECTRICITY", default=True, cast=bool)
 
 
 # =============================================================

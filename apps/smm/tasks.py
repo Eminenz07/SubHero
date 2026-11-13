@@ -609,6 +609,7 @@ def sync_smm_catalogue():
         services = response.json()
 
         count = 0
+        active_service_ids = []
         from apps.admin_panel.models import SystemSetting
         try:
             max_smm_price_cap = Decimal(SystemSetting.get("max_smm_service_price", "150000.00"))
@@ -653,6 +654,7 @@ def sync_smm_catalogue():
                 # Tier classification is recomputed in bulk below with proper
                 # subcategory price grouping — never touching manual overrides.
                 existing.save()
+                active_service_ids.append(str(existing.provider_service_id))
             else:
                 new_service = SMMService(
                     provider_service_id=str(s["service"]),
@@ -666,8 +668,12 @@ def sync_smm_catalogue():
                     is_active=True
                 )
                 new_service.save()
+                active_service_ids.append(str(s["service"]))
 
             count += 1
+
+        # Deactivate services no longer returned by the provider (stale cleanup)
+        SMMService.objects.exclude(provider_service_id__in=active_service_ids).update(is_active=False)
 
         logger.info("SMM catalogue synced successfully via Ogaviral booster gateway. Mapped and updated %d services.", count)
 
