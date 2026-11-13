@@ -12,7 +12,7 @@ from django.views import View
 from apps.core.mixins import PinRequiredMixin
 from apps.core.utils import get_client_ip, generate_reference
 from apps.wallet.models import Wallet, WalletTransaction
-from apps.wallet.services import InsufficientBalanceError, WalletFrozenError
+from apps.wallet.services import InsufficientBalanceError, WalletFrozenError, credit_wallet
 from apps.smm.models import SMMService, SMMOrder
 from apps.smm.tasks import process_smm_order, refund_smm_order
 from apps.smm.platforms import get_active_platforms, PLATFORMS_META, get_platform_meta
@@ -511,3 +511,147 @@ class SmmOrderProgressAjaxView(LoginRequiredMixin, View):
             order = sync_single_smm_order(order)
 
         return render(request, self.template_name, {"order": order})
+
+
+class SmmOrderCancelView(LoginRequiredMixin, PinRequiredMixin, View):
+    """
+    POST /smm/orders/<uuid:order_id>/cancel/
+
+    User-initiated cancellation of a pending/processing SMM order.
+    - PENDING: full local refund (order not yet sent to gateway)
+    - PROCESSING: ask Ogaviral to cancel; refund based on gateway response
+    Idempotent — safe to retry.
+    """
+    def post(self, request, order_id, *args, **kwargs):
+        from django.shortcuts import get_object_or_404
+        from apps.smm.tasks import cancel_smm_order_with_provider
+        from apps.admin_panel.models import AdminLog
+
+        order = get_object_or_404(SMMOrder, id=order_id, user=request.user)
+
+        if order.status == SMMOrder.Status.CANCELLED:
+            return JsonResponse({
+                "success": True,
+                "status": order.status,
+                "message": "Order already cancelled",
+            })
+
+        if order.status not in [SMMOrder.Status.PENDING, SMMOrder.Status.PROCESSING]:
+            return JsonResponse({
+                "success": False,
+                "error": f"Cannot cancel order in {order.get_status_display()} state",
+            }, status=400)
+
+        with transaction.atomic():
+            wallet = Wallet.objects.select_for_update().get(user=request.user)
+            order = SMMOrder.objects.select_for_update().get(id=order.id)
+
+            if order.status == SMMOrder.Status.CANCELLED:
+                return JsonResponse({
+                    "success": True,
+                    "status": order.status,
+                    "message": "Order already cancelled",
+                })
+
+            if order.status not in [SMMOrder.Status.PENDING, SMMOrder.Status.PROCESSING]:
+                return JsonResponse({
+                    "success": False,
+                    "error": f"Cannot cancel order in {order.get_status_display()} state",
+                }, status=400)
+
+            txn = WalletTransaction.objects.filter(
+                reference=order.reference, txn_type=WalletTransaction.TxnType.SMM
+            ).first()
+
+            refund_amount = Decimal("0.00")
+            gateway_rejected = False
+
+            if order.status == SMMOrder.Status.PENDING:
+                # Not yet sent to gateway — full local refund
+                refund_amount = order.amount
+                order.cancelled_by = "user"
+                order.cancellation_reason = "User cancelled before gateway submission"
+                order.status = SMMOrder.Status.CANCELLED
+            else:
+                # PROCESSING — sent to gateway; ask Ogaviral to cancel
+                provider_cancel_result = cancel_smm_order_with_provider(order.provider_order_id)
+                order.provider_cancel_requested = True
+
+                if provider_cancel_result["cancelled"]:
+                    remains = int(provider_cancel_result.get("remains", 0) or 0)
+                    if remains > 0 and order.quantity > 0:
+                        # Partial delivery — refund undelivered portion
+                        refund_amount = (Decimal(remains) / Decimal(order.quantity)) * order.amount
+                        order.status = SMMOrder.Status.PARTIAL
+                        order.cancelled_by = "user"
+                        order.cancellation_reason = (
+                            f"User cancelled; partial delivery ({remains} of {order.quantity} undelivered)"
+                        )
+                    else:
+                        refund_amount = order.amount
+                        order.status = SMMOrder.Status.CANCELLED
+                        order.cancelled_by = "user"
+                        order.cancellation_reason = "User cancelled; gateway confirmed cancel"
+                else:
+                    # Gateway rejected cancel — order is being delivered
+                    gateway_rejected = True
+                    order.cancelled_by = ""
+                    order.cancellation_reason = (
+                        f"Cancel rejected by gateway: {provider_cancel_result.get('error', 'unknown')}"
+                    )
+                    # status stays PROCESSING
+
+            order.save(update_fields=["status", "cancelled_by", "cancellation_reason", "provider_cancel_requested"])
+
+            if txn:
+                txn.status = WalletTransaction.Status.FAILED
+                txn.save(update_fields=["status"])
+
+            if refund_amount > 0 and not gateway_rejected:
+                credit_wallet(
+                    wallet_id=wallet.id,
+                    amount=refund_amount,
+                    txn_type=WalletTransaction.TxnType.REFUND,
+                    reference=f"CANCEL-{order.reference}",
+                    description=f"SMM Order Cancelled: {order.service.name} ({order.reference})",
+                    metadata={"order_id": str(order.id), "original_reference": order.reference},
+                    ip_address=get_client_ip(request),
+                )
+
+            try:
+                AdminLog.objects.create(
+                    admin_user=request.user,
+                    action="SMM_ORDER_CANCEL",
+                    target_type="SMMOrder",
+                    target_id=str(order.id),
+                    detail=(
+                        f"User cancelled SMM order {order.reference} "
+                        f"(status={order.status}, refund=₦{refund_amount:,.2f})"
+                    ),
+                    ip_address=get_client_ip(request),
+                )
+            except Exception:
+                logger.exception("Failed to write AdminLog for SMM order cancellation")
+
+        if gateway_rejected:
+            return HttpResponse(
+                "Order is already being delivered and cannot be cancelled.",
+                status=400,
+                content_type="text/plain",
+            )
+
+        # Re-fetch fresh context for receipt re-render (wallet balance updated)
+        wallet_refresh, _ = Wallet.objects.get_or_create(user=request.user)
+        txn_refresh = WalletTransaction.objects.filter(reference=order.reference).first()
+        context = {
+            "wallet": wallet_refresh,
+            "txn": txn_refresh,
+            "order": order,
+            "platform": order.service.category,
+            "service_name": order.service.name,
+            "url": order.target_url,
+            "quantity": order.quantity,
+            "amount": order.amount,
+            "tier_meta": TIER_INFO.get(order.service.tier),
+        }
+        return render(request, "smm/partials/_receipt_content.html", context)

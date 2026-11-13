@@ -118,6 +118,16 @@
 
     <!-- Actions -->
     <div class="space-y-3">
+        {% if order and order.status == 'PENDING' or order and order.status == 'PROCESSING' %}
+        <button type="button"
+                class="btn btn-outline btn-block"
+                hx-post="{% url 'smm:order_cancel' order_id=order.id %}"
+                hx-target="#receipt-container"
+                hx-swap="outerHTML"
+                onclick="return confirm('Cancel this order? You will be refunded ₦{{ order.amount|floatformat:2 }}.')">
+            <i data-feather="x" class="w-4 h-4 mr-2"></i> Cancel Order & Refund
+        </button>
+        {% endif %}
         <a href="{% url 'dashboard' %}" class="btn btn-primary btn-block">Back to Dashboard</a>
         <a href="{% url 'smm:index' %}" class="btn btn-secondary btn-block">Order Again</a>
     </div>

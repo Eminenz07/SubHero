@@ -143,6 +143,21 @@ class SMMOrder(models.Model):
     start_count = models.IntegerField(default=0, help_text="Starting count on user account before delivery")
     remains = models.IntegerField(default=0, help_text="Quantity left to deliver")
     status = models.CharField(max_length=15, choices=Status.choices, default=Status.PENDING)
+    cancelled_by = models.CharField(
+        max_length=20,
+        blank=True,
+        default="",
+        help_text="'user' if cancelled by customer, 'system' if cancelled by gateway/admin",
+    )
+    cancellation_reason = models.TextField(
+        blank=True,
+        default="",
+        help_text="Reason for cancellation (user-requested, provider-rejected, etc.)",
+    )
+    provider_cancel_requested = models.BooleanField(
+        default=False,
+        help_text="Whether Ogaviral was asked to cancel this order",
+    )
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:

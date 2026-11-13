@@ -19,4 +19,5 @@ urlpatterns = [
     path("ajax/services/", views.SmmServicesAjaxView.as_view(), name="ajax_services"),
     path("receipt/status/<uuid:order_id>/", views.SmmReceiptStatusAjaxView.as_view(), name="receipt_status"),
     path("orders/<uuid:order_id>/progress/", views.SmmOrderProgressAjaxView.as_view(), name="order_progress"),
+    path("orders/<uuid:order_id>/cancel/", views.SmmOrderCancelView.as_view(), name="order_cancel"),
 ]

@@ -681,3 +681,55 @@ def sync_smm_catalogue():
     except Exception as e:
         logger.error("Failed to sync SMM catalogue from booster gateway: %s", str(e))
 
+
+def cancel_smm_order_with_provider(provider_order_id):
+    """
+    Ask Ogaviral to cancel an in-flight order.
+
+    Returns a dict:
+        {"cancelled": True,  "remains": int, "start_count": int}   # gateway accepted cancel
+        {"cancelled": False, "error": str}                          # gateway rejected / already delivering
+        {"cancelled": False, "error": "gateway_not_configured"}     # no API key
+    """
+    api_key = settings.OGAVIRAL_API_KEY
+    if not api_key:
+        return {"cancelled": False, "error": "gateway_not_configured"}
+
+    url = settings.OGAVIRAL_API_URL
+    try:
+        response = requests.post(
+            url,
+            data={"key": api_key, "action": "cancel", "order": provider_order_id},
+            timeout=15,
+        )
+        if response.status_code != 200:
+            return {
+                "cancelled": False,
+                "error": f"gateway_http_{response.status_code}",
+            }
+
+        try:
+            data = response.json()
+        except ValueError:
+            return {"cancelled": False, "error": "gateway_invalid_response"}
+
+        # Ogaviral cancel responses vary; normalise common shapes.
+        cancelled = bool(
+            data.get("cancelled")
+            or data.get("success")
+            or str(data.get("status", "")).lower() in ("cancelled", "canceled", "success")
+        )
+
+        return {
+            "cancelled": cancelled,
+            "remains": data.get("remains", 0),
+            "start_count": data.get("start_count", 0),
+            "raw": data,
+        }
+    except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as exc:
+        logger.warning("Ogaviral cancel request failed: %s", exc)
+        return {"cancelled": False, "error": "gateway_unreachable"}
+    except Exception as exc:
+        logger.error("Ogaviral cancel request crashed: %s", exc)
+        return {"cancelled": False, "error": str(ex)[:150]}
+
