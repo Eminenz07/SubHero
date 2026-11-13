@@ -79,4 +79,18 @@
         </div>
     </div>
     {% endif %}
+
+    <!-- Cancel button while order is still pending or processing -->
+    {% if order.status == 'PENDING' or order.status == 'PROCESSING' %}
+    <div class="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700">
+        <button type="button"
+                class="btn btn-outline btn-block"
+                hx-post="{% url 'smm:order_cancel' order_id=order.id %}"
+                hx-target="#receipt-container"
+                hx-swap="outerHTML"
+                onclick="return confirm('Cancel this order? You will be refunded ₦{{ order.amount|floatformat:2 }}.')">
+            <i data-feather="x" class="w-4 h-4 mr-2"></i> Cancel Order & Refund
+        </button>
+    </div>
+    {% endif %}
 </div>
