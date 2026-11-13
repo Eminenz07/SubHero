@@ -369,16 +369,21 @@ class SmmTierServicesAjaxView(LoginRequiredMixin, View):
 
 class SmmTierCategoriesAjaxView(LoginRequiredMixin, View):
     """
-    Returns <option> elements listing subcategories (Comments, Likes, Followers…)
-    available for a given platform + tier combo.
+    Returns <option> elements listing subcategories available for a platform.
+
+    tier is optional: when omitted (category-before-tier flow) all subcategories
+    for the platform are returned; when provided, only that tier's subcategories.
     """
     def get(self, request, *args, **kwargs):
         platform = request.GET.get("platform", "").lower().strip()
         tier = request.GET.get("tier", "").lower().strip()
 
-        subcategories = SMMService.objects.filter(
-            category=platform, tier=tier, is_active=True
-        ).exclude(subcategory="").values_list("subcategory", flat=True).distinct().order_by("subcategory")
+        qs = SMMService.objects.filter(
+            category=platform, is_active=True
+        ).exclude(subcategory="")
+        if tier:
+            qs = qs.filter(tier=tier)
+        subcategories = qs.values_list("subcategory", flat=True).distinct().order_by("subcategory")
 
         html = '<option value="" disabled selected>-- Select Category --</option>'
         for sub in subcategories:
@@ -388,8 +393,8 @@ class SmmTierCategoriesAjaxView(LoginRequiredMixin, View):
 
 class SmmServicesListAjaxView(LoginRequiredMixin, View):
     """
-    Returns flat list of services for a given platform+tier (+optional subcategory).
-    Called when user selects a tier or changes the category dropdown.
+    Returns flat list of services for a given platform+tier (+optional subcategory + search).
+    Called when user selects a tier, changes the category dropdown, or types in the search bar.
     """
     template_name = "smm/partials/_service_list.html"
 
@@ -397,12 +402,15 @@ class SmmServicesListAjaxView(LoginRequiredMixin, View):
         platform = request.GET.get("platform", "").lower().strip()
         tier = request.GET.get("tier", "").lower().strip()
         subcategory = request.GET.get("subcategory", "").strip()
+        search = request.GET.get("search", "").strip()
 
         services = SMMService.objects.filter(
             category=platform, tier=tier, is_active=True
         )
         if subcategory:
             services = services.filter(subcategory=subcategory)
+        if search:
+            services = services.filter(name__icontains=search)
         services = services.order_by("subhero_price_per_1k")
 
         for s in services:
@@ -413,6 +421,7 @@ class SmmServicesListAjaxView(LoginRequiredMixin, View):
             "services": services,
             "platform": platform,
             "tier": tier,
+            "search": search,
         })
 
 

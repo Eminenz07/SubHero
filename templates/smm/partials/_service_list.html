@@ -1,4 +1,4 @@
-{% comment %}Service list partial for a platform+tier(+subcategory) combo — classic flat card list.
+{% comment %}Service list partial for a platform+tier(+subcategory+search) combo — flat card list.
 Card params are passed via data-* attributes and handled by a delegated listener
 in index.html (robust against service names containing quotes).{% endcomment %}
 {% for service in services %}
@@ -32,13 +32,12 @@ in index.html (robust against service names containing quotes).{% endcomment %}
     <div class="smm-name">{{ service.name }}</div>
     <div class="smm-desc">Min: {{ service.provider_min|floatformat:"0" }} · Max: {{ service.provider_max|floatformat:"0" }}</div>
     <div class="smm-facts"><span>⏱ Start: {{ service.facts.start_time }}</span><span>♻️ Refill: {{ service.facts.refill }}</span></div>
-    {% comment %}Raw supplier description intentionally not rendered.{% endcomment %}
-    {% if False %}
-    <button type="button" class="smm-rules-btn mt-1.5 text-[11px] font-semibold text-[#7C3AED] dark:text-[#C893FF] hover:text-[#6D28D9] dark:hover:text-[#E9D5FF] flex items-center gap-1 hover:underline cursor-pointer transition-colors"
-            onclick="event.stopPropagation(); document.getElementById('desc-{{ service.id }}').classList.toggle('hidden');">
-      <i data-feather="info" class="w-3.5 h-3.5 shrink-0"></i> View Details & Rules
+    {% if service.description %}
+    <button type="button" class="smm-details-btn mt-2 text-[11px] font-semibold text-[#7C3AED] dark:text-[#C893FF] hover:text-[#6D28D9] dark:hover:text-[#E9D5FF] flex items-center gap-1 hover:underline cursor-pointer transition-colors" onclick="event.stopPropagation(); toggleServiceDesc('{{ service.id }}', this);">
+      <i data-feather="chevron-down" class="w-3.5 h-3.5 shrink-0" id="desc-icon-{{ service.id }}"></i>
+      Details
     </button>
-    <div id="desc-{{ service.id }}" class="smm-rules-desc hidden mt-2 p-3 rounded-xl text-[11px] leading-relaxed whitespace-pre-line font-mono shadow-inner">
+    <div id="desc-{{ service.id }}" class="smm-rules-desc hidden mt-2 p-3 rounded-xl text-[11px] leading-relaxed whitespace-pre-line font-mono shadow-inner" aria-hidden="true">
 {{ service.description }}
     </div>
     {% endif %}
@@ -48,7 +47,7 @@ in index.html (robust against service names containing quotes).{% endcomment %}
 {% empty %}
 <div class="text-center py-8 text-text-muted text-sm">
   <div class="text-2xl mb-2">🔍</div>
-  No services found{{ active_category_note|default:"" }} in this tier for {{ platform|title }}.
-  <div class="text-[11px] mt-1 opacity-70">Try another category or tier.</div>
+  No services found{{ active_category_note|default:"" }}{% if search %} matching "<span class="text-text-primary dark:text-white">{{ search }}</span>"{% endif %} in this tier for {{ platform|title }}.
+  <div class="text-[11px] mt-1 opacity-70">Try another category, tier, or search term.</div>
 </div>
 {% endfor %}

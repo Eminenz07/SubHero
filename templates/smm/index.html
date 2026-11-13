@@ -495,6 +495,35 @@
   @media (prefers-reduced-motion: reduce) {
     .ti-sheet, .ti-sheet.open, .ti-backdrop, .ti-toggle svg { transition: none !important; }
   }
+
+  /* ═══ Service search bar ═══ */
+  #service-search-wrap {
+    margin-bottom: 8px;
+  }
+  #service-search-wrap i {
+    pointer-events: none;
+    z-index: 2;
+  }
+  #service-search-wrap input {
+    padding-left: 32px !important;
+  }
+
+  /* ═══ Service details toggle ═══ */
+  .smm-details-btn {
+    padding: 0;
+    background: transparent;
+    border: none;
+  }
+  .smm-details-btn i {
+    transition: transform 0.2s ease;
+  }
+  .smm-details-btn.expanded i { transform: rotate(180deg); }
+  .smm-details-btn.expanded { color: #5B21B6; }
+  html.dark .smm-details-btn.expanded { color: #C4B5FD; }
+  .rotate-180 { transform: rotate(180deg); }
+  .smm-rules-desc[aria-hidden="false"] {
+    display: block !important;
+  }
 </style>
 
 <!-- ═══ WALLET BALANCE STRIP (always visible) ═══ -->
@@ -583,8 +612,18 @@
 </div>
 
 <div class="px-4 pb-6">
-  <!-- ═══ STEP 1 · TIER SELECTOR ═══ -->
-  <div class="text-[10px] font-bold text-purple-700/70 dark:text-purple-300/70 uppercase tracking-widest mb-2">Step 1 · Choose Your Boost Tier</div>
+  <!-- ═══ STEP 1 · CATEGORY DROPDOWN ═══ -->
+  <div class="mb-3" id="category-select-wrap">
+    <div class="text-[10px] font-bold text-purple-700/70 dark:text-purple-300/70 uppercase tracking-widest mb-2">Step 1 · Select Category</div>
+    <select id="smm-category-select"
+            class="smm-category-select"
+            onchange="changeCategory()">
+      <option value="" disabled selected>-- Select Category --</option>
+    </select>
+  </div>
+
+  <!-- ═══ STEP 2 · TIER SELECTOR ═══ -->
+  <div class="text-[10px] font-bold text-purple-700/70 dark:text-purple-300/70 uppercase tracking-widest mb-2">Step 2 · Choose Your Boost Tier</div>
   <div class="tier-tabs" id="tier-tabs">
     <div class="tier-tab" data-tier="basic" onclick="selectTier('basic', true)">
       <div class="tt-icon">⚡</div>
@@ -606,22 +645,17 @@
   <div id="tier-strip-container"></div>
   <button type="button" class="tier-info-link" id="tier-info-link" aria-haspopup="dialog" aria-controls="tier-info-sheet">ℹ️ What’s included?</button>
 
-  <!-- ═══ STEP 2 · CATEGORY DROPDOWN ═══ -->
-  <div class="mb-3" id="category-select-wrap">
-    <div class="text-[10px] font-bold text-purple-700/70 dark:text-purple-300/70 uppercase tracking-widest mb-2">Step 2 · Select Category</div>
-    <select id="smm-category-select"
-            class="smm-category-select"
-            onchange="changeCategory()">
-      <option value="" disabled selected>-- Select Category --</option>
-    </select>
-  </div>
-
-  <!-- ═══ STEP 3 · SERVICE LIST ═══ -->
+  <!-- ═══ STEP 3 · SERVICE LIST + SEARCH ═══ -->
   <div class="text-[10px] font-bold text-purple-700/70 dark:text-purple-300/70 uppercase tracking-widest mb-2">Step 3 · Pick a Service</div>
+  <div class="relative mb-3" id="service-search-wrap" style="display:none;">
+    <i data-feather="search" class="w-4 h-4 text-text-muted absolute left-3 top-2.5"></i>
+    <input type="search" id="smm-service-search" placeholder="Search services…"
+           class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-surface-border bg-white dark:bg-surface-card text-text-primary dark:text-white focus:outline-none focus:border-brand-primary transition-colors text-sm">
+  </div>
   <div class="space-y-3" id="smm-cards-container">
     <div class="text-center py-8 text-text-muted text-sm" id="service-list-loading">
       <div class="text-2xl mb-2">🎯</div>
-      Select a tier above to view available services.
+      Select a category above to view services.
     </div>
   </div>
 </div>
@@ -941,19 +975,29 @@
   // ─── Platform Selection ───────────────────────────────────────
   function selectPlatform(slug) {
     activePlatform = slug;
+    activeTier = '';
+    activeCategory = '';
     document.getElementById('id_platform').value = slug;
 
     document.querySelectorAll('.platform-tab').forEach(tab => {
       tab.classList.toggle('active', tab.dataset.platform === slug);
     });
 
-    // Reload categories for the current tier; services reset until a
-    // category is picked again.
-    if (activeTier) {
-      document.getElementById('smm-cards-container').innerHTML =
-        '<div class="text-center py-8 text-text-muted text-sm"><div class="text-2xl mb-2">📂</div>Pick a category above to see ' + TIER_META[activeTier].title + ' services.</div>';
-      loadCategories();
-    }
+    // Reset tier UI
+    document.querySelectorAll('.tier-tab').forEach(tab => tab.classList.remove('active'));
+    document.getElementById('tier-strip-container').innerHTML = '';
+    document.getElementById('tier-info-link').classList.add('hidden');
+
+    // Hide search bar until category + tier chosen
+    document.getElementById('service-search-wrap').style.display = 'none';
+    document.getElementById('smm-service-search').value = '';
+
+    // Services reset until a category is picked again
+    document.getElementById('smm-cards-container').innerHTML =
+      '<div class="text-center py-8 text-text-muted text-sm"><div class="text-2xl mb-2">📂</div>Pick a category above to see services.</div>';
+
+    // Load categories for this platform only (no tier filter — category-first flow)
+    loadCategories();
   }
 
   // ─── Tier Selection ───────────────────────────────────────────
@@ -974,19 +1018,25 @@
 
     const stripEl = document.getElementById('tier-strip-container');
     stripEl.innerHTML = '<div class="tier-strip ' + tier + '">' + TIER_META[tier].strip + '</div>';
+    document.getElementById('tier-info-link').classList.remove('hidden');
 
-    // Services stay hidden until the user picks a category (Step 2)
-    document.getElementById('smm-cards-container').innerHTML =
-      '<div class="text-center py-8 text-text-muted text-sm"><div class="text-2xl mb-2">📂</div>Pick a category above to see ' + TIER_META[tier].title + ' services.</div>';
+    // Category must be picked first; if none yet, prompt user
+    if (!activeCategory) {
+      document.getElementById('smm-cards-container').innerHTML =
+        '<div class="text-center py-8 text-text-muted text-sm"><div class="text-2xl mb-2">📂</div>Pick a category above to see ' + TIER_META[tier].title + ' services.</div>';
+      document.getElementById('service-search-wrap').style.display = 'none';
+      return;
+    }
 
-    loadCategories();
+    // Load services for platform + tier + category
+    loadServiceList();
   }
 
   // ─── Category Dropdown ────────────────────────────────────────
   function loadCategories() {
     const selectEl = document.getElementById('smm-category-select');
     selectEl.innerHTML = '<option value="">Loading…</option>';
-    fetch('{% url "smm:ajax_tier_categories" %}?platform=' + encodeURIComponent(activePlatform) + '&tier=' + encodeURIComponent(activeTier))
+    fetch('{% url "smm:ajax_tier_categories" %}?platform=' + encodeURIComponent(activePlatform))
       .then(r => r.text())
       .then(html => {
         selectEl.innerHTML = html;
@@ -996,19 +1046,35 @@
 
   function changeCategory() {
     activeCategory = document.getElementById('smm-category-select').value;
+
+    // Reset service state
+    activeServiceId = '';
+    document.getElementById('smm-service-search').value = '';
+
     if (activeCategory) {
+      // Show search bar once a category is picked
+      document.getElementById('service-search-wrap').style.display = 'block';
       loadServiceList();
+    } else {
+      document.getElementById('service-search-wrap').style.display = 'none';
+      document.getElementById('smm-cards-container').innerHTML =
+        '<div class="text-center py-8 text-text-muted text-sm"><div class="text-2xl mb-2">📂</div>Pick a category above to view services.</div>';
     }
   }
 
   // ─── Service List ─────────────────────────────────────────────
   function loadServiceList() {
+    if (!activePlatform) return;
     const container = document.getElementById('smm-cards-container');
     container.innerHTML = '<div class="text-center py-10 text-text-muted text-sm"><div class="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>Loading services…</div>';
 
     let url = '{% url "smm:ajax_services_list" %}?platform=' + encodeURIComponent(activePlatform) + '&tier=' + encodeURIComponent(activeTier);
     if (activeCategory) {
       url += '&subcategory=' + encodeURIComponent(activeCategory);
+    }
+    const searchVal = document.getElementById('smm-service-search').value.trim();
+    if (searchVal) {
+      url += '&search=' + encodeURIComponent(searchVal);
     }
 
     fetch(url)
@@ -1022,11 +1088,38 @@
       });
   }
 
+  // ─── Service search (debounced) ───────────────────────────────
+  let searchDebounceTimer = null;
+  document.getElementById('smm-service-search').addEventListener('input', function() {
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => {
+      loadServiceList();
+    }, 250);
+  });
+
+  // ─── Service details toggle ───────────────────────────────────
+  window.toggleServiceDesc = function(serviceId, btn) {
+    const desc = document.getElementById('desc-' + serviceId);
+    const icon = document.getElementById('desc-icon-' + serviceId);
+    const isOpen = desc.getAttribute('aria-hidden') === 'false';
+    if (isOpen) {
+      desc.setAttribute('aria-hidden', 'true');
+      desc.classList.add('hidden');
+      btn.classList.remove('expanded');
+      if (icon) icon.classList.remove('rotate-180');
+    } else {
+      desc.setAttribute('aria-hidden', 'false');
+      desc.classList.remove('hidden');
+      btn.classList.add('expanded');
+      if (icon) icon.classList.add('rotate-180');
+    }
+  };
+
   // ─── Delegated service card click (robust against names w/ quotes) ───
   document.addEventListener('click', function(e) {
     const card = e.target.closest('.smm-card');
     if (!card) return;
-    if (e.target.closest('.smm-rules-btn')) return;  // details toggle — don't open sheet
+    if (e.target.closest('.smm-details-btn')) return;  // details toggle — don't open sheet
 
     const d = card.dataset;
     if (d.id && d.unit) {
@@ -1206,18 +1299,18 @@
     TierSheet.close();
   }
 
-  // ─── Auto-select platform & tier from URL params (return after funding) ──
+  // ─── Auto-select platform from URL params (return after funding) ──
   document.addEventListener('DOMContentLoaded', () => {
     const params = new URLSearchParams(window.location.search);
     const pfSlug = params.get('platform');
-    const pfTier = params.get('tier');
 
     if (pfSlug && document.getElementById('platform-tab-' + pfSlug)) {
       selectPlatform(pfSlug);
+    } else {
+      // No platform param — select the first platform chip by default
+      const firstTab = document.querySelector('.platform-tab');
+      if (firstTab) selectPlatform(firstTab.dataset.platform);
     }
-
-    // Programmatic selection on load — never auto-opens the details sheet
-    selectTier(pfTier && TIER_META[pfTier] ? pfTier : 'standard', false);
 
     // Scroll active platform chip into view
     const activeTab = document.querySelector('.platform-tab.active');
