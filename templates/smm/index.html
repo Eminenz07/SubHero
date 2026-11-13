@@ -1004,7 +1004,6 @@
   function selectTier(tier, fromUser) {
     if (!TIER_META[tier]) return;
     activeTier = tier;
-    activeCategory = '';
     TierSheet.setFacts(null);
 
     // Auto-open the details sheet the first time a user taps each tier
@@ -1020,7 +1019,7 @@
     stripEl.innerHTML = '<div class="tier-strip ' + tier + '">' + TIER_META[tier].strip + '</div>';
     document.getElementById('tier-info-link').classList.remove('hidden');
 
-    // Category must be picked first; if none yet, prompt user
+    // Both category and tier are required to load services.
     if (!activeCategory) {
       document.getElementById('smm-cards-container').innerHTML =
         '<div class="text-center py-8 text-text-muted text-sm"><div class="text-2xl mb-2">📂</div>Pick a category above to see ' + TIER_META[tier].title + ' services.</div>';
@@ -1051,15 +1050,24 @@
     activeServiceId = '';
     document.getElementById('smm-service-search').value = '';
 
-    if (activeCategory) {
-      // Show search bar once a category is picked
-      document.getElementById('service-search-wrap').style.display = 'block';
-      loadServiceList();
-    } else {
+    if (!activeCategory) {
       document.getElementById('service-search-wrap').style.display = 'none';
       document.getElementById('smm-cards-container').innerHTML =
         '<div class="text-center py-8 text-text-muted text-sm"><div class="text-2xl mb-2">📂</div>Pick a category above to view services.</div>';
+      return;
     }
+
+    // Show search bar once a category is picked
+    document.getElementById('service-search-wrap').style.display = 'block';
+
+    // Both category and tier are required to load services.
+    if (!activeTier) {
+      document.getElementById('smm-cards-container').innerHTML =
+        '<div class="text-center py-8 text-text-muted text-sm"><div class="text-2xl mb-2">⚡</div>Pick a boost tier above to see services in this category.</div>';
+      return;
+    }
+
+    loadServiceList();
   }
 
   // ─── Service List ─────────────────────────────────────────────
