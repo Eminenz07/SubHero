@@ -484,6 +484,79 @@ def fetch_smm_service_description(provider_service_id):
     return ""
 
 
+def detect_extra_input_requirement(name, description=""):
+    """
+    Automatically detect whether a service requires extra user input beyond
+    link + quantity (e.g. custom comment text).
+
+    Returns (requires_extra_input, label, placeholder).
+
+    Detection scans the service name and Ogaviral description for keywords
+    that indicate the gateway needs a custom text field (comments, messages,
+    notes, captions, hashtags, mentions, etc.).
+    """
+    combined = f"{name} {description}".lower()
+
+    # Keywords that indicate extra user input is required by the gateway.
+    extra_keywords = [
+        "comment", "custom comment", "comments", "custom message", "message",
+        "custom text", "text input", "note", "caption", "hashtag", "mention",
+        "username", "bio", "custom note", "custom caption",
+    ]
+
+    matched = [kw for kw in extra_keywords if kw in combined]
+    if not matched:
+        return False, "", ""
+
+    # Derive a human-friendly label from the strongest match.
+    # Prefer more specific keywords over generic ones.
+    priority = ["custom comment", "comment", "comments", "custom message", "message",
+                "custom text", "text input", "note", "caption", "hashtag", "mention",
+                "username", "bio", "custom note", "custom caption"]
+
+    label_match = ""
+    for kw in priority:
+        if kw in matched:
+            label_match = kw
+            break
+
+    label_match = label_match or matched[0]
+
+    # Build label and placeholder.
+    if "comment" in label_match:
+        label = "Custom comment"
+        placeholder = "Enter your comment text..."
+    elif "message" in label_match:
+        label = "Custom message"
+        placeholder = "Enter your message..."
+    elif "text" in label_match:
+        label = "Custom text"
+        placeholder = "Enter your custom text..."
+    elif "note" in label_match:
+        label = "Custom note"
+        placeholder = "Enter your note..."
+    elif "caption" in label_match:
+        label = "Caption"
+        placeholder = "Enter your caption..."
+    elif "hashtag" in label_match:
+        label = "Hashtags"
+        placeholder = "Enter hashtags..."
+    elif "mention" in label_match:
+        label = "Mentions"
+        placeholder = "Enter mentions..."
+    elif "username" in label_match:
+        label = "Username"
+        placeholder = "Enter username..."
+    elif "bio" in label_match:
+        label = "Bio text"
+        placeholder = "Enter bio text..."
+    else:
+        label = "Extra details"
+        placeholder = "Enter extra details..."
+
+    return True, label, placeholder
+
+
 @shared_task
 def sync_all_smm_descriptions(force_refresh=False):
     """
@@ -508,7 +581,14 @@ def sync_all_smm_descriptions(force_refresh=False):
         desc = fetch_smm_service_description(service.provider_service_id)
         if desc:
             service.description = desc
-            service.save(update_fields=["description"])
+            # Re-detect extra-input requirement using name + full description.
+            req_extra, extra_label, extra_placeholder = detect_extra_input_requirement(
+                service.name, desc
+            )
+            service.requires_extra_input = req_extra
+            service.extra_input_label = extra_label
+            service.extra_input_placeholder = extra_placeholder
+            service.save(update_fields=["description", "requires_extra_input", "extra_input_label", "extra_input_placeholder"])
             return True
         return False
 
@@ -587,6 +667,9 @@ def sync_smm_catalogue():
         for s in pre_populated:
             markup_price = s["rate"] * (Decimal("1") + smm_margin)
             platform_slug = detect_platform(s["cat_raw"], s["name"])
+            # Automatically detect whether the service needs extra input
+            # (e.g. custom comment text) from its name.
+            req_extra, extra_label, extra_placeholder = detect_extra_input_requirement(s["name"])
             SMMService.objects.update_or_create(
                 provider_service_id=s["service"],
                 defaults={
@@ -600,6 +683,9 @@ def sync_smm_catalogue():
                     "tier": s.get("tier"),
                     "suggested_tier": s.get("tier"),
                     "tier_source": "manual",  # curated mock data — lock against auto reclassification
+                    "requires_extra_input": req_extra,
+                    "extra_input_label": extra_label,
+                    "extra_input_placeholder": extra_placeholder,
                     "is_active": True
                 }
             )
@@ -644,6 +730,12 @@ def sync_smm_catalogue():
 
             existing = SMMService.objects.filter(provider_service_id=str(s["service"])).first()
 
+            # Automatically detect whether the service needs extra input
+            # (e.g. custom comment text) from its name. This runs during
+            # catalogue sync without extra API calls; sync_all_smm_descriptions
+            # later refines detection using the full description.
+            req_extra, extra_label, extra_placeholder = detect_extra_input_requirement(clean_name)
+
             if existing:
                 existing.name = clean_name
                 existing.category = platform
@@ -653,6 +745,9 @@ def sync_smm_catalogue():
                 existing.provider_rate = rate_naira
                 existing.subhero_price_per_1k = subhero_price
                 existing.is_active = True
+                existing.requires_extra_input = req_extra
+                existing.extra_input_label = extra_label
+                existing.extra_input_placeholder = extra_placeholder
                 # Tier classification is recomputed in bulk below with proper
                 # subcategory price grouping — never touching manual overrides.
                 existing.save()
@@ -667,6 +762,9 @@ def sync_smm_catalogue():
                     provider_max=int(s["max"]),
                     provider_rate=rate_naira,
                     subhero_price_per_1k=subhero_price,
+                    requires_extra_input=req_extra,
+                    extra_input_label=extra_label,
+                    extra_input_placeholder=extra_placeholder,
                     is_active=True
                 )
                 new_service.save()
