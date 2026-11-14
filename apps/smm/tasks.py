@@ -52,6 +52,8 @@ def process_smm_order(self, order_id):
         "link": order.target_url,
         "quantity": order.quantity
     }
+    if order.extra_input:
+        payload["comments"] = order.extra_input
 
     try:
         response = requests.post(url, data=payload, timeout=30)

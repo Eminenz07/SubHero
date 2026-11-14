@@ -63,6 +63,24 @@ class SMMService(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # Extra input (e.g. custom comment text) required by some services like comments.
+    requires_extra_input = models.BooleanField(
+        default=False,
+        help_text="Whether this service needs extra user input beyond link+quantity (e.g. custom comment text)."
+    )
+    extra_input_label = models.CharField(
+        max_length=100,
+        blank=True,
+        default="",
+        help_text="Label shown above the extra input field (e.g. 'Custom comment')."
+    )
+    extra_input_placeholder = models.CharField(
+        max_length=200,
+        blank=True,
+        default="",
+        help_text="Placeholder text inside the extra input field."
+    )
+
     class Meta:
         db_table = "smm_service"
         ordering = ["category", "subhero_price_per_1k"]
@@ -142,6 +160,11 @@ class SMMOrder(models.Model):
     provider_order_id = models.CharField(max_length=100, blank=True, default="")
     start_count = models.IntegerField(default=0, help_text="Starting count on user account before delivery")
     remains = models.IntegerField(default=0, help_text="Quantity left to deliver")
+    extra_input = models.TextField(
+        blank=True,
+        default="",
+        help_text="Extra user input for services that need it (e.g. custom comment text). Sent to gateway as 'comments'."
+    )
     status = models.CharField(max_length=15, choices=Status.choices, default=Status.PENDING)
     cancelled_by = models.CharField(
         max_length=20,

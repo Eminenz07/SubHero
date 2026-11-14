@@ -112,6 +112,7 @@ class SmmIndexView(LoginRequiredMixin, PinRequiredMixin, View):
         url = request.POST.get("url", "").strip()
         quantity_str = request.POST.get("quantity", "")
         pin = request.POST.get("pin", "")
+        extra_input = request.POST.get("extra_input", "").strip()
 
         # 2. PIN Lockout check
         pin_attempts_key = f"pin_attempts:{request.user.id}"
@@ -208,11 +209,11 @@ class SmmIndexView(LoginRequiredMixin, PinRequiredMixin, View):
             return render(request, self.template_name, context)
 
         # 8. Idempotency / Duplicate check
-        idempotency_key = f"smm_idem:{request.user.id}:{service.id}:{url}:{quantity}"
+        idempotency_key = f"smm_idem:{request.user.id}:{service.id}:{url}:{quantity}:{extra_input}"
         if cache.get(idempotency_key) and request.POST.get("confirm_duplicate") != "1":
             messages.warning(request, "Duplicate Order Notice: An identical social boost order was placed less than a minute ago. Tap 'Confirm & Process Duplicate' below if you intend to place another order.")
             context["show_duplicate_confirm"] = True
-            context["form_data"] = {"platform": platform, "service_id": service_id, "service_name": service_name, "url": url, "quantity": quantity_str, "ack_drop": request.POST.get("ack_drop", "")}
+            context["form_data"] = {"platform": platform, "service_id": service_id, "service_name": service_name, "url": url, "quantity": quantity_str, "ack_drop": request.POST.get("ack_drop", ""), "extra_input": extra_input}
             return render(request, self.template_name, context)
 
         # 9. Execute atomic wallet debit and dispatch task
@@ -249,6 +250,7 @@ class SmmIndexView(LoginRequiredMixin, PinRequiredMixin, View):
                     amount=amount,
                     api_cost=api_cost,
                     reference=reference,
+                    extra_input=extra_input,
                     status=SMMOrder.Status.PROCESSING
                 )
 

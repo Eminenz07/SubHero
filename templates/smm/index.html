@@ -584,6 +584,7 @@
     <input type="hidden" name="service_name" value="{{ form_data.service_name }}">
     <input type="hidden" name="url" value="{{ form_data.url }}">
     <input type="hidden" name="quantity" value="{{ form_data.quantity }}">
+    <input type="hidden" name="extra_input" value="{{ form_data.extra_input }}">
     <input type="hidden" name="confirm_duplicate" value="1">
     <input type="hidden" name="ack_drop" value="{{ form_data.ack_drop }}">
     <div class="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30">
@@ -668,6 +669,7 @@
   <input type="hidden" name="service_name" id="id_service_name">
   <input type="hidden" name="url" id="id_hidden_url">
   <input type="hidden" name="quantity" id="id_hidden_quantity">
+  <input type="hidden" name="extra_input" id="id_hidden_extra_input" value="">
   <input type="hidden" name="pin" id="id_hidden_pin">
   <input type="hidden" name="ack_drop" id="id_ack_drop" value="">
 </form>
@@ -752,6 +754,12 @@
         <label class="form-label" for="smm-quantity-input">Quantity</label>
         <input class="form-input w-full" type="number" id="smm-quantity-input" placeholder="Enter quantity" inputmode="numeric">
         <div id="sheet-qty-limits" class="qty-limits">Min: – · Max: –</div>
+      </div>
+
+      <!-- Extra input (e.g. custom comment for comments services) -->
+      <div id="smm-extra-input-group" class="form-group hidden">
+        <label class="form-label" for="smm-extra-input-input"></label>
+        <input class="form-input w-full" type="text" id="smm-extra-input-input" placeholder="" autocomplete="off">
       </div>
 
       <!-- Live cost preview -->
@@ -1135,12 +1143,14 @@
         tier: d.tier, refill: d.refill, start: d.start, speed: d.speed,
         min: d.min, max: d.max,
       });
-      openTierSheet(d.tier, d.platform, d.id, d.name, d.unit, d.min, d.max, d.start);
+      openTierSheet(d.tier, d.platform, d.id, d.name, d.unit, d.min, d.max, d.start,
+                    d.requiresExtraInput, d.extraInputLabel, d.extraInputPlaceholder);
     }
   });
 
   // ─── Open order sheet ──────────────────────────────────────────
-  function openTierSheet(tier, platform, serviceId, serviceName, unitRate, min, max, startTime) {
+  function openTierSheet(tier, platform, serviceId, serviceName, unitRate, min, max, startTime,
+                         requiresExtraInput, extraInputLabel, extraInputPlaceholder) {
     activeTier = tier;
     activePlatform = platform;
     activeServiceId = serviceId;
@@ -1170,6 +1180,22 @@
 
     const st = startTime && startTime !== NA ? startTime : NA;
     document.getElementById('sheet-delivery-text').textContent = 'Start time: ' + st;
+
+    // Show/hide extra input field based on service requirement
+    const extraGroup = document.getElementById('smm-extra-input-group');
+    const extraInput = document.getElementById('smm-extra-input-input');
+    const extraLabel = document.querySelector('#smm-extra-input-group label.form-label');
+    if (requiresExtraInput === 'true') {
+      const label = extraInputLabel || 'Custom comment';
+      const placeholder = extraInputPlaceholder || 'Enter custom comment...';
+      extraLabel.textContent = label;
+      extraInput.placeholder = placeholder;
+      extraInput.value = '';
+      extraGroup.classList.remove('hidden');
+    } else {
+      extraGroup.classList.add('hidden');
+      extraInput.value = '';
+    }
 
     // Quick Boost acknowledgement
     const ackRow = document.getElementById('ack-drop-row');
@@ -1253,6 +1279,7 @@
     document.getElementById('id_hidden_url').value = url;
     document.getElementById('id_hidden_quantity').value = qty;
     document.getElementById('id_ack_drop').value = activeTier === 'basic' ? '1' : '';
+    document.getElementById('id_hidden_extra_input').value = document.getElementById('smm-extra-input-input').value.trim();
 
     // Summary in PIN sheet
     const cost = parseInt(qty) * activeUnitRate;

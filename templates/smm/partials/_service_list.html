@@ -12,7 +12,10 @@ in index.html (robust against service names containing quotes).{% endcomment %}
      data-max="{{ service.provider_max }}"
      data-refill="{{ service.facts.refill }}"
      data-start="{{ service.facts.start_time }}"
-     data-speed="{{ service.facts.speed }}">
+     data-speed="{{ service.facts.speed }}"
+     data-requires-extra-input="{{ service.requires_extra_input }}"
+     data-extra-input-label="{{ service.extra_input_label|escapejs }}"
+     data-extra-input-placeholder="{{ service.extra_input_placeholder|escapejs }}">
 
   {% if "Follower" in service.name or "Subscriber" in service.name or "Member" in service.name %}
     <div class="smm-icon-bg" style="background: #EFF6FF; color: #2563EB;">👥</div>
