@@ -44,7 +44,7 @@ def provider_for_service(service: str) -> str:
     order = _provider_order()
     if order:
         return order[0]
-    return "dancity"
+    return "gsubz"
 
 
 def _build(name: str) -> VTUProvider:
