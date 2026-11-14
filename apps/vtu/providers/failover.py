@@ -36,6 +36,7 @@ from apps.vtu.providers.errors import (
     ProviderRateLimitedError,
     ProviderTransientError,
     ProviderValidationError,
+    sanitize_provider_message,
 )
 
 logger = logging.getLogger(__name__)
@@ -178,7 +179,7 @@ class FailoverProvider(VTUProvider):
             return self._tag(result, provider)
 
         detail = "; ".join(f"{name}: {message}" for name, message in errors) or "no provider available"
-        raise ProviderDeclinedError(f"No VTU provider could complete the {action}. {detail}")
+        raise ProviderDeclinedError(f"No VTU provider could complete the {action}. {sanitize_provider_message(detail)}")
 
     @staticmethod
     def _tag(result: PurchaseResult, provider: VTUProvider) -> PurchaseResult:
@@ -213,6 +214,12 @@ class FailoverProvider(VTUProvider):
 
     def list_betting_products(self) -> list[ServiceProduct]:
         return self.providers[0].list_betting_products()
+
+    def fund_betting(self, product: str, account_id: str, amount: Decimal, reference: str) -> PurchaseResult:
+        def call(provider: VTUProvider) -> PurchaseResult:
+            return provider.fund_betting(product, account_id, amount, reference)
+
+        return self._run("betting funding", reference, call)
 
     def resolve_airtime_product(self, network: str) -> str:
         """Returns the canonical network token; each provider maps it itself."""
@@ -340,12 +347,6 @@ class FailoverProvider(VTUProvider):
             return provider.buy_exam_pin(exam_name, quantity, reference, exam_number)
 
         return self._run("exam pin purchase", reference, call)
-
-    def buy_betting(self, event_id: str, selection: str, stake: Decimal, reference: str) -> PurchaseResult:
-        def call(provider: VTUProvider) -> PurchaseResult:
-            return provider.buy_betting(event_id, selection, stake, reference)
-
-        return self._run("betting purchase", reference, call)
 
     # ────────────────────────── account ──────────────────────────
 

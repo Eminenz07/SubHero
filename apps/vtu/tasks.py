@@ -1187,7 +1187,7 @@ def sync_exam_products():
 
 @shared_task(bind=True, max_retries=3)
 def process_betting_order(self, order_id):
-    """Places a bet via the configured VTU provider with synchronous retries."""
+    """Funds a betting account via the configured VTU provider with synchronous retries."""
     try:
         order = BettingOrder.objects.get(id=order_id)
     except BettingOrder.DoesNotExist:
@@ -1198,7 +1198,7 @@ def process_betting_order(self, order_id):
         return
 
     if getattr(settings, "VTU_MOCK", False):
-        logger.info("VTU_MOCK is active. Simulating Betting success.")
+        logger.info("VTU_MOCK is active. Simulating Betting funding success.")
         order.status = BettingOrder.Status.SUCCESS
         order.provider_ref = "MOCK-DANCITY-BETTING"
         order.settled_at = timezone.now()
@@ -1208,30 +1208,30 @@ def process_betting_order(self, order_id):
 
         send_transaction_sms.delay(
             order.user.phone_number,
-            f"SubHero: Bet placed on {order.event_name} ({order.selection}). Ref: {order.reference}",
+            f"SubHero: ₦{order.amount:,.2f} funded to {order.platform_name} ({order.account_id}). Ref: {order.reference}",
         )
         try:
             from apps.notifications.models import Notification
             Notification.add(
                 user=order.user,
-                title="Bet Placed",
-                description=f"Your bet on {order.event_name} ({order.selection}) was placed successfully.",
+                title="Bet Funding Successful",
+                description=f"₦{order.amount:,.2f} funded to {order.platform_name} account {order.account_id}.",
                 level="financial"
             )
         except Exception as e:
             logger.error("Notification creation failed: %s", str(e))
         return
 
-    provider = get_provider()
+    provider = get_provider(service="betting")
 
     for attempt in range(1, MAX_PROVIDER_ATTEMPTS + 1):
         try:
             logger.info(
-                "Betting order %s: placing bet via %s (attempt %s/%s)",
+                "Betting order %s: funding via %s (attempt %s/%s)",
                 order_id, provider.name, attempt, MAX_PROVIDER_ATTEMPTS,
             )
-            result = provider.buy_betting(
-                order.product_id, order.selection, order.stake, order.reference
+            result = provider.fund_betting(
+                order.product_id, order.account_id, order.amount, order.reference
             )
 
             if result.status in (PurchaseStatus.PENDING, PurchaseStatus.PROCESSING):
@@ -1242,25 +1242,23 @@ def process_betting_order(self, order_id):
 
             order.status = BettingOrder.Status.SUCCESS
             order.provider_ref = result.provider_ref or order.reference
-            order.odds = Decimal(str(result.extra.get("odds", "0") or "0")) if result.extra else Decimal("0")
-            order.potential_return = (order.stake * order.odds) if order.odds else Decimal("0")
             if result.amount_paid is not None:
                 order.api_cost = result.amount_paid
             order.settled_at = timezone.now()
-            order.save(update_fields=["status", "provider_ref", "odds", "potential_return", "api_cost", "settled_at"])
+            order.save(update_fields=["status", "provider_ref", "api_cost", "settled_at"])
 
             WalletTransaction.objects.filter(reference=order.reference).update(status=WalletTransaction.Status.SUCCESS)
 
             send_transaction_sms.delay(
                 order.user.phone_number,
-                f"SubHero: Bet placed on {order.event_name} ({order.selection}). Ref: {order.reference}",
+                f"SubHero: ₦{order.amount:,.2f} funded to {order.platform_name} ({order.account_id}). Ref: {order.reference}",
             )
             try:
                 from apps.notifications.models import Notification
                 Notification.add(
                     user=order.user,
-                    title="Bet Placed",
-                    description=f"Your bet on {order.event_name} ({order.selection}) was placed successfully.",
+                    title="Bet Funding Successful",
+                    description=f"₦{order.amount:,.2f} funded to {order.platform_name} account {order.account_id}.",
                     level="financial"
                 )
             except Exception as e:
@@ -1275,7 +1273,7 @@ def process_betting_order(self, order_id):
             if attempt == MAX_PROVIDER_ATTEMPTS or _is_definitive(exc):
                 logger.error("Betting order %s failed permanently: %s", order_id, str(exc))
                 order.status = BettingOrder.Status.FAILED
-                order.provider_ref = _clean_provider_message(exc, "Betting request failed")
+                order.provider_ref = _clean_provider_message(exc, "Betting funding failed")
                 order.save(update_fields=["status", "provider_ref"])
                 refund_betting_order(order_id)
                 return

@@ -364,7 +364,7 @@ class GsubzProvider(VTUProvider):
     def list_betting_products(self) -> list[ServiceProduct]:
         raise ProviderNotFoundError("GSUBZ does not offer betting markets on SubHero yet.")
 
-    def buy_betting(self, event_id: str, selection: str, stake: Decimal, reference: str) -> PurchaseResult:
+    def fund_betting(self, product: str, account_id: str, amount: Decimal, reference: str) -> PurchaseResult:
         raise ProviderNotFoundError("GSUBZ does not offer betting markets on SubHero yet.")
 
     # ────────────────────────── account ──────────────────────────

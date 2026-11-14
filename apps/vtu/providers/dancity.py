@@ -462,19 +462,21 @@ class DancityProvider(VTUProvider):
         return self._purchase_result(body, reference)
 
     def list_betting_products(self) -> list[ServiceProduct]:
-        """Fetch available betting markets from Dancity."""
-        products = self._products_for("betting")
-        return products
+        """Fetch available betting platforms from Dancity via GET /api/v1/products?service=Betting."""
+        return self._products_for("betting")
 
-    def buy_betting(self, event_id: str, selection: str, stake: Decimal, reference: str) -> PurchaseResult:
-        """Place a bet on an event selection via Dancity."""
+    def fund_betting(self, product: str, account_id: str, amount: Decimal, reference: str) -> PurchaseResult:
+        """Fund a betting account via POST /api/v1/betting/funding.
+
+        Required fields: product, account_id, amount (min ₦100), customerRef.
+        """
         body = self._request(
             "POST",
-            "/betting/buy",
+            "/betting/funding",
             json_body={
-                "event_id": event_id,
-                "selection": selection,
-                "stake": _money(stake),
+                "product": product,
+                "account_id": account_id,
+                "amount": _money(amount),
                 "customerRef": reference,
             },
         )

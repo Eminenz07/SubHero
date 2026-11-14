@@ -6,6 +6,7 @@ Security hardened per PRD Section 7.1.
 """
 
 import os
+from decimal import Decimal
 from pathlib import Path
 
 from decouple import Csv, config
@@ -433,18 +434,32 @@ GSUBZ_WEBHOOK_SECRET = config("GSUBZ_WEBHOOK_SECRET", default="")
 GSUBZ_TIMEOUT = config("GSUBZ_TIMEOUT", default=60, cast=int)
 
 # DANCITY / COOL-SUB — primary provider (data, airtime, cable, electricity, exam pins)
-# The merchant API is served from https://v2.cool-sub.com/api/v1
+# The merchant API is served from https://api.dancity.app/api/v1
+# Docs: https://docs.dancity.app/llms.txt
 DANCITY_API_KEY = config("DANCITY_API_KEY", default="")
-DANCITY_BASE_URL = config("DANCITY_BASE_URL", default="https://v2.cool-sub.com")
+DANCITY_BASE_URL = config("DANCITY_BASE_URL", default="https://api.dancity.app")
 DANCITY_WEBHOOK_SECRET = config("DANCITY_WEBHOOK_SECRET", default="")
 DANCITY_TIMEOUT = config("DANCITY_TIMEOUT", default=30, cast=int)
 
 # Per-service rollout switches. Disabled services are hidden behind a "Soon"
 # badge instead of 404-ing, so the pages can be switched on without a deploy.
-VTU_ENABLE_DATA = config("VTU_ENABLE_DATA", default=True, cast=bool)
-VTU_ENABLE_AIRTIME = config("VTU_ENABLE_AIRTIME", default=True, cast=bool)
-VTU_ENABLE_CABLE = config("VTU_ENABLE_CABLE", default=True, cast=bool)
-VTU_ENABLE_ELECTRICITY = config("VTU_ENABLE_ELECTRICITY", default=True, cast=bool)
+VTU_ENABLE_DATA = config("VTU_ENABLE_DATA", default=False, cast=bool)
+VTU_ENABLE_AIRTIME = config("VTU_ENABLE_AIRTIME", default=False, cast=bool)
+VTU_ENABLE_CABLE = config("VTU_ENABLE_CABLE", default=False, cast=bool)
+VTU_ENABLE_ELECTRICITY = config("VTU_ENABLE_ELECTRICITY", default=False, cast=bool)
+VTU_ENABLE_EXAM = config("VTU_ENABLE_EXAM", default=False, cast=bool)
+VTU_ENABLE_BETTING = config("VTU_ENABLE_BETTING", default=False, cast=bool)
+VTU_BETTING_SERVICE_FEE = config("VTU_BETTING_SERVICE_FEE", default="0", cast=Decimal)
+
+# Per-service provider selection. Each defaults to "dancity". Failover is used
+# only for services both providers support (airtime, data); single-provider
+# services use their configured provider directly.
+VTU_PROVIDER_AIRTIME = config("VTU_PROVIDER_AIRTIME", default="dancity")
+VTU_PROVIDER_DATA = config("VTU_PROVIDER_DATA", default="dancity")
+VTU_PROVIDER_CABLE = config("VTU_PROVIDER_CABLE", default="dancity")
+VTU_PROVIDER_ELECTRICITY = config("VTU_PROVIDER_ELECTRICITY", default="dancity")
+VTU_PROVIDER_EXAM = config("VTU_PROVIDER_EXAM", default="dancity")
+VTU_PROVIDER_BETTING = config("VTU_PROVIDER_BETTING", default="dancity")
 
 
 # =============================================================

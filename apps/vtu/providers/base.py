@@ -142,11 +142,11 @@ class VTUProvider(ABC):
 
     @abstractmethod
     def list_betting_products(self) -> list[ServiceProduct]:
-        """Available betting markets / events from the provider."""
+        """Available betting platforms / products from the provider."""
 
     @abstractmethod
-    def buy_betting(self, event_id: str, selection: str, stake: Decimal, reference: str) -> PurchaseResult:
-        """Place a bet on an event selection."""
+    def fund_betting(self, product: str, account_id: str, amount: Decimal, reference: str) -> PurchaseResult:
+        """Fund a betting account via the provider."""
 
     @abstractmethod
     def get_transaction(self, transaction_ref: str) -> dict:

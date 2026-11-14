@@ -93,8 +93,8 @@ class FakeProvider(VTUProvider):
     def buy_exam_pin(self, exam_name, quantity, reference, exam_number=""):
         return self._behave("buy_exam_pin")
 
-    def buy_betting(self, event_id, selection, stake, reference):
-        return self._behave("buy_betting")
+    def fund_betting(self, product, account_id, amount, reference):
+        return self._behave("fund_betting", product, account_id, amount, reference)
 
     def get_transaction(self, transaction_ref):
         return self._transaction

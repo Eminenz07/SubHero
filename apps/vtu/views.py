@@ -21,7 +21,10 @@ from apps.vtu.models import (
     BettingProduct, BettingOrder,
 )
 from apps.vtu.providers import get_provider
-from apps.vtu.providers.errors import ProviderError
+from apps.vtu.providers.errors import (
+    ProviderError,
+    sanitize_provider_message,
+)
 from apps.vtu.tasks import (
     process_vtu_order,
     process_airtime_order,
@@ -420,11 +423,11 @@ class BuyCableView(VtuServiceDisabledMixin, LoginRequiredMixin, PinRequiredMixin
 
         customer_name = ""
         try:
-            vtu_provider = get_provider()
+            vtu_provider = get_provider(service="cable")
             cable_product = vtu_provider.resolve_cable_product(provider)
             customer_name = vtu_provider.validate_cable(card_number, cable_product)
         except ProviderError as exc:
-            messages.error(request, str(exc))
+            messages.error(request, sanitize_provider_message(str(exc)))
             return render(request, self.template_name, context)
         except Exception:
             logger.exception("Cable smartcard validation failed")
@@ -566,11 +569,11 @@ class BuyElectricityView(VtuServiceDisabledMixin, LoginRequiredMixin, PinRequire
 
         customer_name = ""
         try:
-            vtu_provider = get_provider()
+            vtu_provider = get_provider(service="electricity")
             biller_code = vtu_provider.resolve_electricity_biller(disco_id)
             customer_name = vtu_provider.validate_meter(meter_number, biller_code, amount, meter_type)
         except ProviderError as exc:
-            messages.error(request, str(exc))
+            messages.error(request, sanitize_provider_message(str(exc)))
             return render(request, self.template_name, context)
         except Exception:
             logger.exception("Electricity meter validation failed")
@@ -755,7 +758,7 @@ class BuyExamPinView(LoginRequiredMixin, PinRequiredMixin, View):
 
 
 class BuyBettingView(LoginRequiredMixin, PinRequiredMixin, View):
-    """Betting market placement via the active VTU provider (gsubz primary, dancity fallback)."""
+    """Betting account funding via the active VTU provider."""
     template_name = "vtu/betting.html"
 
     def _get_products(self):
@@ -769,15 +772,25 @@ class BuyBettingView(LoginRequiredMixin, PinRequiredMixin, View):
         wallet, _ = Wallet.objects.get_or_create(user=request.user)
         context = {
             "wallet": wallet,
-            "coming_soon": not getattr(settings, "VTU_ENABLE_BETTING", True),
+            "products": self._get_products(),
+            "coming_soon": not getattr(settings, "VTU_ENABLE_BETTING", False),
+            "service_fee": Decimal(str(getattr(settings, "VTU_BETTING_SERVICE_FEE", "0"))),
+            "step": request.GET.get("step", "form"),
         }
-        if not getattr(settings, "VTU_ENABLE_BETTING", True):
+        if not getattr(settings, "VTU_ENABLE_BETTING", False):
             return render(request, self.template_name, context)
-        context["products"] = self._get_products()
+
+        # Step 2: show confirmation with pre-filled data
+        if context["step"] == "confirm":
+            context["form_data"] = {
+                "product_id": request.GET.get("product_id", ""),
+                "account_id": request.GET.get("account_id", ""),
+                "amount": request.GET.get("amount", ""),
+            }
         return render(request, self.template_name, context)
 
     def post(self, request, *args, **kwargs):
-        if not getattr(settings, "VTU_ENABLE_BETTING", True):
+        if not getattr(settings, "VTU_ENABLE_BETTING", False):
             messages.info(
                 request,
                 "Betting is not live yet — we'll let you know as soon as it launches.",
@@ -786,57 +799,86 @@ class BuyBettingView(LoginRequiredMixin, PinRequiredMixin, View):
 
         wallet, _ = Wallet.objects.get_or_create(user=request.user)
         product_id = request.POST.get("product_id", "")
-        selection = request.POST.get("selection", "")
-        stake_str = request.POST.get("stake", "")
-        context = {"wallet": wallet, "products": self._get_products(), "form_data": {"product_id": product_id, "selection": selection, "stake": stake_str}}
+        account_id = request.POST.get("account_id", "").strip()
+        account_id_confirm = request.POST.get("account_id_confirm", "").strip()
+        amount_str = request.POST.get("amount", "").strip()
+        confirm = request.POST.get("confirm", "")  # "1" when user confirmed on step 2
+        context = {
+            "wallet": wallet,
+            "products": self._get_products(),
+            "form_data": {
+                "product_id": product_id,
+                "account_id": account_id,
+                "amount": amount_str,
+            },
+            "step": "form",
+        }
 
         try:
             product = BettingProduct.objects.get(product_id=product_id, is_active=True)
         except BettingProduct.DoesNotExist:
-            messages.error(request, "Invalid betting market selected.")
+            messages.error(request, "Invalid betting platform selected.")
             return render(request, self.template_name, context)
 
         try:
-            stake = Decimal(stake_str)
-            if stake <= 0:
+            amount = Decimal(amount_str)
+            if amount <= 0:
                 raise ValueError
-            if product.min_stake and stake < product.min_stake:
-                raise ValueError(f"Minimum stake is ₦{product.min_stake:,.2f}")
-            if product.max_stake and stake > product.max_stake:
-                raise ValueError(f"Maximum stake is ₦{product.max_stake:,.2f}")
+            if product.min_amount and amount < product.min_amount:
+                raise ValueError(f"Minimum funding is ₦{product.min_amount:,.2f}")
+            if product.max_amount and amount > product.max_amount:
+                raise ValueError(f"Maximum funding is ₦{product.max_amount:,.2f}")
         except (ValueError, Exception) as exc:
-            msg = str(exc) if str(exc) else "Invalid stake amount."
+            msg = str(exc) if str(exc) else "Invalid amount."
             messages.error(request, msg)
             return render(request, self.template_name, context)
 
-        # Compute potential return using the selection's odds
-        selections = product.selections or {}
-        sel_data = selections.get(selection, {})
-        odds = Decimal(str(sel_data.get("odds", "0") or "0"))
-        potential_return = stake * odds if odds else Decimal("0")
+        if account_id != account_id_confirm:
+            messages.error(request, "Account IDs do not match. Please enter the same ID in both fields.")
+            return render(request, self.template_name, context)
 
+        service_fee = Decimal(str(getattr(settings, "VTU_BETTING_SERVICE_FEE", "0")))
+        total_with_fee = amount + service_fee
+
+        if confirm != "1":
+            # Step 1: show confirmation screen
+            context.update({
+                "step": "confirm",
+                "amount": amount,
+                "service_fee": service_fee,
+                "total_with_fee": total_with_fee,
+                "platform_name": product.name,
+            })
+            return render(request, self.template_name, context)
+
+        # Step 2: confirmed — validate PIN and process
         pin_ok, pin_response = _check_pin(request, context, self.template_name)
         if not pin_ok:
             return pin_response
 
-        idempotency_key = f"betting_idem:{request.user.id}:{product_id}:{selection}:{stake}"
+        idempotency_key = f"betting_idem:{request.user.id}:{product_id}:{account_id}:{amount}"
         if cache.get(idempotency_key) and request.POST.get("confirm_duplicate") != "1":
-            messages.warning(request, "Duplicate Order Notice: An identical bet was placed less than a minute ago. Tap 'Confirm & Process Duplicate' below if you intend to place another bet.")
+            messages.warning(request, "Duplicate Order Notice: An identical betting funding was placed less than a minute ago. Tap 'Confirm & Process Duplicate' below if you intend to fund again.")
             context["show_duplicate_confirm"] = True
+            context["step"] = "confirm"
+            context["amount"] = amount
+            context["service_fee"] = service_fee
+            context["total_with_fee"] = total_with_fee
+            context["platform_name"] = product.name
             return render(request, self.template_name, context)
 
         reference = generate_reference("BET")
         try:
             with transaction.atomic():
                 locked_wallet, txn = _atomic_debit(
-                    wallet, stake, reference,
+                    wallet, total_with_fee, reference,
                     WalletTransaction.TxnType.VTU,
-                    f"Bet · {product.event_name} ({selection})",
+                    f"Bet funding · {product.name} ({account_id})",
                     get_client_ip(request),
                 )
                 order = BettingOrder.objects.create(
-                    user=request.user, product_id=product_id, event_name=product.event_name,
-                    selection=selection, stake=stake, odds=odds, potential_return=potential_return,
+                    user=request.user, product_id=product_id, platform_name=product.name,
+                    account_id=account_id, amount=amount, service_fee=service_fee,
                     api_cost=Decimal("0"), reference=reference,
                     status=BettingOrder.Status.PROCESSING,
                 )
@@ -850,17 +892,17 @@ class BuyBettingView(LoginRequiredMixin, PinRequiredMixin, View):
 
             return render(request, "vtu/receipt.html", {
                 "wallet": locked_wallet, "txn": txn, "order": order,
-                "service_type": "betting", "event_name": product.event_name,
-                "selection": selection, "stake": stake, "odds": odds,
-                "potential_return": potential_return,
+                "service_type": "betting", "platform_name": product.name,
+                "account_id": account_id, "amount": amount,
+                "service_fee": service_fee, "total_with_fee": total_with_fee,
                 "back_url": "/vtu/betting/",
             })
         except InsufficientBalanceError:
-            messages.error(request, f"Insufficient balance. You need ₦{stake:,.2f} but your balance is ₦{wallet.balance:,.2f}.")
+            messages.error(request, f"Insufficient balance. You need ₦{total_with_fee:,.2f} but your balance is ₦{wallet.balance:,.2f}.")
         except WalletFrozenError:
             messages.error(request, "Your wallet is currently frozen. Please contact support.")
         except Exception:
-            logger.exception("Betting purchase failed")
+            logger.exception("Betting funding failed")
             try:
                 _order = locals().get('order')
                 if _order and _order.pk and _order.status not in (BettingOrder.Status.SUCCESS, BettingOrder.Status.FAILED):
@@ -1015,7 +1057,13 @@ class VerifyUtilityAjaxView(LoginRequiredMixin, View):
         if not number:
             return JsonResponse({"status": "error", "message": "A number is required."})
 
-        provider = get_provider()
+        action = request.GET.get("action", "").strip().lower()
+        if action == "electricity":
+            vtu_provider = get_provider(service="electricity")
+        elif action == "cable":
+            vtu_provider = get_provider(service="cable")
+        else:
+            return JsonResponse({"status": "error", "message": "Invalid action specified."})
 
         if action == "electricity":
             disco_id = request.GET.get("disco_id", "").strip()
@@ -1037,11 +1085,11 @@ class VerifyUtilityAjaxView(LoginRequiredMixin, View):
                 return JsonResponse({"status": "error", "message": "Invalid amount."})
 
             try:
-                biller_code = provider.resolve_electricity_biller(disco_id)
-                customer_name = provider.validate_meter(number, biller_code, amount, meter_type)
+                biller_code = vtu_provider.resolve_electricity_biller(disco_id)
+                customer_name = vtu_provider.validate_meter(number, biller_code, amount, meter_type)
             except ProviderError as exc:
                 logger.info("Electricity validation failed: %s", exc)
-                return JsonResponse({"status": "error", "message": str(exc)})
+                return JsonResponse({"status": "error", "message": sanitize_provider_message(str(exc))})
             except Exception:
                 logger.exception("Electricity validation errored")
                 return JsonResponse({"status": "error", "message": "Validation could not be completed right now."})
@@ -1061,11 +1109,11 @@ class VerifyUtilityAjaxView(LoginRequiredMixin, View):
                 return JsonResponse({"status": "error", "message": "Invalid Smartcard number format (10-11 digits)."})
 
             try:
-                cable_product = provider.resolve_cable_product(provider_slug)
-                customer_name = provider.validate_cable(number, cable_product)
+                cable_product = vtu_provider.resolve_cable_product(provider_slug)
+                customer_name = vtu_provider.validate_cable(number, cable_product)
             except ProviderError as exc:
                 logger.info("Cable validation failed: %s", exc)
-                return JsonResponse({"status": "error", "message": str(exc)})
+                return JsonResponse({"status": "error", "message": sanitize_provider_message(str(exc))})
             except Exception:
                 logger.exception("Cable validation errored")
                 return JsonResponse({"status": "error", "message": "Validation could not be completed right now."})

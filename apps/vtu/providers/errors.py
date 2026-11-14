@@ -46,3 +46,29 @@ class ProviderPartialDeliveryError(ProviderError):
     def __init__(self, message: str, delivered_amount):
         super().__init__(message)
         self.delivered_amount = delivered_amount
+
+
+# Provider names that must never leak to users in error messages.
+_PROVIDER_NAMES = ("gsubz", "dancity", "failover", "cool-sub", "cool sub")
+
+
+def sanitize_provider_message(message: str) -> str:
+    """Strip provider names and internal details from a user-facing error message.
+
+    Provider errors contain internal provider names (gsubz, dancity, etc.)
+    and upstream technical details that must never be shown to customers.
+    Returns a generic, safe message.
+    """
+    if not message:
+        return message
+    cleaned = message
+    for name in _PROVIDER_NAMES:
+        cleaned = cleaned.replace(name.title(), "[provider]")
+        cleaned = cleaned.replace(name.upper(), "[PROVIDER]")
+        cleaned = cleaned.replace(name, "[provider]")
+    # Collapse repeated brackets
+    import re
+
+    cleaned = re.sub(r"\[provider\]\s*\[provider\]", "[provider]", cleaned)
+    cleaned = re.sub(r"\[PROVIDER\]\s*\[PROVIDER\]", "[PROVIDER]", cleaned)
+    return cleaned.strip()
