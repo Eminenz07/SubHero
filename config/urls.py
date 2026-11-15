@@ -65,6 +65,9 @@ urlpatterns = [
     # Notifications (Phase 3)
     path("notifications/", include("apps.notifications.urls", namespace="notifications")),
 
+    # Support (Hero ticketing)
+    path("support/", include("apps.support.urls", namespace="support")),
+
     # Admin Panel (HQ) — configurable via .env (PRD Section 3.1)
     path(settings.ADMIN_HQ_URL, include("apps.admin_panel.urls", namespace="admin_panel")),
     

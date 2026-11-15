@@ -114,6 +114,7 @@ LOCAL_APPS = [
     "apps.notifications",
     "apps.admin_panel",
     "apps.giveaway",
+    "apps.support",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -462,6 +463,19 @@ VTU_PROVIDER_ELECTRICITY = config("VTU_PROVIDER_ELECTRICITY", default="dancity")
 VTU_PROVIDER_EXAM = config("VTU_PROVIDER_EXAM", default="dancity")
 VTU_PROVIDER_BETTING = config("VTU_PROVIDER_BETTING", default="gsubz")
 
+
+# =============================================================
+# HERO SUPPORT — Ticketing System
+# =============================================================
+# Support business hours shown to users
+SUPPORT_BUSINESS_HOURS = config("SUPPORT_BUSINESS_HOURS", default="Mon–Fri 9am–6pm WAT")
+# First-response targets (hours)
+SUPPORT_FIRST_RESPONSE_HIGH_HOURS = config("SUPPORT_FIRST_RESPONSE_HIGH_HOURS", default=1, cast=int)
+SUPPORT_FIRST_RESPONSE_NORMAL_HOURS = config("SUPPORT_FIRST_RESPONSE_NORMAL_HOURS", default=4, cast=int)
+# Auto-close after resolution (days)
+SUPPORT_AUTO_CLOSE_RESOLVED_DAYS = config("SUPPORT_AUTO_CLOSE_RESOLVED_DAYS", default=7, cast=int)
+# Waiting customer auto-resolve after (hours)
+SUPPORT_WAITING_CUSTOMER_AUTO_RESOLVE_HOURS = config("SUPPORT_WAITING_CUSTOMER_AUTO_RESOLVE_HOURS", default=72, cast=int)
 
 # =============================================================
 # OGAVIRAL — Outbound SMM API

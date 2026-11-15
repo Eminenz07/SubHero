@@ -1,0 +1,62 @@
+{% extends "support/base_support.html" %}
+
+{% block content %}
+<div class="px-4 py-6 max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-text-primary">Hero Support</h1>
+        <p class="text-text-muted text-sm mt-1">Get help with your orders, wallet, and account.</p>
+    </div>
+
+    <!-- Quick actions -->
+    <div class="flex gap-2 mb-6">
+        <a href="{% url 'support:ticket_create' %}" class="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-brand-primary text-white font-semibold text-sm active:scale-95 transition-all">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+            New Ticket
+        </a>
+    </div>
+
+    {% if tickets %}
+    <div class="space-y-3">
+        {% for ticket in tickets %}
+        <a href="{% url 'support:ticket_detail' reference=ticket.reference %}" class="block border border-surface-border rounded-xl p-4 hover:bg-surface-muted transition-colors text-left">
+            <div class="flex justify-between items-start mb-2">
+                <span class="text-xs font-bold text-text-muted uppercase tracking-wider">{{ ticket.reference }}</span>
+                <span class="text-xs font-bold {% if ticket.priority == 'high' %}text-red-600 dark:text-red-400{% else %}text-text-muted{% endif %}">{{ ticket.get_priority_display }}</span>
+            </div>
+            <div class="mb-2">
+                <h3 class="text-sm font-semibold text-text-primary truncate">{{ ticket.subject }}</h3>
+                <p class="text-[11px] text-text-muted">{{ ticket.category|title }} • {{ ticket.get_status_display }}</th>
+            </div>
+            <div class="flex justify-between items-center mt-3 text-[11px]">
+                <span class="text-text-muted">
+                    {% if ticket.assigned_to %}
+                        Assigned to Hero · {{ ticket.assigned_to.first_name }}
+                    {% else %}
+                        Unassigned
+                    {% endif %}
+                </span>
+                <span class="text-text-muted">{{ ticket.created_at|date:"M d, H:i" }}</span>
+            </div>
+            {% if ticket.csat is not null %}
+            <div class="mt-2 text-[11px]">
+                {% if ticket.csat == 1 %}<span class="text-emerald-600">👍 You rated this helpful</span>
+                {% else %}<span class="text-red-500">👎 You rated this not helpful</span>{% endif %}
+            </div>
+            {% endif %}
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-16">
+        <svg class="w-16 h-16 mx-auto mb-4 text-text-muted/30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+        <h2 class="text-lg font-bold text-text-primary">No support tickets yet</h2>
+        <p class="text-text-muted text-sm mt-2">Need help? Open a new ticket and our Hero team will assist you.</p>
+        <a href="{% url 'support:ticket_create' %}" class="mt-4 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-brand-primary text-white font-semibold text-sm active:scale-95 transition-all">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+            Create Ticket
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
