@@ -1,0 +1,44 @@
+{% comment %}Desk message row - shown in staff ticket view.{% endcomment %}
+<div class="flex {% if message.sender_type == 'customer' %}justify-end{% else %}justify-start{% endif %} group" id="msg-{{ message.id }}">
+    {% if message.sender_type == 'system' %}
+    <div class="text-center mb-1">
+        <span class="text-[10px] text-slate-500 uppercase tracking-wider">{{ message.created_at|date:"H:i" }}</span>
+    </div>
+    <div class="max-w-[80%] mx-auto">
+        <div class="bg-white/5 rounded-xl p-2.5 text-[11px] text-slate-400/70 italic border border-white/5">
+            {{ message.body }}
+        </div>
+    </div>
+    {% else %}
+    <div class="max-w-[85%] {% if message.sender_type == 'customer' %}ml-auto{% endif %}">
+        <!-- Header -->
+        <div class="flex justify-between items-start mb-1">
+            <span class="text-xs font-bold {% if message.sender_type == 'customer' %}text-white{% else %}text-purple-400{% endif %}">
+                {% if message.sender_type == 'customer' %}
+                    {{ message.author.full_name|default:message.author.phone_number }}
+                {% else %}
+                    Hero · {% if message.author.staff_profile.display_name %}{{ message.author.staff_profile.display_name }}{% else %}{{ message.author.full_name }}{% endif %}
+                {% endif %}
+            </span>
+            <span class="text-[10px] text-slate-500">{{ message.created_at|date:"H:i" }}</span>
+        </div>
+        <!-- Body -->
+        {% if message.is_internal %}
+        <div class="bg-amber-900/20 border border-amber-900/30 rounded-xl p-2.5 text-[11px] text-amber-400">
+            <span class="font-bold text-[10px] text-amber-400 mr-2">Internal</span>
+            {{ message.body }}
+        </div>
+        {% else %}
+        <div class="{% if message.sender_type == 'customer' %}bg-purple-600 text-white{% else %}bg-white/10 text-white{% endif %} rounded-xl p-2.5 border border-white/5">
+            {{ message.body }}
+        </div>
+        {% endif %}
+        <!-- Attachments -->
+        {% for attachment in message.attachments.all %}
+        <div class="mt-1">
+            <img src="{{ attachment.file.url }}" alt="{{ attachment.filename }}" class="max-w-xs max-h-48 rounded-lg border border-white/10 cursor-pointer">
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>

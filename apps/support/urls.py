@@ -4,7 +4,7 @@ Support — URLs
 Customer-facing support ticketing routes.
 """
 
-from django.urls import path
+from django.urls import include, path
 
 from . import views
 
@@ -20,4 +20,6 @@ urlpatterns = [
     path("<str:reference>/csat/", views.TicketCsatView.as_view(), name="ticket_csat"),
     # Help-with-order entry point (used from failed order screens)
     path("help-with-order/", views.HelpWithOrderView.as_view(), name="help_with_order"),
+    # Staff support desk
+    path("desk/", include("apps.support.desk_urls")),
 ]

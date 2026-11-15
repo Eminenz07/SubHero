@@ -1,0 +1,23 @@
+{% comment %}Single ticket row for desk inbox.{% endcomment %}
+<div class="group border border-surface-border rounded-xl p-3 hover:bg-white/[0.02] transition-colors cursor-pointer"
+     hx-get="{% url 'support_desk:ticket' ticket_id=ticket.id %}"
+     hx-target="#desk-ticket-panel"
+     hx-swap="innerHTML"
+     hx-push-url="true">
+    <div class="flex justify-between items-start mb-2">
+        <span class="text-xs font-bold text-text-primary">{{ ticket.reference }}</span>
+        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full {% if ticket.priority == 'high' %}bg-red-900/20 text-red-400 border border-red-500/30{% else %}bg-slate-900/50 text-slate-400{% endif %}">{{ ticket.get_priority_display }}</span>
+    </div>
+    <div class="mb-1">
+        <h3 class="text-sm font-semibold text-text-primary truncate block">{{ ticket.subject }}</h3>
+        <p class="text-[10px] text-slate-400">{{ ticket.category|title }} • {{ ticket.get_status_display }}
+           {% if ticket.assigned_to %}• Assigned to {{ ticket.assigned_to.first_name }}{% else %}• Unassigned{% endif %}
+        </p>
+    </div>
+    <div class="flex justify-between items-center mt-2 text-[10px] text-slate-400">
+        <span>{{ ticket.created_at|date:"M d, H:i" }}</span>
+        {% if ticket.sla_due_at and not ticket.first_response_at and ticket.status != 'resolved' and ticket.status != 'closed' %}
+        <span class="text-red-400 font-bold">SLA at risk</span>
+        {% endif %}
+    </div>
+</div>
