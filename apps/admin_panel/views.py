@@ -27,6 +27,7 @@ from apps.admin_panel.utils import syslog, log_admin_action
 from apps.wallet.models import Wallet, WalletTransaction
 from apps.vtu.models import VTUOrder, AirtimeOrder, CableOrder, ElectricityOrder, ExamPinOrder, VTUPlan, CablePlan, ExamProduct
 from apps.smm.models import SMMOrder, SMMService
+from apps.support.models import Ticket
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
@@ -130,6 +131,34 @@ def dashboard(request):
     ogaviral_balance = fetch_ogaviral_balance()
     total_user_balance = Wallet.objects.filter(user__is_staff=False).aggregate(total=Sum("balance"))["total"] or Decimal("0")
 
+    # Support ticket metrics
+    open_tickets = Ticket.objects.filter(status__in=["open", "in_progress", "waiting_customer"]).count()
+    unassigned_tickets = Ticket.objects.filter(
+        status__in=["open", "in_progress", "waiting_customer"], assigned_to__isnull=True
+    ).count()
+    avg_first_response_hours = None
+    from django.db.models import Avg, F, ExpressionWrapper, fields
+    first_response_deltas = (
+        Ticket.objects.filter(first_response_at__isnull=False)
+        .annotate(
+            delta=ExpressionWrapper(
+                F("first_response_at") - F("created_at"),
+                output_field=fields.DurationField(),
+            )
+        )
+        .aggregate(avg_delta=Avg("delta"))["avg_delta"]
+    )
+    if first_response_deltas:
+        avg_first_response_hours = round(first_response_deltas.total_seconds() / 3600, 1)
+
+    avg_csat = None
+    csat_result = (
+        Ticket.objects.filter(csat__isnull=False)
+        .aggregate(avg_csat=Avg("csat"))["avg_csat"]
+    )
+    if csat_result is not None:
+        avg_csat = round(csat_result, 2)
+
     alert_config = AlertConfig.objects.first()
     if not alert_config:
         alert_config = AlertConfig.objects.create(alert_email="admin@subhero.com.ng")
@@ -179,6 +208,10 @@ def dashboard(request):
         "total_profit": stats.total_profit,
         "total_deposits": stats.total_deposits,
         "total_user_balance": total_user_balance,
+        "open_tickets": open_tickets,
+        "unassigned_tickets": unassigned_tickets,
+        "avg_first_response_hours": avg_first_response_hours,
+        "avg_csat": avg_csat,
         "active_orders": active_orders,
         "provider_balance": provider_balance,
         "provider_status": provider_status,

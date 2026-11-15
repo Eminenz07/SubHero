@@ -22,4 +22,7 @@ urlpatterns = [
     path("help-with-order/", views.HelpWithOrderView.as_view(), name="help_with_order"),
     # Staff support desk
     path("desk/", include("apps.support.desk_urls")),
+    # Refund requests (agent creates, lead/admin approves)
+    path("refund-request/<str:ticket_id>/", views.RefundRequestCreateView.as_view(), name="refund_request"),
+    path("refund-request/<uuid:refund_id>/decide/", views.RefundRequestDecideView.as_view(), name="refund_request_decide"),
 ]

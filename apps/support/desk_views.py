@@ -369,6 +369,25 @@ class DeskActionView(View):
                 description=f"Status changed from {old_status} to {new_status}",
                 metadata={"old": old_status, "new": new_status},
             )
+            # Notify customer of status change
+            if new_status != old_status:
+                from apps.notifications.models import Notification
+                from apps.notifications.services import send_push_notification
+
+                status_labels = dict(Ticket.Status.choices)
+                Notification.add(
+                    user=ticket.user,
+                    title=f"Ticket {ticket.reference} status updated",
+                    description=f"Your ticket status changed to {status_labels.get(new_status, new_status)}.",
+                    level="info",
+                )
+                send_push_notification(
+                    user=ticket.user,
+                    title=f"Ticket {ticket.reference} status updated",
+                    body=f"Your ticket status changed to {status_labels.get(new_status, new_status)}.",
+                    action_url=f"{settings.SITE_URL}/support/{ticket.reference}/",
+                    level="info",
+                )
             return JsonResponse({"status": "ok", "action": "status_change", "new_status": new_status})
 
         if action == "priority_change":

@@ -5,6 +5,7 @@ Customer-facing Hero support ticketing.
 """
 
 import logging
+from decimal import Decimal, InvalidOperation
 
 from django.conf import settings
 from django.contrib import messages
@@ -24,6 +25,7 @@ from django.views.generic import ListView, DetailView, CreateView
 from apps.core.utils import get_client_ip
 from apps.notifications.models import Notification
 from apps.notifications.services import send_push_notification
+from apps.wallet.models import Wallet, WalletTransaction
 
 from .models import (
     Ticket,
@@ -393,3 +395,180 @@ class HelpWithOrderView(LoginRequiredMixin, View):
             "support/help_with_order.html",
             {"order_ref": order_ref, "order_type": order_type},
         )
+
+
+class RefundRequestCreateView(LoginRequiredMixin, View):
+    """Agent creates a refund request from a ticket — POST /support/refund-request/<ticket_id>/"""
+
+    def post(self, request, ticket_id):
+        if not request.user.is_staff:
+            return JsonResponse({"error": "Staff only."}, status=403)
+
+        ticket = get_object_or_404(Ticket, id=ticket_id)
+        amount_str = (request.POST.get("amount") or "").strip()
+        order_reference = (request.POST.get("order_reference") or "").strip()
+        reason = (request.POST.get("reason") or "").strip()
+
+        if not amount_str:
+            return JsonResponse({"error": "Amount is required."}, status=400)
+        try:
+            amount = Decimal(amount_str)
+            if amount <= 0:
+                raise ValueError
+        except (InvalidOperation, ValueError):
+            return JsonResponse({"error": "Invalid amount."}, status=400)
+        if not order_reference:
+            return JsonResponse({"error": "Order reference is required."}, status=400)
+        if not reason:
+            return JsonResponse({"error": "Reason is required."}, status=400)
+
+        with transaction.atomic():
+            refund_request = RefundRequest.objects.create(
+                ticket=ticket,
+                order_reference=order_reference,
+                amount=amount,
+                reason=reason,
+                requested_by=request.user,
+                status=RefundRequest.Status.PENDING,
+            )
+            TicketEvent.objects.create(
+                ticket=ticket,
+                actor=request.user,
+                event_type=TicketEvent.EventType.REFUND_REQUEST,
+                description=f"Refund request created: ₦{amount:,.2f} for {order_reference}",
+                metadata={"refund_request_id": str(refund_request.id), "amount": str(amount)},
+            )
+
+        # Notify leads for approval
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        leads = User.objects.filter(
+            is_staff=True,
+            staff_profile__role="lead",
+            staff_profile__is_available=True,
+        )
+        for lead in leads:
+            Notification.add(
+                user=lead,
+                title=f"Refund Request: {ticket.reference}",
+                description=f"₦{amount:,.2f} refund for {order_reference} awaits approval.",
+                level="warning",
+            )
+            send_push_notification(
+                user=lead,
+                title=f"Refund Request: {ticket.reference}",
+                body=f"₦{amount:,.2f} refund for {order_reference} awaits approval.",
+                action_url=f"{settings.SITE_URL}/desk/tickets/{ticket.id}/",
+                level="warning",
+            )
+
+        return JsonResponse({
+            "status": "ok",
+            "refund_request_id": str(refund_request.id),
+            "status": refund_request.status,
+        })
+
+
+class RefundRequestDecideView(LoginRequiredMixin, View):
+    """Lead/admin approves or rejects a refund request — POST /support/refund-request/<uuid>/decide/"""
+
+    def post(self, request, refund_id):
+        if not request.user.is_staff:
+            return JsonResponse({"error": "Staff only."}, status=403)
+
+        try:
+            is_lead = (
+                hasattr(request.user, "staff_profile")
+                and request.user.staff_profile.role == "lead"
+            )
+        except AttributeError:
+            is_lead = False
+        if not is_lead and not request.user.is_superuser:
+            return JsonResponse({"error": "Leads or admins only."}, status=403)
+
+        refund_request = get_object_or_404(RefundRequest, id=refund_id)
+        if refund_request.status != RefundRequest.Status.PENDING:
+            return JsonResponse({"error": "Refund request already decided."}, status=400)
+
+        decision = (request.POST.get("decision") or "").strip()
+        if decision not in ("approve", "reject"):
+            return JsonResponse({"error": "Invalid decision."}, status=400)
+
+        with transaction.atomic():
+            if decision == "approve":
+                refund_request.status = RefundRequest.Status.APPROVED
+                refund_request.decided_by = request.user
+                refund_request.decided_at = timezone.now()
+                refund_request.save(
+                    update_fields=["status", "decided_by", "decided_at"]
+                )
+
+                # Run manual refund logic via wallet services
+                from apps.wallet.services import credit_wallet
+
+                ticket = refund_request.ticket
+                wallet, _ = Wallet.objects.get_or_create(user=ticket.user)
+                credit_wallet(
+                    wallet_id=wallet.id,
+                    amount=refund_request.amount,
+                    txn_type=WalletTransaction.TxnType.REFUND,
+                    reference=f"REFUND-{refund_request.id}",
+                    description=f"Approved refund for {refund_request.order_reference}",
+                    metadata={
+                        "refund_request_id": str(refund_request.id),
+                        "ticket_id": str(ticket.id),
+                        "approved_by": str(request.user.id),
+                    },
+                    ip_address=get_client_ip(request),
+                )
+
+                TicketEvent.objects.create(
+                    ticket=ticket,
+                    actor=request.user,
+                    event_type=TicketEvent.EventType.REFUND_APPROVED,
+                    description=(
+                        f"Refund approved: ₦{refund_request.amount:,.2f} "
+                        f"for {refund_request.order_reference}"
+                    ),
+                    metadata={"refund_request_id": str(refund_request.id)},
+                )
+
+                # Notify customer
+                Notification.add(
+                    user=ticket.user,
+                    title=f"Refund Approved: {ticket.reference}",
+                    description=f"₦{refund_request.amount:,.2f} has been refunded to your wallet.",
+                    level="success",
+                )
+                send_push_notification(
+                    user=ticket.user,
+                    title=f"Refund Approved: {ticket.reference}",
+                    body=f"₦{refund_request.amount:,.2f} refunded to your wallet.",
+                    action_url=f"{settings.SITE_URL}/support/{ticket.reference}/",
+                    level="success",
+                )
+            else:
+                refund_request.status = RefundRequest.Status.REJECTED
+                refund_request.decided_by = request.user
+                refund_request.decided_at = timezone.now()
+                refund_request.save(
+                    update_fields=["status", "decided_by", "decided_at"]
+                )
+
+                TicketEvent.objects.create(
+                    ticket=ticket,
+                    actor=request.user,
+                    event_type=TicketEvent.EventType.REFUND_REJECTED,
+                    description=(
+                        f"Refund rejected: ₦{refund_request.amount:,.2f} "
+                        f"for {refund_request.order_reference}"
+                    ),
+                    metadata={"refund_request_id": str(refund_request.id)},
+                )
+
+        return JsonResponse({
+            "status": "ok",
+            "decision": decision,
+            "refund_request_status": refund_request.status,
+        })
+

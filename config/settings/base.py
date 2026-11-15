@@ -521,6 +521,19 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'apps.giveaway.tasks.expire_giveaways',
         'schedule': crontab(minute=0),  # every hour
     },
+    # Hero Support tasks
+    'support-auto-close-waiting-customer': {
+        'task': 'apps.support.tasks.auto_close_waiting_customer_tickets',
+        'schedule': crontab(minute=0, hour='*/6'),  # every 6 hours
+    },
+    'support-auto-close-resolved': {
+        'task': 'apps.support.tasks.auto_close_resolved_tickets',
+        'schedule': crontab(minute=0, hour=1),  # daily at 01:00
+    },
+    'support-sla-breach-check': {
+        'task': 'apps.support.tasks.check_sla_breach',
+        'schedule': crontab(minute='*/5'),  # every 5 minutes
+    },
 }
 
 # =============================================================
