@@ -1185,7 +1185,9 @@
     const extraGroup = document.getElementById('smm-extra-input-group');
     const extraInput = document.getElementById('smm-extra-input-input');
     const extraLabel = document.querySelector('#smm-extra-input-group label.form-label');
-    if (requiresExtraInput === 'true') {
+    // Django renders booleans as "True"/"False", so normalize before comparing.
+    const requiresExtra = String(requiresExtraInput).toLowerCase() === 'true';
+    if (requiresExtra) {
       const label = extraInputLabel || 'Custom comment';
       const placeholder = extraInputPlaceholder || 'Enter custom comment...';
       extraLabel.textContent = label;
