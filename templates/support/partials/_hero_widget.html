@@ -1,12 +1,24 @@
-{% comment %}Hero Support Widget — floating button + bottom sheet.
-Shown on all authenticated pages. Draggable FAB with animated "Need help?" bubble.{% endcomment %}
+{% comment %}Hero Support Widget — floating draggable button + bottom sheet.
+Shown on all authenticated pages. Chat bubble moves with the widget.{% endcomment %}
 {% if user.is_authenticated %}
 <style>
-  /* Hero Widget Draggable FAB */
-  #hero-fab {
+  /* Hero Widget Container — positioned fixed so bubble stays with FAB */
+  #hero-widget-container {
     position: fixed;
     bottom: 24px;
     right: 24px;
+    width: 56px;
+    height: 56px;
+    z-index: 999999;
+    pointer-events: none; /* let clicks pass through container to FAB */
+    will-change: transform;
+  }
+
+  /* Hero FAB */
+  #hero-fab {
+    position: absolute;
+    bottom: 0;
+    right: 0;
     width: 56px;
     height: 56px;
     border-radius: 50%;
@@ -15,12 +27,12 @@ Shown on all authenticated pages. Draggable FAB with animated "Need help?" bubbl
     display: flex;
     align-items: center;
     justify-content: center;
-    cursor: move;
+    cursor: pointer;
     touch-action: none;
-    z-index: [100];
     box-shadow: 0 10px 25px -5px rgba(124, 58, 237, 0.4), 0 8px 10px -6px rgba(124, 58, 237, 0.3);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
-    will-change: transform;
+    pointer-events: auto; /* re-enable clicks on the FAB itself */
+    z-index: 1000000;
   }
   #hero-fab:hover {
     transform: scale(1.1);
@@ -30,11 +42,11 @@ Shown on all authenticated pages. Draggable FAB with animated "Need help?" bubbl
     cursor: grabbing;
   }
 
-  /* Chat bubble animation */
+  /* Chat bubble — positioned absolutely relative to container, moves with FAB */
   #hero-chat-bubble {
-    position: fixed;
-    bottom: 90px;
-    right: 32px;
+    position: absolute;
+    bottom: 70px;
+    right: 16px;
     max-width: 160px;
     padding: 8px 12px;
     border-radius: 12px;
@@ -44,12 +56,11 @@ Shown on all authenticated pages. Draggable FAB with animated "Need help?" bubbl
     font-weight: 600;
     text-align: center;
     pointer-events: none;
-    z-index: [99];
     opacity: 0;
     transform: translateY(10px) scale(0.9);
     transition: opacity 0.3s ease, transform 0.3s ease;
-    will-change: transform, opacity;
     box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
+    white-space: nowrap;
   }
   #hero-chat-bubble.show {
     opacity: 1;
@@ -61,7 +72,7 @@ Shown on all authenticated pages. Draggable FAB with animated "Need help?" bubbl
     content: '';
     position: absolute;
     top: -6px;
-    right: 12px;
+    right: 14px;
     width: 0;
     height: 0;
     border-left: 6px solid transparent;
@@ -73,7 +84,7 @@ Shown on all authenticated pages. Draggable FAB with animated "Need help?" bubbl
   #hero-backdrop {
     position: fixed;
     inset: 0;
-    z-index: [98];
+    z-index: 999998;
     background: rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
@@ -86,7 +97,7 @@ Shown on all authenticated pages. Draggable FAB with animated "Need help?" bubbl
     bottom: 0;
     left: 0;
     right: 0;
-    z-index: [101];
+    z-index: 999997;
     height: 85vh;
     max-height: 700px;
     border-radius: 24px 24px 0 0;
@@ -319,22 +330,6 @@ Shown on all authenticated pages. Draggable FAB with animated "Need help?" bubbl
     border-color: #818cf8;
     color: #a5b4fc;
   }
-  .hero-order-radio {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    border: 2px solid #d1d5db;
-    background: #ffffff;
-    flex-shrink: 0;
-  }
-  html.dark .hero-order-radio {
-    background: #1e293b;
-    border-color: #475569;
-  }
-  .hero-order-item.selected .hero-order-radio {
-    border-color: #4F46E5;
-    background: #4F46E5;
-  }
 
   /* Message input */
   .hero-widget-message-label {
@@ -419,14 +414,17 @@ Shown on all authenticated pages. Draggable FAB with animated "Need help?" bubbl
   }
 </style>
 
-<!-- Floating Hero Button -->
-<button id="hero-fab" class="hero-fab" aria-label="Hero Support" title="Chat with Hero Support" draggable="true">
-    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-    <span id="hero-notification-badge" class="hidden">0</span>
-</button>
+<!-- Hero Widget Container (draggable) -->
+<div id="hero-widget-container">
+    <!-- Floating Hero Button -->
+    <button id="hero-fab" aria-label="Hero Support" title="Chat with Hero Support">
+        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+        <span id="hero-notification-badge">0</span>
+    </button>
 
-<!-- Animated Chat Bubble -->
-<div id="hero-chat-bubble">Need help?</div>
+    <!-- Animated Chat Bubble (moves with widget) -->
+    <div id="hero-chat-bubble">Need help?</div>
+</div>
 
 <!-- Hero Widget Backdrop -->
 <div id="hero-backdrop" onclick="closeHeroWidget()"></div>
@@ -468,7 +466,7 @@ Shown on all authenticated pages. Draggable FAB with animated "Need help?" bubbl
                 VTU
             </button>
             <button type="button" class="hero-topic-btn" onclick="selectHeroTopic('smm', 'Social Media Growth', this)">
-                <svg class="hero-topic-icon" fill="none" stroke="currentColor" viewBox="0  0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M23 5a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2zm8 0a2 2 0 110 4h.01a2 2 0 010-4zm-8 6a2 2 0 100-4h.01a2 2 0 000 4z"></path></svg>
+                <svg class="hero-topic-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M23 5a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2zm8 0a2 2 0 110 4h.01a2 2 0 010-4zm-8 6a2 2 0 100-4h.01a2 2 0 000 4z"></path></svg>
                 SMM
             </button>
             <button type="button" class="hero-topic-btn" onclick="selectHeroTopic('account', 'Account Issue', this)">
@@ -499,25 +497,27 @@ Shown on all authenticated pages. Draggable FAB with animated "Need help?" bubbl
 </div>
 
 <script>
-    // Draggable FAB
+    // Draggable FAB container
     (function() {
+        const container = document.getElementById('hero-widget-container');
         const fab = document.getElementById('hero-fab');
         let isDragging = false;
         let startX, startY, initialLeft, initialTop;
 
-        fab.addEventListener('mousedown', function(e) {
+        container.addEventListener('mousedown', function(e) {
             if (e.target.tagName === 'SVG' || e.target.tagName === 'PATH') return;
             isDragging = true;
+            container.style.transition = 'none';
             fab.style.transition = 'none';
             startX = e.clientX;
             startY = e.clientY;
-            const rect = fab.getBoundingClientRect();
+            const rect = container.getBoundingClientRect();
             initialLeft = rect.left;
             initialTop = rect.top;
-            fab.style.left = initialLeft + 'px';
-            fab.style.top = initialTop + 'px';
-            fab.style.bottom = 'auto';
-            fab.style.right = 'auto';
+            container.style.left = initialLeft + 'px';
+            container.style.top = initialTop + 'px';
+            container.style.bottom = 'auto';
+            container.style.right = 'auto';
             e.preventDefault();
         });
 
@@ -525,9 +525,8 @@ Shown on all authenticated pages. Draggable FAB with animated "Need help?" bubbl
             if (!isDragging) return;
             const dx = e.clientX - startX;
             const dy = e.clientY - startY;
-            fab.style.left = (initialLeft + dx) + 'px';
-            fab.style.top = (initialTop + dy) + 'px';
-            // Hide chat bubble while dragging
+            container.style.left = (initialLeft + dx) + 'px';
+            container.style.top = (initialTop + dy) + 'px';
             const bubble = document.getElementById('hero-chat-bubble');
             if (bubble.classList.contains('show')) {
                 bubble.classList.remove('show');
@@ -537,27 +536,28 @@ Shown on all authenticated pages. Draggable FAB with animated "Need help?" bubbl
         document.addEventListener('mouseup', function() {
             if (!isDragging) return;
             isDragging = false;
+            container.style.transition = 'transform 0.2s ease';
             fab.style.transition = 'transform 0.2s ease';
-            // Show chat bubble again after drag ends
             setTimeout(() => {
                 showChatBubble();
             }, 500);
         });
 
         // Touch support for mobile
-        fab.addEventListener('touchstart', function(e) {
+        container.addEventListener('touchstart', function(e) {
             if (e.target.tagName === 'SVG' || e.target.tagName === 'PATH') return;
             isDragging = true;
+            container.style.transition = 'none';
             fab.style.transition = 'none';
             startX = e.touches[0].clientX;
             startY = e.touches[0].clientY;
-            const rect = fab.getBoundingClientRect();
+            const rect = container.getBoundingClientRect();
             initialLeft = rect.left;
             initialTop = rect.top;
-            fab.style.left = initialLeft + 'px';
-            fab.style.top = initialTop + 'px';
-            fab.style.bottom = 'auto';
-            fab.style.right = 'auto';
+            container.style.left = initialLeft + 'px';
+            container.style.top = initialTop + 'px';
+            container.style.bottom = 'auto';
+            container.style.right = 'auto';
             e.preventDefault();
         }, { passive: false });
 
@@ -565,8 +565,8 @@ Shown on all authenticated pages. Draggable FAB with animated "Need help?" bubbl
             if (!isDragging) return;
             const dx = e.touches[0].clientX - startX;
             const dy = e.touches[0].clientY - startY;
-            fab.style.left = (initialLeft + dx) + 'px';
-            fab.style.top = (initialTop + dy) + 'px';
+            container.style.left = (initialLeft + dx) + 'px';
+            container.style.top = (initialTop + dy) + 'px';
             const bubble = document.getElementById('hero-chat-bubble');
             if (bubble.classList.contains('show')) {
                 bubble.classList.remove('show');
@@ -576,6 +576,7 @@ Shown on all authenticated pages. Draggable FAB with animated "Need help?" bubbl
         document.addEventListener('touchend', function() {
             if (!isDragging) return;
             isDragging = false;
+            container.style.transition = 'transform 0.2s ease';
             fab.style.transition = 'transform 0.2s ease';
             setTimeout(() => {
                 showChatBubble();
@@ -599,10 +600,8 @@ Shown on all authenticated pages. Draggable FAB with animated "Need help?" bubbl
 
     // Open widget on FAB click
     document.getElementById('hero-fab').addEventListener('click', function(e) {
-        // Only open if not dragging
         if (isDragging) return;
-        // Check if click is inside the FAB (handles SVG children)
-        if (!fab.contains(e.target)) return;
+        if (!document.getElementById('hero-widget-container').contains(e.target)) return;
         openHeroWidget();
     });
 

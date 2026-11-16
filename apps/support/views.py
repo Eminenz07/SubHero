@@ -151,6 +151,14 @@ class TicketCreateView(LoginRequiredMixin, View):
         return render(request, "support/ticket_create.html", {"categories": categories})
 
     def post(self, request):
+        try:
+            return self._post_inner(request)
+        except Exception as exc:
+            logger.exception("Ticket creation failed: %s", exc)
+            messages.error(request, "Something went wrong creating your ticket. Please try again.")
+            return redirect("support:ticket_create")
+
+    def _post_inner(self, request):
         # Rate limit: 5 new tickets per hour per user
         key = _rate_limit_key(request, "new_tickets")
         # Use django-ratelimit-style check manually via cache
