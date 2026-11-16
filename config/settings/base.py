@@ -476,6 +476,8 @@ SUPPORT_FIRST_RESPONSE_NORMAL_HOURS = config("SUPPORT_FIRST_RESPONSE_NORMAL_HOUR
 SUPPORT_AUTO_CLOSE_RESOLVED_DAYS = config("SUPPORT_AUTO_CLOSE_RESOLVED_DAYS", default=7, cast=int)
 # Waiting customer auto-resolve after (hours)
 SUPPORT_WAITING_CUSTOMER_AUTO_RESOLVE_HOURS = config("SUPPORT_WAITING_CUSTOMER_AUTO_RESOLVE_HOURS", default=72, cast=int)
+# Site URL for notification links and email action URLs
+SITE_URL = config("SITE_URL", default="")
 
 # =============================================================
 # OGAVIRAL — Outbound SMM API

@@ -94,7 +94,8 @@ def _notify_staff_about_ticket(ticket, actor=None, extra_context=None):
     )
     title = f"New Hero Ticket {ticket.reference}"
     body = f"{ticket.subject} — {ticket.user.full_name or ticket.user.phone_number}"
-    url = f"{settings.SITE_URL}/desk/tickets/{ticket.id}/"
+    site_url = getattr(settings, "SITE_URL", "")
+    url = f"{site_url}/desk/tickets/{ticket.id}/"
 
     for staff in staff_users:
         try:
