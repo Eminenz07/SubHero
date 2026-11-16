@@ -1,139 +1,659 @@
 {% comment %}Hero Support Widget — floating button + bottom sheet.
-Shown on dashboard and profile pages only.{% endcomment %}
+Shown on all authenticated pages. Draggable FAB with animated "Need help?" bubble.{% endcomment %}
 {% if user.is_authenticated %}
+<style>
+  /* Hero Widget Draggable FAB */
+  #hero-fab {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #7C3AED 0%, #4F46E5 100%);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: move;
+    touch-action: none;
+    z-index: [100];
+    box-shadow: 0 10px 25px -5px rgba(124, 58, 237, 0.4), 0 8px 10px -6px rgba(124, 58, 237, 0.3);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    will-change: transform;
+  }
+  #hero-fab:hover {
+    transform: scale(1.1);
+    box-shadow: 0 10px 25px -5px rgba(124, 58, 237, 0.6), 0 8px 10px -6px rgba(124, 58, 237, 0.5);
+  }
+  #hero-fab:active {
+    cursor: grabbing;
+  }
+
+  /* Chat bubble animation */
+  #hero-chat-bubble {
+    position: fixed;
+    bottom: 90px;
+    right: 32px;
+    max-width: 160px;
+    padding: 8px 12px;
+    border-radius: 12px;
+    background: #7C3AED;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+    pointer-events: none;
+    z-index: [99];
+    opacity: 0;
+    transform: translateY(10px) scale(0.9);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    will-change: transform, opacity;
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
+  }
+  #hero-chat-bubble.show {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  /* Bubble arrow */
+  #hero-chat-bubble::after {
+    content: '';
+    position: absolute;
+    top: -6px;
+    right: 12px;
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-bottom: 12px solid #7C3AED;
+  }
+
+  /* Hero Widget Backdrop */
+  #hero-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: [98];
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    display: none;
+  }
+
+  /* Hero Widget Bottom Sheet */
+  #hero-widget {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: [101];
+    height: 85vh;
+    max-height: 700px;
+    border-radius: 24px 24px 0 0;
+    background: #ffffff;
+    color: #111827;
+    box-shadow: 0 -20px 25px -5px rgba(0, 0, 0, 0.1), 0 -8px 10px -6px rgba(0, 0, 0, 0.1);
+    transform: translateY(100%);
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    flex-direction: column;
+    will-change: transform;
+  }
+  html.dark #hero-widget {
+    background: #0f172a;
+    color: #f3f4f6;
+  }
+  #hero-widget.open {
+    transform: translateY(0);
+  }
+
+  /* Widget handle */
+  .hero-widget-handle {
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: #cbd5e1;
+    margin: 0 auto 12px;
+  }
+  html.dark .hero-widget-handle {
+    background: #475569;
+  }
+
+  /* Widget header */
+  .hero-widget-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px 16px;
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 16px;
+  }
+  html.dark .hero-widget-header {
+    border-bottom-color: #334155;
+  }
+  .hero-widget-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .hero-widget-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: #eef2ff;
+    color: #4F46E5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+  html.dark .hero-widget-icon {
+    background: #1e293b;
+    color: #818cf8;
+  }
+  .hero-widget-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #111827;
+  }
+  html.dark .hero-widget-title {
+    color: #f3f4f6;
+  }
+  .hero-widget-subtitle {
+    font-size: 12px;
+    color: #6b7280;
+  }
+  html.dark .hero-widget-subtitle {
+    color: #94a3b8;
+  }
+  .hero-widget-close {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: #f1f5f9;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #64748b;
+    transition: background 0.2s ease;
+  }
+  html.dark .hero-widget-close {
+    background: #334155;
+    color: #94a3b8;
+  }
+  .hero-widget-close:hover {
+    background: #e2e8f0;
+  }
+  html.dark .hero-widget-close:hover {
+    background: #475569;
+  }
+
+  /* Widget body */
+  .hero-widget-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 20px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* Security warning */
+  .hero-widget-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: #fefce8;
+    border: 1px solid #d97706;
+    color: #92400e;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  html.dark .hero-widget-warning {
+    background: #451a03;
+    border-color: #78350f;
+    color: #fcd34d;
+  }
+  .hero-widget-warning svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  /* Topics section */
+  .hero-widget-section-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6b7280;
+    margin-bottom: 10px;
+  }
+  html.dark .hero-widget-section-title {
+    color: #94a3b8;
+  }
+  .hero-widget-topics {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  .hero-topic-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    color: #374151;
+    transition: all 0.2s ease;
+  }
+  html.dark .hero-topic-btn {
+    background: #1e293b;
+    border-color: #334155;
+    color: #f3f4f6;
+  }
+  .hero-topic-btn:hover {
+    border-color: #4F46E5;
+    background: #f8fafc;
+  }
+  html.dark .hero-topic-btn:hover {
+    border-color: #818cf8;
+    background: #2d3748;
+  }
+  .hero-topic-btn.selected {
+    background: #eef2ff;
+    border-color: #4F46E5;
+    color: #4F46E5;
+  }
+  html.dark .hero-topic-btn.selected {
+    background: #1e1b4b;
+    border-color: #818cf8;
+    color: #a5b4fc;
+  }
+  .hero-topic-icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+
+  /* Order picker */
+  .hero-widget-order-picker {
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .hero-order-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    cursor: pointer;
+    font-size: 12px;
+    color: #374151;
+    transition: all 0.2s ease;
+  }
+  html.dark .hero-order-item {
+    background: #1e293b;
+    border-color: #334155;
+    color: #f3f4f6;
+  }
+  .hero-order-item.selected {
+    background: #eef2ff;
+    border-color: #4F46E5;
+    color: #4F46E5;
+  }
+  html.dark .hero-order-item.selected {
+    background: #1e1b4b;
+    border-color: #818cf8;
+    color: #a5b4fc;
+  }
+  .hero-order-radio {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid #d1d5db;
+    background: #ffffff;
+    flex-shrink: 0;
+  }
+  html.dark .hero-order-radio {
+    background: #1e293b;
+    border-color: #475569;
+  }
+  .hero-order-item.selected .hero-order-radio {
+    border-color: #4F46E5;
+    background: #4F46E5;
+  }
+
+  /* Message input */
+  .hero-widget-message-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6b7280;
+    margin-bottom: 8px;
+  }
+  html.dark .hero-widget-message-label {
+    color: #94a3b8;
+  }
+  #hero-message-input {
+    width: 100%;
+    min-height: 80px;
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    background: #f9fafb;
+    color: #111827;
+    font-size: 14px;
+    font-family: inherit;
+    resize: vertical;
+    transition: border-color 0.2s ease;
+  }
+  html.dark #hero-message-input {
+    background: #0f172a;
+    border-color: #334155;
+    color: #f3f4f6;
+  }
+  #hero-message-input:focus {
+    outline: none;
+    border-color: #4F46E5;
+    background: #ffffff;
+  }
+  html.dark #hero-message-input:focus {
+    background: #1e293b;
+    border-color: #818cf8;
+  }
+
+  /* Submit button */
+  #hero-submit-btn {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    background: #4F46E5;
+    color: #ffffff;
+    border: none;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  #hero-submit-btn:hover:not(:disabled) {
+    background: #4338ca;
+  }
+  #hero-submit-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  #hero-submit-btn:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+
+  /* Notification badge */
+  #hero-notification-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #EF4444;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.4);
+  }
+</style>
+
 <!-- Floating Hero Button -->
-<button id="hero-fab" class="fixed bottom-6 right-6 z-[100] w-14 h-14 rounded-full bg-brand-primary text-white flex items-center justify-center shadow-2xl hover:scale-105 active:scale-95 transition-all focus:outline-none ring-2 ring-brand-primary/50" aria-label="Hero Support" title="Chat with Hero Support">
+<button id="hero-fab" class="hero-fab" aria-label="Hero Support" title="Chat with Hero Support" draggable="true">
     <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-    <span class="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center hidden" id="hero-notification-badge">0</span>
+    <span id="hero-notification-badge" class="hidden">0</span>
 </button>
 
+<!-- Animated Chat Bubble -->
+<div id="hero-chat-bubble">Need help?</div>
+
 <!-- Hero Widget Backdrop -->
-<div id="hero-backdrop" class="fixed inset-0 z-[99] bg-black/50 hidden backdrop-blur-sm" onclick="closeHeroWidget()"></div>
+<div id="hero-backdrop" onclick="closeHeroWidget()"></div>
 
 <!-- Hero Widget Bottom Sheet -->
-<div id="hero-widget" class="fixed bottom-0 left-0 right-0 z-[100] h-[90vh] rounded-t-3xl bg-white dark:bg-surface-card shadow-2xl transform translate-y-full transition-transform duration-300 ease-out flex flex-col">
-    <!-- Handle -->
-    <div class="w-full py-3 flex justify-center">
-        <div class="w-12 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700"></div>
-    </div>
-
-    <!-- Header -->
-    <div class="px-6 py-4 border-b border-slate-200 dark:border-surface-border flex items-center justify-between bg-white dark:bg-surface-card">
-        <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-brand-primary/10 text-brand-primary flex items-center justify-center font-bold text-lg">
+<div id="hero-widget">
+    <div class="hero-widget-handle"></div>
+    <div class="hero-widget-header">
+        <div class="hero-widget-brand">
+            <div class="hero-widget-icon">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
             </div>
             <div>
-                <h3 class="text-sm font-bold text-text-primary">Hero Support</h3>
-                <p class="text-[10px] text-text-muted">Get help with your orders, wallet, and account.</p>
+                <div class="hero-widget-title">Hero Support</div>
+                <div class="hero-widget-subtitle">Get help with your orders, wallet, and account</div>
             </div>
         </div>
-        <button onclick="closeHeroWidget()" class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-text-muted flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+        <button class="hero-widget-close" onclick="closeHeroWidget()">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
         </button>
     </div>
 
-    <!-- Widget Body -->
-    <div class="flex-1 overflow-y-auto p-4 space-y-4">
+    <div class="hero-widget-body">
         <!-- Security Warning -->
-        <div class="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 flex items-start gap-2">
-            <svg class="w-4 h-4 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            <span class="text-[11px] text-amber-800 dark:text-amber-600 leading-relaxed">Hero will never ask for your PIN or OTP.</span>
+        <div class="hero-widget-warning">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <span>Hero will never ask for your PIN or OTP.</span>
         </div>
 
         <!-- Quick Topics -->
-        <div>
-            <p class="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-3">What do you need help with?</p>
-            <div class="grid grid-cols-2 gap-2">
-                <button onclick="openTicketWithTopic('wallet', 'Wallet Issue')" class="px-3 py-2.5 rounded-lg border border-surface-border bg-white dark:bg-surface-card text-[11px] font-medium text-text-primary text-left hover:bg-surface-muted transition-colors">
-                    <svg class="w-3 h-3 mr-1.5 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    Wallet
-                </button>
-                <button onclick="openTicketWithTopic('vtu', 'VTU / Data / Airtime')" class="px-3 py-2.5 rounded-lg border border-surface-border bg-white dark:bg-surface-card text-[11px] font-medium text-text-primary text-left hover:bg-surface-muted transition-colors">
-                    <svg class="w-3 h-3 mr-1.5 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                    VTU
-                </button>
-                <button onclick="openTicketWithTopic('smm', 'Social Media Growth')" class="px-3 py-2.5 rounded-lg border border-surface-border bg-white dark:bg-surface-card text-[11px] font-medium text-text-primary text-left hover:bg-surface-muted transition-colors">
-                    <svg class="w-3 h-3 mr-1.5 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M23 5a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2zm8 0a2 2 0 110 4h.01a2 2 0 010-4zm-8 6a2 2 0 100-4h.01a2 2 0 000 4z"></path></svg>
-                    SMM
-                </button>
-                <button onclick="openTicketWithTopic('account', 'Account Issue')" class="px-3 py-2.5 rounded-lg border border-surface-border bg-white dark:bg-surface-card text-[11px] font-medium text-text-primary text-left hover:bg-surface-muted transition-colors">
-                    <svg class="w-3 h-3 mr-1.5 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                    Account
-                </button>
-            </div>
+        <div class="hero-widget-section-title">What do you need help with?</div>
+        <div class="hero-widget-topics">
+            <button type="button" class="hero-topic-btn" onclick="selectHeroTopic('wallet', 'Wallet Issue', this)">
+                <svg class="hero-topic-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                Wallet
+            </button>
+            <button type="button" class="hero-topic-btn" onclick="selectHeroTopic('vtu', 'VTU / Data / Airtime', this)">
+                <svg class="hero-topic-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                VTU
+            </button>
+            <button type="button" class="hero-topic-btn" onclick="selectHeroTopic('smm', 'Social Media Growth', this)">
+                <svg class="hero-topic-icon" fill="none" stroke="currentColor" viewBox="0  0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M23 5a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2zm8 0a2 2 0 110 4h.01a2 2 0 010-4zm-8 6a2 2 0 100-4h.01a2 2 0 000 4z"></path></svg>
+                SMM
+            </button>
+            <button type="button" class="hero-topic-btn" onclick="selectHeroTopic('account', 'Account Issue', this)">
+                <svg class="hero-topic-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                Account
+            </button>
         </div>
 
-        <!-- Recent Orders Picker -->
-        <div id="hero-order-picker" class="hidden space-y-3">
-            <p class="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-3">Link to an order (optional)</p>
+        <!-- Order Picker -->
+        <div class="hero-widget-order-picker" id="hero-order-picker">
+            <div class="hero-widget-section-title">Link an order (optional)</div>
             <div id="hero-order-list" class="space-y-2">
-                <!-- Orders populated via HTMX -->
+                <!-- Populated dynamically -->
             </div>
         </div>
 
         <!-- Message Input -->
-        <div class="space-y-2">
-            <label class="text-[10px] font-bold text-text-muted uppercase tracking-wider">Describe your issue</label>
-            <textarea id="hero-message-input" rows="3" placeholder="What happened? Include dates, amounts, and any error messages." class="w-full pl-3 py-2.5 rounded-xl border border-surface-border bg-white dark:bg-surface-card text-text-primary dark:text-white focus:outline-none focus:border-brand-primary transition-colors"></textarea>
-            <p class="text-[10px] text-text-muted">Max 2000 characters.</p>
+        <div>
+            <div class="hero-widget-message-label">Describe your issue</div>
+            <textarea id="hero-message-input" rows="4" placeholder="What happened? Include dates, amounts, and any error messages."></textarea>
         </div>
 
         <!-- Submit Button -->
-        <button id="hero-submit-btn" onclick="submitHeroTicket()" class="w-full py-3.5 rounded-xl bg-brand-primary text-white font-bold text-sm active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+        <button id="hero-submit-btn" onclick="submitHeroTicket()" disabled>
             Open Ticket
         </button>
     </div>
 </div>
 
 <script>
-    let heroSelectedTopic = '';
-    let heroSelectedCategory = '';
-    let heroOrderRef = '';
-    let heroOrderType = '';
+    // Draggable FAB
+    (function() {
+        const fab = document.getElementById('hero-fab');
+        let isDragging = false;
+        let startX, startY, initialLeft, initialTop;
 
+        fab.addEventListener('mousedown', function(e) {
+            if (e.target.tagName === 'SVG' || e.target.tagName === 'PATH') return;
+            isDragging = true;
+            fab.style.transition = 'none';
+            startX = e.clientX;
+            startY = e.clientY;
+            const rect = fab.getBoundingClientRect();
+            initialLeft = rect.left;
+            initialTop = rect.top;
+            fab.style.left = initialLeft + 'px';
+            fab.style.top = initialTop + 'px';
+            fab.style.bottom = 'auto';
+            fab.style.right = 'auto';
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', function(e) {
+            if (!isDragging) return;
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+            fab.style.left = (initialLeft + dx) + 'px';
+            fab.style.top = (initialTop + dy) + 'px';
+            // Hide chat bubble while dragging
+            const bubble = document.getElementById('hero-chat-bubble');
+            if (bubble.classList.contains('show')) {
+                bubble.classList.remove('show');
+            }
+        });
+
+        document.addEventListener('mouseup', function() {
+            if (!isDragging) return;
+            isDragging = false;
+            fab.style.transition = 'transform 0.2s ease';
+            // Show chat bubble again after drag ends
+            setTimeout(() => {
+                showChatBubble();
+            }, 500);
+        });
+
+        // Touch support for mobile
+        fab.addEventListener('touchstart', function(e) {
+            if (e.target.tagName === 'SVG' || e.target.tagName === 'PATH') return;
+            isDragging = true;
+            fab.style.transition = 'none';
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+            const rect = fab.getBoundingClientRect();
+            initialLeft = rect.left;
+            initialTop = rect.top;
+            fab.style.left = initialLeft + 'px';
+            fab.style.top = initialTop + 'px';
+            fab.style.bottom = 'auto';
+            fab.style.right = 'auto';
+            e.preventDefault();
+        }, { passive: false });
+
+        document.addEventListener('touchmove', function(e) {
+            if (!isDragging) return;
+            const dx = e.touches[0].clientX - startX;
+            const dy = e.touches[0].clientY - startY;
+            fab.style.left = (initialLeft + dx) + 'px';
+            fab.style.top = (initialTop + dy) + 'px';
+            const bubble = document.getElementById('hero-chat-bubble');
+            if (bubble.classList.contains('show')) {
+                bubble.classList.remove('show');
+            }
+        }, { passive: false });
+
+        document.addEventListener('touchend', function() {
+            if (!isDragging) return;
+            isDragging = false;
+            fab.style.transition = 'transform 0.2s ease';
+            setTimeout(() => {
+                showChatBubble();
+            }, 500);
+        });
+    })();
+
+    // Chat bubble animation
+    let bubbleTimeout;
+    function showChatBubble() {
+        const bubble = document.getElementById('hero-chat-bubble');
+        bubble.classList.add('show');
+        clearTimeout(bubbleTimeout);
+        bubbleTimeout = setTimeout(() => {
+            bubble.classList.remove('show');
+        }, 4000);
+    }
+
+    // Show bubble on page load
+    setTimeout(showChatBubble, 1000);
+
+    // Open widget on FAB click
+    document.getElementById('hero-fab').addEventListener('click', function(e) {
+        // Only open if not dragging
+        if (isDragging) return;
+        // Check if click is inside the FAB (handles SVG children)
+        if (!fab.contains(e.target)) return;
+        openHeroWidget();
+    });
+
+    // Open/close widget
     function openHeroWidget() {
-        document.getElementById('hero-widget').classList.remove('translate-y-full');
-        document.getElementById('hero-backdrop').classList.remove('hidden');
+        document.getElementById('hero-widget').classList.add('open');
+        document.getElementById('hero-backdrop').style.display = 'block';
         document.body.style.overflow = 'hidden';
     }
 
     function closeHeroWidget() {
-        document.getElementById('hero-widget').classList.add('translate-y-full');
-        document.getElementById('hero-backdrop').classList.add('hidden');
+        document.getElementById('hero-widget').classList.remove('open');
+        document.getElementById('hero-backdrop').style.display = 'none';
         document.body.style.overflow = '';
-        // Reset form
-        document.getElementById('hero-message-input').value = '';
-        heroSelectedTopic = '';
-        heroSelectedCategory = '';
-        heroOrderRef = '';
-        heroOrderType = '';
-        document.getElementById('hero-order-picker').classList.add('hidden');
-        document.getElementById('hero-submit-btn').disabled = true;
-        document.querySelectorAll('#hero-widget button[onclick^="openTicketWithTopic"]').forEach(btn => {
-            btn.classList.remove('bg-brand-primary/10', 'border-brand-primary', 'text-brand-primary');
-            btn.classList.add('border-surface-border', 'text-text-primary');
-        });
+        resetForm();
     }
 
-    function openTicketWithTopic(category, topic) {
+    // Topic selection
+    let heroSelectedCategory = '';
+    let heroSelectedTopic = '';
+    let heroOrderRef = '';
+    let heroOrderType = '';
+
+    function selectHeroTopic(category, topic, btn) {
         heroSelectedCategory = category;
         heroSelectedTopic = topic;
 
         // Update visual selection
-        document.querySelectorAll('#hero-widget button[onclick^="openTicketWithTopic"]').forEach(btn => {
-            btn.classList.remove('bg-brand-primary/10', 'border-brand-primary', 'text-brand-primary');
-            btn.classList.add('border-surface-border', 'text-text-primary');
+        document.querySelectorAll('.hero-topic-btn').forEach(b => {
+            b.classList.remove('selected');
+            b.classList.add('border-surface-border', 'text-text-primary');
+            if (document.documentElement.classList.contains('dark')) {
+                b.classList.add('bg-[#1e293b]', 'text-[#f3f4f6]');
+                b.classList.remove('border-[#334155]');
+            }
         });
-        event.currentTarget.classList.remove('border-surface-border', 'text-text-primary');
-        event.currentTarget.classList.add('bg-brand-primary/10', 'border-brand-primary', 'text-brand-primary');
-
-        // Show order picker for VTU/SMM topics
-        if (category === 'vtu' || category === 'smm') {
-            document.getElementById('hero-order-picker').classList.remove('hidden');
-            loadRecentOrders(category);
+        btn.classList.add('selected');
+        btn.classList.remove('border-surface-border', 'text-text-primary');
+        if (document.documentElement.classList.contains('dark')) {
+            btn.classList.remove('bg-[#1e293b]', 'text-[#f3f4f6]');
+            btn.classList.add('border-[#818cf8]', 'text-[#a5b4fc]');
         } else {
-            document.getElementById('hero-order-picker').classList.add('hidden');
+            btn.classList.add('bg-[#eef2ff]', 'border-[#4F46E5]', 'text-[#4F46E5]');
+        }
+
+        // Show order picker for VTU/SMM
+        const orderPicker = document.getElementById('hero-order-picker');
+        if (category === 'vtu' || category === 'smm') {
+            orderPicker.style.display = 'block';
+        } else {
+            orderPicker.style.display = 'none';
             heroOrderRef = '';
             heroOrderType = '';
         }
@@ -141,26 +661,14 @@ Shown on dashboard and profile pages only.{% endcomment %}
         updateSubmitButton();
     }
 
-    function loadRecentOrders(category) {
-        // HTMX fetch recent orders for the user
-        htmx.ajax('GET', '{% url "support:ticket_list" %}?recent_orders=1&category=' + category, {
-            target: '#hero-order-list',
-            swap: 'innerHTML'
-        });
-        // For now, just show a placeholder - in production this would fetch from an API endpoint
-        const list = document.getElementById('hero-order-list');
-        list.innerHTML = '<div class="text-[11px] text-text-muted text-center py-4">No recent orders found.</div>';
-    }
-
-    function selectOrder(ref, type) {
+    function selectOrder(ref, type, btn) {
         heroOrderRef = ref;
         heroOrderType = type;
-        document.querySelectorAll('#hero-order-list button').forEach(btn => {
-            btn.classList.remove('bg-brand-primary/10', 'border-brand-primary', 'text-brand-primary');
-            btn.classList.add('border-surface-border', 'text-text-primary');
+
+        document.querySelectorAll('#hero-order-list button').forEach(b => {
+            b.classList.remove('selected');
         });
-        event.currentTarget.classList.remove('border-surface-border', 'text-text-primary');
-        event.currentTarget.classList.add('bg-brand-primary/10', 'border-brand-primary', 'text-brand-primary');
+        btn.classList.add('selected');
         updateSubmitButton();
     }
 
@@ -173,13 +681,31 @@ Shown on dashboard and profile pages only.{% endcomment %}
 
     document.getElementById('hero-message-input')?.addEventListener('input', updateSubmitButton);
 
+    // Order selection via HTMX (when recent orders available)
+    window.selectHeroOrder = selectOrder;
+
+    function resetForm() {
+        document.getElementById('hero-message-input').value = '';
+        heroSelectedCategory = '';
+        heroSelectedTopic = '';
+        heroOrderRef = '';
+        heroOrderType = '';
+        document.getElementById('hero-order-picker').style.display = 'none';
+        document.getElementById('hero-submit-btn').disabled = true;
+        document.querySelectorAll('.hero-topic-btn').forEach(btn => {
+            btn.classList.remove('selected');
+            btn.classList.add('border-surface-border', 'text-text-primary');
+        });
+    }
+
+    // Submit ticket
     async function submitHeroTicket() {
         const body = document.getElementById('hero-message-input').value.trim();
         if (!body || !heroSelectedCategory) return;
 
         const btn = document.getElementById('hero-submit-btn');
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Opening...';
+        const originalText = btn.textContent;
+        btn.textContent = 'Opening…';
         btn.disabled = true;
 
         try {
@@ -188,7 +714,7 @@ Shown on dashboard and profile pages only.{% endcomment %}
             formData.append('subject', heroSelectedTopic || 'Support via Hero Widget');
             formData.append('body', body);
             formData.append('related_reference', heroOrderRef);
-            formData.append('related_type', heroOrderType ? heroOrderType + '_order' : '');
+            if (heroOrderType) formData.append('related_type', heroOrderType + '_order');
 
             const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
             const response = await fetch('{% url "support:ticket_create" %}', {
@@ -199,11 +725,9 @@ Shown on dashboard and profile pages only.{% endcomment %}
 
             if (response.ok) {
                 closeHeroWidget();
-                // Show success
                 const badge = document.getElementById('hero-notification-badge');
                 badge.textContent = '1';
                 badge.classList.remove('hidden');
-                // Redirect to ticket list or show toast
                 window.location.href = '{% url "support:ticket_list" %}';
             } else {
                 alert('Failed to create ticket. Please try again.');
@@ -211,15 +735,18 @@ Shown on dashboard and profile pages only.{% endcomment %}
         } catch (e) {
             alert('Failed to create ticket. Please try again.');
         } finally {
-            btn.innerHTML = originalText;
+            btn.textContent = originalText;
             btn.disabled = false;
         }
     }
 
-    // Close on Escape key
+    // Close on Escape
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && !document.getElementById('hero-widget').classList.contains('translate-y-full')) {
-            closeHeroWidget();
+        if (e.key === 'Escape') {
+            const widget = document.getElementById('hero-widget');
+            if (widget.classList.contains('open')) {
+                closeHeroWidget();
+            }
         }
     });
 </script>

@@ -86,34 +86,37 @@ def _create_system_message(ticket, body):
 
 def _notify_staff_about_ticket(ticket, actor=None, extra_context=None):
     """Create in-app + push notifications for available staff about a new ticket."""
-    from apps.support.models import StaffProfile
+    try:
+        from apps.support.models import StaffProfile
 
-    staff_users = (
-        User.objects.filter(is_staff=True, staff_profile__is_available=True)
-        .select_related("staff_profile")
-    )
-    title = f"New Hero Ticket {ticket.reference}"
-    body = f"{ticket.subject} — {ticket.user.full_name or ticket.user.phone_number}"
-    site_url = getattr(settings, "SITE_URL", "")
-    url = f"{site_url}/desk/tickets/{ticket.id}/"
+        staff_users = (
+            User.objects.filter(is_staff=True, staff_profile__is_available=True)
+            .select_related("staff_profile")
+        )
+        title = f"New Hero Ticket {ticket.reference}"
+        body = f"{ticket.subject} — {ticket.user.full_name or ticket.user.phone_number}"
+        site_url = getattr(settings, "SITE_URL", "")
+        url = f"{site_url}/desk/tickets/{ticket.id}/"
 
-    for staff in staff_users:
-        try:
-            Notification.add(
-                user=staff,
-                title=title,
-                description=body,
-                level="info",
-            )
-            send_push_notification(
-                user=staff,
-                title=title,
-                body=body,
-                action_url=url,
-                level="info",
-            )
-        except Exception as e:
-            logger.warning("Failed to notify staff %s about ticket %s: %s", staff.id, ticket.reference, e)
+        for staff in staff_users:
+            try:
+                Notification.add(
+                    user=staff,
+                    title=title,
+                    description=body,
+                    level="info",
+                )
+                send_push_notification(
+                    user=staff,
+                    title=title,
+                    body=body,
+                    action_url=url,
+                    level="info",
+                )
+            except Exception:
+                logger.exception("Failed to notify staff %s about ticket %s", staff.id, ticket.reference)
+    except Exception:
+        logger.exception("Failed to notify staff about ticket %s", ticket.reference)
 
 
 class TicketListView(LoginRequiredMixin, ListView):
@@ -237,7 +240,10 @@ class TicketCreateView(LoginRequiredMixin, View):
             )
 
         cache.set(key, count + 1, 3600)  # 1 hour window
-        _notify_staff_about_ticket(ticket, actor=request.user)
+        try:
+            _notify_staff_about_ticket(ticket, actor=request.user)
+        except Exception:
+            logger.exception("Failed to notify staff about ticket %s", ticket.reference)
 
         messages.success(request, f"Ticket {ticket.reference} created. Our Hero team will get back to you soon.")
         return redirect("support:ticket_detail", reference=ticket.reference)
