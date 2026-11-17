@@ -10,7 +10,7 @@ Shown on all authenticated pages. Chat bubble moves with the widget.{% endcommen
     width: 56px;
     height: 56px;
     z-index: 999999;
-    pointer-events: none; /* let clicks pass through container to FAB */
+    pointer-events: auto;
     will-change: transform;
   }
 
@@ -42,6 +42,22 @@ Shown on all authenticated pages. Chat bubble moves with the widget.{% endcommen
     cursor: grabbing;
   }
 
+  /* Mobile: move FAB higher to avoid bottom nav overlap */
+  @media (max-width: 768px) {
+    #hero-widget-container {
+      bottom: 80px;
+      right: 16px;
+    }
+    #hero-widget {
+      height: 85vh;
+      max-height: none;
+      border-radius: 24px 24px 0 0;
+    }
+    .hero-widget-body {
+      padding: 0 16px 24px;
+    }
+  }
+
   /* Chat bubble — positioned absolutely relative to container, moves with FAB */
   #hero-chat-bubble {
     position: absolute;
@@ -57,7 +73,7 @@ Shown on all authenticated pages. Chat bubble moves with the widget.{% endcommen
     text-align: center;
     pointer-events: none;
     opacity: 0;
-    transform: translateY(10px) scale(0.9);
+    transform: translateY(-10px) scale(0.9);
     transition: opacity 0.3s ease, transform 0.3s ease;
     box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
     white-space: nowrap;
@@ -67,17 +83,17 @@ Shown on all authenticated pages. Chat bubble moves with the widget.{% endcommen
     transform: translateY(0) scale(1);
   }
 
-  /* Bubble arrow */
+  /* Bubble arrow — points upward from bubble toward FAB below */
   #hero-chat-bubble::after {
     content: '';
     position: absolute;
-    top: -6px;
+    bottom: -6px;
     right: 14px;
     width: 0;
     height: 0;
     border-left: 6px solid transparent;
     border-right: 6px solid transparent;
-    border-bottom: 12px solid #7C3AED;
+    border-top: 12px solid #7C3AED;
   }
 
   /* Hero Widget Backdrop */
@@ -602,7 +618,12 @@ Shown on all authenticated pages. Chat bubble moves with the widget.{% endcommen
     document.getElementById('hero-fab').addEventListener('click', function(e) {
         if (isDragging) return;
         if (!document.getElementById('hero-widget-container').contains(e.target)) return;
-        openHeroWidget();
+        const widget = document.getElementById('hero-widget');
+        if (widget.classList.contains('open')) {
+            closeHeroWidget();
+        } else {
+            openHeroWidget();
+        }
     });
 
     // Open/close widget
