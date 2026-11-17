@@ -497,11 +497,11 @@ Shown on all authenticated pages. Chat bubble moves with the widget.{% endcommen
 </div>
 
 <script>
-    // Draggable FAB container
+    // Draggable FAB container - isDragging accessible globally for click handler
+    let isDragging = false;
     (function() {
         const container = document.getElementById('hero-widget-container');
         const fab = document.getElementById('hero-fab');
-        let isDragging = false;
         let startX, startY, initialLeft, initialTop;
 
         container.addEventListener('mousedown', function(e) {
@@ -715,7 +715,7 @@ Shown on all authenticated pages. Chat bubble moves with the widget.{% endcommen
             formData.append('related_reference', heroOrderRef);
             if (heroOrderType) formData.append('related_type', heroOrderType + '_order');
 
-            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+            const csrfToken = '{{ csrf_token }}';
             const response = await fetch('{% url "support:ticket_create" %}', {
                 method: 'POST',
                 headers: { 'X-CSRFToken': csrfToken },

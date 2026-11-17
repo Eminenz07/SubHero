@@ -155,7 +155,7 @@ class TicketCreateView(LoginRequiredMixin, View):
             return self._post_inner(request)
         except Exception as exc:
             logger.exception("Ticket creation failed: %s", exc)
-            messages.error(request, "Something went wrong creating your ticket. Please try again.")
+            messages.error(request, f"Ticket creation failed: {str(exc)[:200]}. Please try again.")
             return redirect("support:ticket_create")
 
     def _post_inner(self, request):
