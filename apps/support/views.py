@@ -237,7 +237,7 @@ class TicketCreateView(LoginRequiredMixin, View):
                 f"Ticket {ticket.reference} created. "
                 f"Support hours: {biz_hours}. "
                 f"Expected first response: within {resp_time} hours "
-                f"({'1 hour' if priority == Ticket.Priority.HIGH else resp_time + ' hours'} for high priority).",
+                f"({'1 hour' if priority == Ticket.Priority.HIGH else str(resp_time) + ' hours'} for high priority).",
             )
             _create_system_event(
                 ticket,
