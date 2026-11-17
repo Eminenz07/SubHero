@@ -28,11 +28,13 @@ Shown on all authenticated pages. Chat bubble moves with the widget.{% endcommen
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    touch-action: none;
+    touch-action: manipulation;
     box-shadow: 0 10px 25px -5px rgba(124, 58, 237, 0.4), 0 8px 10px -6px rgba(124, 58, 237, 0.3);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
-    pointer-events: auto; /* re-enable clicks on the FAB itself */
+    pointer-events: auto;
     z-index: 1000000;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
   #hero-fab:hover {
     transform: scale(1.1);
@@ -102,8 +104,8 @@ Shown on all authenticated pages. Chat bubble moves with the widget.{% endcommen
     inset: 0;
     z-index: 999998;
     background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     display: none;
   }
 
@@ -119,6 +121,8 @@ Shown on all authenticated pages. Chat bubble moves with the widget.{% endcommen
     border-radius: 24px 24px 0 0;
     background: #ffffff;
     color: #111827;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     box-shadow: 0 -20px 25px -5px rgba(0, 0, 0, 0.1), 0 -8px 10px -6px rgba(0, 0, 0, 0.1);
     transform: translateY(100%);
     transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);

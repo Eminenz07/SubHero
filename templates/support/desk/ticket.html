@@ -74,10 +74,17 @@
             </div>
 
             <!-- Balance -->
+            {% if wallet %}
             <div class="mb-4">
                 <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Wallet Balance</div>
-                <div class="text-lg font-bold text-text-primary">₦{{ wallet.balance|default:0|floatformat:2 }}</div>
+                <div class="text-lg font-bold text-text-primary">₦{{ wallet.balance|floatformat:2 }}</div>
             </div>
+            {% else %}
+            <div class="mb-4">
+                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Wallet Balance</div>
+                <div class="text-lg font-bold text-text-primary">₦0.00</div>
+            </div>
+            {% endif %}
 
             <!-- Recent transactions -->
             <div class="mb-4">
