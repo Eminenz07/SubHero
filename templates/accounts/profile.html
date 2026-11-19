@@ -216,7 +216,38 @@
         </div>
     </section>
 
-    <!-- Logout -->
+    <!-- My Support Tickets -->
+    <section class="space-y-2">
+        <h3 class="px-1 text-[11px] font-bold text-text-secondary tracking-[0.5px] uppercase">My Support Tickets</h3>
+        <div class="space-y-2">
+            {% if user_tickets %}
+            {% for ticket in user_tickets %}
+            <a href="{% url 'support:ticket_detail' ref_num=ticket.reference|slice:'4:'|stringformat:'i' %}" class="w-full bg-white flex items-center justify-between p-4 rounded-card border border-surface-border/50 hover:bg-slate-50 transition-all group text-left outline-none cursor-pointer no-underline">
+                <div class="flex items-center gap-3.5">
+                    <div class="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center text-brand-primary">
+                        <i data-feather="ticket" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <span class="block text-[14px] font-bold text-text-primary">{{ ticket.subject|truncatechars:30 }}</span>
+                        <span class="block text-[11px] text-text-secondary">#{{ ticket.reference }} · {{ ticket.get_status_display }}</span>
+                    </div>
+                </div>
+                <span class="text-[11px] font-bold px-2 py-0.5 rounded-full {% if ticket.priority == 'high' %}bg-red-900/20 text-red-400 border border-red-500/30{% else %}bg-slate-900/50 text-slate-400{% endif %}">{{ ticket.get_priority_display }}</span>
+            </a>
+            {% empty %}
+            <div class="w-full bg-white flex items-center justify-between p-4 rounded-card border border-surface-border/50 text-center">
+                <span class="text-[11px] text-text-muted">No support tickets yet.</span>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+{% else %}
+    <div class="w-full bg-white flex items-center justify-between p-4 rounded-card border border-surface-border/50 text-center">
+        <span class="text-[11px] text-text-muted">No support tickets yet.</span>
+    </div>
+    {% endif %}
+    {% endif %}
+</section>
     <section class="pt-4 flex flex-col items-center">
         <a href="{% url 'accounts:logout' %}" class="w-full h-[52px] rounded-btn bg-status-danger-bg text-status-danger-text font-bold flex items-center justify-center gap-2 active:scale-95 transition-all no-underline">
             <i data-feather="log-out" class="w-5 h-5"></i>

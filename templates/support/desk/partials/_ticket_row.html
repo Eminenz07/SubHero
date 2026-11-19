@@ -1,6 +1,6 @@
 {% comment %}Single ticket row for desk inbox.{% endcomment %}
 <div class="group border border-surface-border rounded-xl p-3 hover:bg-white/[0.02] transition-colors cursor-pointer"
-     hx-get="{% url 'support_desk:ticket' ticket_id=ticket.id %}"
+     hx-get="{% url 'support:desk:ticket' ticket_id=ticket.id %}"
      hx-target="#desk-ticket-panel"
      hx-swap="innerHTML"
      hx-push-url="true">

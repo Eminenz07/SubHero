@@ -568,6 +568,15 @@ class ProfileView(LoginRequiredMixin, View):
     """
     template_name = "accounts/profile.html"
 
+    def get(self, request, *args, **kwargs):
+        from apps.support.models import Ticket
+        user_tickets = (
+            Ticket.objects.filter(user=request.user)
+            .select_related("assigned_to")
+            .order_by("-created_at")[:5]
+        )
+        return render(request, self.template_name, {"user_tickets": user_tickets})
+
     @method_decorator(ratelimit(key="ip", rate="10/m", method="POST", block=True))
     def post(self, request, *args, **kwargs):
         action = request.POST.get("action")

@@ -254,7 +254,7 @@ class TicketCreateView(LoginRequiredMixin, View):
             logger.exception("Failed to notify staff about ticket %s", ticket.reference)
 
         messages.success(request, f"Ticket {ticket.reference} created. Our Hero team will get back to you soon.")
-        return redirect("support:ticket_detail", reference=ticket.reference)
+        return redirect("support:ticket_detail", ref_num=int(ticket.reference.split("-")[1]))
 
 
 class TicketDetailView(LoginRequiredMixin, DetailView):
@@ -370,9 +370,10 @@ class TicketReplyView(LoginRequiredMixin, View):
 
 
 class TicketCsatView(LoginRequiredMixin, View):
-    """Submit CSAT rating — /support/<reference>/csat/"""
+    """Submit CSAT rating — /support/HRO-XXXXXX/csat/"""
 
-    def post(self, request, reference):
+    def post(self, request, ref_num):
+        reference = f"HRO-{int(ref_num):06d}"
         ticket = get_object_or_404(Ticket, reference=reference, user=request.user)
 
         if ticket.status != Ticket.Status.RESOLVED or ticket.csat is not None:

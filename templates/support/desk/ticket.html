@@ -130,7 +130,7 @@
             
             <!-- Claim/Assign -->
             {% if not ticket.assigned_to %}
-            <button hx-post="{% url 'support_desk:action' ticket_id=ticket.id %}"
+            <button hx-post="{% url 'support:desk:action' ticket_id=ticket.id %}"
                     hx-params="action"
                     hx-vals='{"action": "claim"}'
                     hx-target="#desk-ticket-panel"
@@ -139,7 +139,7 @@
                 Claim Ticket
             </button>
             {% elif ticket.assigned_to == request.user %}
-            <button hx-post="{% url 'support_desk:action' ticket_id=ticket.id %}"
+            <button hx-post="{% url 'support:desk:action' ticket_id=ticket.id %}"
                     hx-params="action"
                     hx-vals='{"action": "unassign"}'
                     hx-target="#desk-ticket-panel"
@@ -152,7 +152,7 @@
             {% endif %}
 
             {% if is_lead and ticket.assigned_to and ticket.assigned_to != request.user %}
-            <button hx-post="{% url 'support_desk:action' ticket_id=ticket.id %}"
+            <button hx-post="{% url 'support:desk:action' ticket_id=ticket.id %}"
                     hx-params="action"
                     hx-vals='{"action": "assign"}'
                     hx-trigger="click"
@@ -164,7 +164,7 @@
             <!-- Status change -->
             <div class="mt-4">
                 <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Status</label>
-                <select hx-post="{% url 'support_desk:action' ticket_id=ticket.id %}"
+                <select hx-post="{% url 'support:desk:action' ticket_id=ticket.id %}"
                         hx-params="action,status"
                         hx-trigger="change"
                         hx-target="#desk-ticket-panel"
@@ -179,7 +179,7 @@
             <!-- Priority change -->
             <div class="mt-4">
                 <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Priority</label>
-                <select hx-post="{% url 'support_desk:action' ticket_id=ticket.id %}"
+                <select hx-post="{% url 'support:desk:action' ticket_id=ticket.id %}"
                         hx-params="action,priority"
                         hx-trigger="change"
                         hx-target="#desk-ticket-panel"

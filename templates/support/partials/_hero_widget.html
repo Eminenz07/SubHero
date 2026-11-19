@@ -1,6 +1,6 @@
 {% comment %}Hero Support Widget — floating draggable button + bottom sheet.
-Shown on all authenticated pages. Chat bubble moves with the widget.{% endcomment %}
-{% if user.is_authenticated %}
+Shown on all authenticated pages (customers only, not staff). Chat bubble moves with the widget.{% endcomment %}
+{% if user.is_authenticated and not user.is_staff %}
 <style>
   /* Hero Widget Container — positioned fixed so bubble stays with FAB */
   #hero-widget-container {
@@ -28,11 +28,11 @@ Shown on all authenticated pages. Chat bubble moves with the widget.{% endcommen
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    touch-action: manipulation;
+    touch-action: none;
     box-shadow: 0 10px 25px -5px rgba(124, 58, 237, 0.4), 0 8px 10px -6px rgba(124, 58, 237, 0.3);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     pointer-events: auto;
-    z-index: 1000000;
+    z-index: 999999;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
@@ -102,7 +102,7 @@ Shown on all authenticated pages. Chat bubble moves with the widget.{% endcommen
   #hero-backdrop {
     position: fixed;
     inset: 0;
-    z-index: 999998;
+    z-index: 999997;
     background: rgba(0, 0, 0, 0.4);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
@@ -115,7 +115,7 @@ Shown on all authenticated pages. Chat bubble moves with the widget.{% endcommen
     bottom: 0;
     left: 0;
     right: 0;
-    z-index: 999997;
+    z-index: 999998;
     height: 85vh;
     max-height: 700px;
     border-radius: 24px 24px 0 0;
@@ -447,7 +447,7 @@ Shown on all authenticated pages. Chat bubble moves with the widget.{% endcommen
 </div>
 
 <!-- Hero Widget Backdrop -->
-<div id="hero-backdrop" onclick="closeHeroWidget()"></div>
+<div id="hero-backdrop"></div>
 
 <!-- Hero Widget Bottom Sheet -->
 <div id="hero-widget">
@@ -478,7 +478,7 @@ Shown on all authenticated pages. Chat bubble moves with the widget.{% endcommen
         <div class="hero-widget-section-title">What do you need help with?</div>
         <div class="hero-widget-topics">
             <button type="button" class="hero-topic-btn" onclick="selectHeroTopic('wallet', 'Wallet Issue', this)">
-                <svg class="hero-topic-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <svg class="hero-topic-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
                 Wallet
             </button>
             <button type="button" class="hero-topic-btn" onclick="selectHeroTopic('vtu', 'VTU / Data / Airtime', this)">
@@ -517,111 +517,53 @@ Shown on all authenticated pages. Chat bubble moves with the widget.{% endcommen
 </div>
 
 <script>
-    // Draggable FAB container - isDragging accessible globally for click handler
+    // Draggable FAB container using Pointer Events
     let isDragging = false;
-    (function() {
-        const container = document.getElementById('hero-widget-container');
-        const fab = document.getElementById('hero-fab');
-        let startX, startY, initialLeft, initialTop;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let containerStartX = 0;
+    let containerStartY = 0;
 
-        container.addEventListener('mousedown', function(e) {
-            if (e.target.tagName === 'SVG' || e.target.tagName === 'PATH') return;
-            isDragging = true;
-            container.style.transition = 'none';
-            fab.style.transition = 'none';
-            startX = e.clientX;
-            startY = e.clientY;
-            const rect = container.getBoundingClientRect();
-            initialLeft = rect.left;
-            initialTop = rect.top;
-            container.style.left = initialLeft + 'px';
-            container.style.top = initialTop + 'px';
-            container.style.bottom = 'auto';
-            container.style.right = 'auto';
-            e.preventDefault();
-        });
+    const container = document.getElementById('hero-widget-container');
+    const fab = document.getElementById('hero-fab');
 
-        document.addEventListener('mousemove', function(e) {
-            if (!isDragging) return;
-            const dx = e.clientX - startX;
-            const dy = e.clientY - startY;
-            container.style.left = (initialLeft + dx) + 'px';
-            container.style.top = (initialTop + dy) + 'px';
-            const bubble = document.getElementById('hero-chat-bubble');
-            if (bubble.classList.contains('show')) {
-                bubble.classList.remove('show');
-            }
-        });
+    container.addEventListener('pointerdown', function(e) {
+        // Only start drag from the FAB itself
+        if (!fab.contains(e.target)) return;
+        isDragging = true;
+        container.style.transition = 'none';
+        fab.style.transition = 'none';
+        dragStartX = e.clientX;
+        dragStartY = e.clientY;
+        const rect = container.getBoundingClientRect();
+        containerStartX = rect.left;
+        containerStartY = rect.top;
+        container.style.left = containerStartX + 'px';
+        container.style.top = containerStartY + 'px';
+        container.style.bottom = 'auto';
+        container.style.right = 'auto';
+        e.preventDefault();
+    });
 
-        document.addEventListener('mouseup', function() {
-            if (!isDragging) return;
-            isDragging = false;
-            container.style.transition = 'transform 0.2s ease';
-            fab.style.transition = 'transform 0.2s ease';
-            setTimeout(() => {
-                showChatBubble();
-            }, 500);
-        });
+    document.addEventListener('pointermove', function(e) {
+        if (!isDragging) return;
+        const dx = e.clientX - dragStartX;
+        const dy = e.clientY - dragStartY;
+        container.style.left = (containerStartX + dx) + 'px';
+        container.style.top = (containerStartY + dy) + 'px';
+    });
 
-        // Touch support for mobile
-        container.addEventListener('touchstart', function(e) {
-            if (e.target.tagName === 'SVG' || e.target.tagName === 'PATH') return;
-            isDragging = true;
-            container.style.transition = 'none';
-            fab.style.transition = 'none';
-            startX = e.touches[0].clientX;
-            startY = e.touches[0].clientY;
-            const rect = container.getBoundingClientRect();
-            initialLeft = rect.left;
-            initialTop = rect.top;
-            container.style.left = initialLeft + 'px';
-            container.style.top = initialTop + 'px';
-            container.style.bottom = 'auto';
-            container.style.right = 'auto';
-            e.preventDefault();
-        }, { passive: false });
+    document.addEventListener('pointerup', function() {
+        if (!isDragging) return;
+        isDragging = false;
+        container.style.transition = 'transform 0.2s ease';
+        fab.style.transition = 'transform 0.2s ease';
+    });
 
-        document.addEventListener('touchmove', function(e) {
-            if (!isDragging) return;
-            const dx = e.touches[0].clientX - startX;
-            const dy = e.touches[0].clientY - startY;
-            container.style.left = (initialLeft + dx) + 'px';
-            container.style.top = (initialTop + dy) + 'px';
-            const bubble = document.getElementById('hero-chat-bubble');
-            if (bubble.classList.contains('show')) {
-                bubble.classList.remove('show');
-            }
-        }, { passive: false });
-
-        document.addEventListener('touchend', function() {
-            if (!isDragging) return;
-            isDragging = false;
-            container.style.transition = 'transform 0.2s ease';
-            fab.style.transition = 'transform 0.2s ease';
-            setTimeout(() => {
-                showChatBubble();
-            }, 500);
-        });
-    })();
-
-    // Chat bubble animation
-    let bubbleTimeout;
-    function showChatBubble() {
-        const bubble = document.getElementById('hero-chat-bubble');
-        bubble.classList.add('show');
-        clearTimeout(bubbleTimeout);
-        bubbleTimeout = setTimeout(() => {
-            bubble.classList.remove('show');
-        }, 4000);
-    }
-
-    // Show bubble on page load
-    setTimeout(showChatBubble, 1000);
-
-    // Open widget on FAB click
+    // Open widget on FAB click — tap with no movement opens the sheet
     document.getElementById('hero-fab').addEventListener('click', function(e) {
         if (isDragging) return;
-        if (!document.getElementById('hero-widget-container').contains(e.target)) return;
+        if (!fab.contains(e.target)) return;
         const widget = document.getElementById('hero-widget');
         if (widget.classList.contains('open')) {
             closeHeroWidget();
@@ -630,7 +572,6 @@ Shown on all authenticated pages. Chat bubble moves with the widget.{% endcommen
         }
     });
 
-    // Open/close widget
     function openHeroWidget() {
         document.getElementById('hero-widget').classList.add('open');
         document.getElementById('hero-backdrop').style.display = 'block';
@@ -654,7 +595,6 @@ Shown on all authenticated pages. Chat bubble moves with the widget.{% endcommen
         heroSelectedCategory = category;
         heroSelectedTopic = topic;
 
-        // Update visual selection
         document.querySelectorAll('.hero-topic-btn').forEach(b => {
             b.classList.remove('selected');
             b.classList.add('border-surface-border', 'text-text-primary');
@@ -672,7 +612,6 @@ Shown on all authenticated pages. Chat bubble moves with the widget.{% endcommen
             btn.classList.add('bg-[#eef2ff]', 'border-[#4F46E5]', 'text-[#4F46E5]');
         }
 
-        // Show order picker for VTU/SMM
         const orderPicker = document.getElementById('hero-order-picker');
         if (category === 'vtu' || category === 'smm') {
             orderPicker.style.display = 'block';
@@ -705,7 +644,6 @@ Shown on all authenticated pages. Chat bubble moves with the widget.{% endcommen
 
     document.getElementById('hero-message-input')?.addEventListener('input', updateSubmitButton);
 
-    // Order selection via HTMX (when recent orders available)
     window.selectHeroOrder = selectOrder;
 
     function resetForm() {
@@ -722,7 +660,6 @@ Shown on all authenticated pages. Chat bubble moves with the widget.{% endcommen
         });
     }
 
-    // Submit ticket
     async function submitHeroTicket() {
         const body = document.getElementById('hero-message-input').value.trim();
         if (!body || !heroSelectedCategory) return;
@@ -764,7 +701,6 @@ Shown on all authenticated pages. Chat bubble moves with the widget.{% endcommen
         }
     }
 
-    // Close on Escape
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
             const widget = document.getElementById('hero-widget');
