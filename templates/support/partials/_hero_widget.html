@@ -1,6 +1,6 @@
 {% comment %}Hero Support Widget — floating draggable button + bottom sheet.
 Shown on all authenticated pages (customers only, not staff). Chat bubble moves with the widget.{% endcomment %}
-{% if user.is_authenticated and not user.is_staff %}
+{% if user.is_authenticated %}
 <style>
   /* Hero Widget Container — positioned fixed so bubble stays with FAB */
   #hero-widget-container {

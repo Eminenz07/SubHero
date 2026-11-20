@@ -239,15 +239,13 @@
                 <span class="text-[11px] text-text-muted">No support tickets yet.</span>
             </div>
             {% endfor %}
+            {% else %}
+            <div class="w-full bg-white flex items-center justify-between p-4 rounded-card border border-surface-border/50 text-center">
+                <span class="text-[11px] text-text-muted">No support tickets yet.</span>
+            </div>
+            {% endif %}
         </div>
     </section>
-{% else %}
-    <div class="w-full bg-white flex items-center justify-between p-4 rounded-card border border-surface-border/50 text-center">
-        <span class="text-[11px] text-text-muted">No support tickets yet.</span>
-    </div>
-    {% endif %}
-    {% endif %}
-</section>
     <section class="pt-4 flex flex-col items-center">
         <a href="{% url 'accounts:logout' %}" class="w-full h-[52px] rounded-btn bg-status-danger-bg text-status-danger-text font-bold flex items-center justify-center gap-2 active:scale-95 transition-all no-underline">
             <i data-feather="log-out" class="w-5 h-5"></i>
