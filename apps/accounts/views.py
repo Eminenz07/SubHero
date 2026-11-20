@@ -13,6 +13,8 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.core.cache import cache
 from django.core.mail import send_mail
+from django.db import transaction
+from django.db.models import Q
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.views import View
@@ -30,6 +32,7 @@ from apps.core.utils import (
     mask_email,
 )
 from apps.core.email import send_async_app_email
+from apps.promos.models import PromoCampaign, PromoClaim
 from .forms import (
     LoginForm,
     OTPVerificationForm,
@@ -77,8 +80,12 @@ class RegisterView(View):
         if request.user.is_authenticated:
             return redirect("dashboard")
         phone = request.GET.get('phone', '')
+        promo_code = request.GET.get('promo', '')
         form = RegistrationForm(initial={'phone_number': phone})
-        return render(request, self.template_name, {"form": form})
+        return render(request, self.template_name, {
+            "form": form,
+            "promo_code": promo_code,
+        })
 
     def post(self, request):
         if request.user.is_authenticated:
@@ -98,6 +105,23 @@ class RegisterView(View):
                 is_verified=False,
                 is_active=True,
             )
+
+            # Carry the promo code into registration: save a PENDING claim
+            # so it survives switching browsers/apps before OTP verification.
+            promo_code = (request.POST.get("promo_code") or "").strip().upper()
+            source = (request.POST.get("promo_source") or "").strip()
+            if promo_code:
+                campaign = (
+                    PromoCampaign.objects.filter(code__iexact=promo_code).first()
+                )
+                if campaign:
+                    PromoClaim.objects.create(
+                        campaign=campaign,
+                        user=user,
+                        status=PromoClaim.Status.PENDING,
+                        ip=get_client_ip(request),
+                        source=source,
+                    )
 
             # Dispatch email verification OTP via direct SMTP
             clean_email = user.email.strip().lower()
@@ -402,6 +426,19 @@ class VerifyOTPView(View):
                             logger.error(
                                 "Wallet creation failed during registration: user=%s, error=%s",
                                 user.id, str(e),
+                            )
+
+                        # Grant signup bonus (promo failure can NEVER break registration).
+                        try:
+                            from apps.promos.services import grant_pending_claims_for_user
+                            grant_pending_claims_for_user(
+                                user,
+                                ip=get_client_ip(request),
+                            )
+                        except Exception as promo_err:
+                            logger.error(
+                                "Promo grant failed during registration: user=%s, error=%s",
+                                user.id, str(promo_err),
                             )
 
                         # Welcome notification & email

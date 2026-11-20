@@ -12,5 +12,5 @@ app_name = "promos"
 
 urlpatterns = [
     # Public join link — noindex, ratelimited by IP
-    path("join/<str:code>/", views.join_promo, name="join"),
+    path("join/<str:code>/", views.JoinPromoView.as_view(), name="join"),
 ]

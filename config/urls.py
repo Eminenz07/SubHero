@@ -68,6 +68,9 @@ urlpatterns = [
     # Support (Hero ticketing)
     path("support/", include("apps.support.urls", namespace="support")),
 
+    # Promo campaigns (public join link)
+    path("promos/", include("apps.promos.urls", namespace="promos")),
+
     # Admin Panel (HQ) — configurable via .env (PRD Section 3.1)
     path(settings.ADMIN_HQ_URL, include("apps.admin_panel.urls", namespace="admin_panel")),
     

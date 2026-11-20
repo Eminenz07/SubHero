@@ -15,6 +15,8 @@ from django.db.models import Sum
 from django.utils import timezone
 
 from apps.core.utils import generate_reference
+from apps.promos.models import PromoClaim
+from apps.promos.services import block_p2p_until_deposit
 from .models import Wallet, WalletTransaction
 
 logger = logging.getLogger(__name__)
@@ -279,6 +281,21 @@ def transfer_p2p(sender_user, recipient_phone, amount, description=None, ip_addr
 
     amount = Decimal(str(amount))
     clean_desc = (description or "").strip()
+
+    # P2P guard: users with a granted signup bonus and no successful deposit
+    # cannot send until they make their first deposit.
+    if block_p2p_until_deposit() and PromoClaim.objects.filter(
+        user=sender_user, status=PromoClaim.Status.GRANTED
+    ).exists():
+        has_deposit = WalletTransaction.objects.filter(
+            wallet__user=sender_user,
+            txn_type=WalletTransaction.TxnType.FUND,
+            status=WalletTransaction.Status.SUCCESS,
+        ).exists()
+        if not has_deposit:
+            raise ValueError(
+                "Make your first deposit to unlock sending."
+            )
 
     # Validate limits
     if amount < settings.P2P_MIN_AMOUNT:

@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block title %}Join SubHero{% endblock %}
+{% block meta_description %}Claim your SubHero signup bonus.{% endblock %}
+{% block main_extra_classes %}no-bottom-nav p-0{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+    <div class="auth-top">
+        <div class="auth-logo">Sub<span>Hero</span></div>
+        <div class="auth-tagline">Welcome bonus</div>
+    </div>
+
+    <div class="auth-form">
+        <h2 class="auth-title">Promo Offer</h2>
+
+        {% include 'partials/_messages.html' %}
+
+        <div class="promo-banner p-4 rounded-xl border flex items-center gap-3 mb-4 bg-[#0c1220] border-white/[0.05]">
+            {% include "icons/gift.html" %}
+            <div>
+                <div class="text-sm font-bold text-white">₦{{ campaign.bonus_amount|floatformat:0 }} welcome bonus</div>
+                <div class="text-[11px] text-slate-400">{{ spots_left }} spot{{ spots_left|pluralize }} left</div>
+            </div>
+        </div>
+
+        <p class="text-sm text-text-secondary mb-6">
+            Use code <strong>{{ campaign.code }}</strong> when you sign up and get
+            ₦{{ campaign.bonus_amount|floatformat:0 }} credited to your wallet after
+            verification.
+        </p>
+
+        <a href="{{ register_url }}" class="btn-primary btn-block">
+            Create Account &amp; Claim Bonus
+        </a>
+
+        <p class="text-center text-xs text-text-muted mt-6">
+            Offer valid while spots last. Bonus credited after email verification.
+        </p>
+    </div>
+</div>
+{% endblock %}
