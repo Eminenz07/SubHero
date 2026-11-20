@@ -115,6 +115,7 @@ LOCAL_APPS = [
     "apps.admin_panel",
     "apps.giveaway",
     "apps.support",
+    "apps.promos",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -462,6 +463,15 @@ VTU_PROVIDER_CABLE = config("VTU_PROVIDER_CABLE", default="dancity")
 VTU_PROVIDER_ELECTRICITY = config("VTU_PROVIDER_ELECTRICITY", default="dancity")
 VTU_PROVIDER_EXAM = config("VTU_PROVIDER_EXAM", default="dancity")
 VTU_PROVIDER_BETTING = config("VTU_PROVIDER_BETTING", default="gsubz")
+
+
+# =============================================================
+# PROMO CAMPAIGNS — Signup bonus (gated by PROMOS_ENABLED)
+# =============================================================
+PROMOS_ENABLED = config("PROMOS_ENABLED", default=False, cast=bool)
+PROMO_BLOCK_P2P_UNTIL_DEPOSIT = config(
+    "PROMO_BLOCK_P2P_UNTIL_DEPOSIT", default=False, cast=bool
+)
 
 
 # =============================================================
