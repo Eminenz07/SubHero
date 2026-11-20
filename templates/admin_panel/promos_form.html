@@ -1,0 +1,110 @@
+{% extends "admin_panel/base_admin.html" %}
+{% load static %}
+
+{% block title %}{% if edit %}Edit{% else %}Create{% endif %} Promo | SubHero HQ{% endblock %}
+
+{% block header_title %}{% if edit %}Edit{% else %}Create{% endif %} Campaign{% endblock %}
+{% block header_subtitle %}
+<span class="text-xs text-slate-400 font-mono ml-2">Signup bonus</span>
+{% endblock %}
+
+{% block admin_content %}
+<div class="max-w-2xl mx-auto">
+    <a href="{% url 'admin_panel:promos_list' %}" class="text-sm text-slate-400 hover:text-white mb-4 inline-block flex items-center gap-1">
+        {% include "icons/arrow-down-left.html" %}
+        Back to campaigns
+    </a>
+
+    {% include 'partials/_messages.html' %}
+
+    {% if errors.__all__ %}
+        <div class="p-3 rounded-lg bg-red-900/20 border border-red-500/30 text-red-300 text-sm mb-4">
+            {{ errors.__all__ }}
+        </div>
+    {% endif %}
+
+    <div class="admin-card p-6">
+        <form method="post" class="space-y-5">
+            {% csrf_token %}
+
+            <!-- Name -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                    <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Campaign Name</label>
+                    <input type="text" name="name" value="{{ form.name }}" class="w-full px-3 py-2.5 rounded-lg bg-[#060b13] border border-surface-border text-white focus:outline-none focus:border-brand-primary" required>
+                    {% if errors.name %}<p class="text-[11px] text-red-400 mt-1">{{ errors.name }}</p>{% endif %}
+                </div>
+                <div>
+                    <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Code</label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">subhero.com.ng/promos/join/</span>
+                        <input type="text" name="code" value="{{ form.code }}" class="w-full pl-10 pr-3 py-2.5 rounded-lg bg-[#060b13] border border-surface-border text-white focus:outline-none focus:border-brand-primary uppercase" required placeholder="e.g. WELCOME25">
+                        {% if errors.code %}<p class="text-[11px] text-red-400 mt-1">{{ errors.code }}</p>{% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <div>
+                    <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Bonus Amount (₦)</label>
+                    <input type="number" step="0.01" min="0.01" name="bonus_amount" value="{{ form.bonus_amount }}" class="w-full px-3 py-2.5 rounded-lg bg-[#060b13] border border-surface-border text-white focus:outline-none focus:border-brand-primary" required>
+                    {% if errors.bonus_amount %}<p class="text-[11px] text-red-400 mt-1">{{ errors.bonus_amount }}</p>{% endif %}
+                </div>
+                <div>
+                    <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Max Claims</label>
+                    <input type="number" min="1" name="max_claims" value="{{ form.max_claims }}" class="w-full px-3 py-2.5 rounded-lg bg-[#060b13] border border-surface-border text-white focus:outline-none focus:border-brand-primary" required>
+                    {% if errors.max_claims %}<p class="text-[11px] text-red-400 mt-1">{{ errors.max_claims }}</p>{% endif %}
+                </div>
+                <div>
+                    <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Max Claims per IP</label>
+                    <input type="number" min="0" name="max_claims_per_ip" value="{{ form.max_claims_per_ip }}" class="w-full px-3 py-2.5 rounded-lg bg-[#060b13] border border-surface-border text-white focus:outline-none focus:border-brand-primary">
+                    <p class="text-[10px] text-slate-500 mt-1">0 = unlimited</p>
+                    {% if errors.max_claims_per_ip %}<p class="text-[11px] text-red-400 mt-1">{{ errors.max_claims_per_ip }}</p>{% endif %}
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                    <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Starts At</label>
+                    <input type="datetime-local" name="starts_at" value="{{ form.starts_at|date:'Y-m-d\TH:i' }}" class="w-full px-3 py-2.5 rounded-lg bg-[#060b13] border border-surface-border text-white focus:outline-none focus:border-brand-primary">
+                </div>
+                <div>
+                    <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Ends At</label>
+                    <input type="datetime-local" name="ends_at" value="{{ form.ends_at|date:'Y-m-d\TH:i' }}" class="w-full px-3 py-2.5 rounded-lg bg-[#060b13] border border-surface-border text-white focus:outline-none focus:border-brand-primary">
+                </div>
+            </div>
+
+            <div>
+                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Status</label>
+                <select name="status" class="w-full px-3 py-2.5 rounded-lg bg-[#060b13] border border-surface-border text-white focus:outline-none focus:border-brand-primary">
+                    {% for val, label in statuses %}
+                        <option value="{{ val }}" {% if form.status == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Budget preview -->
+            {% if budget_preview is not None %}
+            <div class="bg-[#060b13] border border-white/[0.05] rounded-xl p-4 mb-6">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Budget</span>
+                    <span class="text-sm font-mono font-bold text-emerald-400">₦{{ budget_preview|floatformat:0 }}</span>
+                </div>
+                <div class="text-[11px] text-slate-500">
+                    bonus_amount × max_claims = ₦{{ form.bonus_amount }} × {{ form.max_claims }}
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="flex items-center gap-3 pt-4">
+                <button type="submit" class="px-6 py-2.5 rounded-lg bg-brand-primary text-white font-semibold hover:bg-purple-600 transition-colors">
+                    {% if edit %}Save Changes{% else %}Create Campaign{% endif %}
+                </button>
+                <a href="{% url 'admin_panel:promos_list' %}" class="px-4 py-2.5 rounded-lg bg-[#060b13] border border-white/[0.08] text-slate-300 hover:text-white transition-colors">Cancel</a>
+            </div>
+
+            <input type="hidden" name="promo_source" value="">
+        </form>
+    </div>
+</div>
+{% endblock %}

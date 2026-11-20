@@ -63,3 +63,26 @@ def admin_required(view_func):
     Combined decorator: staff member validation + IP whitelist checks.
     """
     return staff_required(ip_whitelist(view_func))
+
+
+def promo_admin_required(view_func):
+    """
+    Access Control for promo campaign management: admin only, never for
+    support staff roles (agent/lead). Requires is_staff and no support
+    staff profile.
+    """
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            login_url = reverse("accounts:login")
+            return redirect(f"{login_url}?next={request.path}")
+        if not request.user.is_staff:
+            return redirect("landing")
+        # Exclude support staff roles (agent / lead) — promos are admin-only.
+        try:
+            if request.user.staff_profile.role in ("agent", "lead"):
+                return redirect("landing")
+        except AttributeError:
+            pass  # no support profile = true admin
+        return view_func(request, *args, **kwargs)
+    return _wrapped_view

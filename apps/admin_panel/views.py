@@ -21,10 +21,12 @@ import time
 import requests
 import logging
 
-from apps.admin_panel.decorators import admin_required
+from apps.admin_panel.decorators import admin_required, promo_admin_required
 from apps.admin_panel.models import AdminLog, SystemLog, AlertConfig, SystemSetting
 from apps.admin_panel.utils import syslog, log_admin_action
 from apps.wallet.models import Wallet, WalletTransaction
+from apps.promos.models import PromoCampaign, PromoClaim, PromoAuditLog
+from apps.promos.services import try_grant, block_p2p_until_deposit
 from apps.vtu.models import VTUOrder, AirtimeOrder, CableOrder, ElectricityOrder, ExamPinOrder, VTUPlan, CablePlan, ExamProduct
 from apps.smm.models import SMMOrder, SMMService
 from apps.support.models import Ticket
@@ -1877,3 +1879,402 @@ def preview_email_api(request):
     })
 
     return HttpResponse(html_preview, content_type="text/html")
+
+
+# ─────────────────────────────────────────────────────────────
+# PROMO CAMPAIGNS — ADMIN (HQ)
+# ─────────────────────────────────────────────────────────────
+
+@promo_admin_required
+def promos_list(request):
+    campaigns = (
+        PromoCampaign.objects.annotate(
+            claims_count=Count("claims"),
+            granted_count=Count("claims", filter=Q(claims__status=PromoClaim.Status.GRANTED)),
+            spent=Sum(
+                "claims__amount",
+                filter=Q(claims__status=PromoClaim.Status.GRANTED),
+            ),
+        )
+        .order_by("-created_at")
+    )
+
+    status_filter = request.GET.get("status", "").strip()
+    if status_filter:
+        campaigns = campaigns.filter(status=status_filter)
+
+    q = request.GET.get("q", "").strip()
+    if q:
+        campaigns = campaigns.filter(
+            Q(name__icontains=q) | Q(code__icontains=q)
+        )
+
+    context = {
+        "active_nav": "promos",
+        "campaigns": campaigns,
+        "status_filter": status_filter,
+        "q": q,
+        "statuses": PromoCampaign.Status.choices,
+        "PROMOS_ENABLED": getattr(settings, "PROMOS_ENABLED", False),
+    }
+    return render(request, "admin_panel/promos_list.html", context)
+
+
+@promo_admin_required
+def promos_create(request):
+    if request.method == "POST":
+        name = (request.POST.get("name") or "").strip()
+        code = (request.POST.get("code") or "").strip().upper()
+        bonus_amount = (request.POST.get("bonus_amount") or "").strip()
+        max_claims = (request.POST.get("max_claims") or "1").strip()
+        starts_at = (request.POST.get("starts_at") or "").strip() or None
+        ends_at = (request.POST.get("ends_at") or "").strip() or None
+        max_claims_per_ip = (request.POST.get("max_claims_per_ip") or "5").strip()
+        status = (request.POST.get("status") or PromoCampaign.Status.DRAFT).strip()
+
+        errors = {}
+        import re as _re
+        if not name:
+            errors["name"] = "Name is required."
+        if not _re.match(r"^[A-Za-z0-9-]{4,32}$", code or ""):
+            errors["code"] = "Code must be 4–32 chars: A-Z 0-9 -."
+        elif PromoCampaign.objects.filter(code__iexact=code).exists():
+            errors["code"] = "Code already exists."
+        try:
+            bonus_amount = Decimal(bonus_amount)
+            if bonus_amount <= 0:
+                errors["bonus_amount"] = "Bonus must be greater than 0."
+        except (InvalidOperation, ValueError):
+            errors["bonus_amount"] = "Enter a valid amount."
+        try:
+            max_claims = int(max_claims)
+            if max_claims < 1:
+                errors["max_claims"] = "Must be at least 1."
+        except ValueError:
+            errors["max_claims"] = "Enter a valid number."
+        try:
+            max_claims_per_ip = int(max_claims_per_ip)
+            if max_claims_per_ip < 0:
+                errors["max_claims_per_ip"] = "Must be 0 or greater."
+        except ValueError:
+            errors["max_claims_per_ip"] = "Enter a valid number."
+
+        if not errors:
+            try:
+                with transaction.atomic():
+                    campaign = PromoCampaign.objects.create(
+                        name=name,
+                        code=code,
+                        bonus_amount=bonus_amount,
+                        max_claims=max_claims,
+                        starts_at=starts_at,
+                        ends_at=ends_at,
+                        max_claims_per_ip=max_claims_per_ip,
+                        status=status,
+                        created_by=request.user,
+                    )
+                _audit_promos(request.user, campaign, "created", {}, {
+                    "name": campaign.name, "code": campaign.code,
+                    "bonus_amount": str(campaign.bonus_amount),
+                    "max_claims": campaign.max_claims,
+                    "status": campaign.status,
+                })
+                messages.success(request, f"Campaign '{campaign.code}' created.")
+                return redirect("admin_panel:promos_detail", campaign_id=campaign.id)
+            except Exception as ex:
+                logger.error("Promo create failed: %s", str(ex))
+                errors["__all__"] = f"Could not create campaign: {ex}"
+
+        context = {
+            "active_nav": "promos",
+            "errors": errors,
+            "form": {
+                "name": name, "code": code, "bonus_amount": bonus_amount if "bonus_amount" not in errors else request.POST.get("bonus_amount"),
+                "max_claims": max_claims, "starts_at": starts_at, "ends_at": ends_at,
+                "max_claims_per_ip": max_claims_per_ip, "status": status,
+            },
+            "statuses": PromoCampaign.Status.choices,
+            "budget_preview": (bonus_amount * max_claims) if "bonus_amount" not in errors and "max_claims" not in errors else None,
+        }
+        return render(request, "admin_panel/promos_form.html", context)
+
+    context = {
+        "active_nav": "promos",
+        "statuses": PromoCampaign.Status.choices,
+        "PROMOS_ENABLED": getattr(settings, "PROMOS_ENABLED", False),
+    }
+    return render(request, "admin_panel/promos_form.html", context)
+
+
+@promo_admin_required
+def promos_edit(request, campaign_id):
+    campaign = get_object_or_404(PromoCampaign, id=campaign_id)
+    if request.method == "POST":
+        name = (request.POST.get("name") or "").strip()
+        bonus_amount = (request.POST.get("bonus_amount") or "").strip()
+        max_claims = (request.POST.get("max_claims") or "").strip()
+        starts_at = (request.POST.get("starts_at") or "").strip() or None
+        ends_at = (request.POST.get("ends_at") or "").strip() or None
+        max_claims_per_ip = (request.POST.get("max_claims_per_ip") or "5").strip()
+        status = (request.POST.get("status") or campaign.status).strip()
+
+        before = {
+            "name": campaign.name, "code": campaign.code,
+            "bonus_amount": str(campaign.bonus_amount), "max_claims": campaign.max_claims,
+            "starts_at": str(campaign.starts_at), "ends_at": str(campaign.ends_at),
+            "max_claims_per_ip": campaign.max_claims_per_ip, "status": campaign.status,
+        }
+        errors = {}
+        if not name:
+            errors["name"] = "Name is required."
+        try:
+            bonus_amount = Decimal(bonus_amount)
+            if bonus_amount <= 0:
+                errors["bonus_amount"] = "Bonus must be greater than 0."
+        except (InvalidOperation, ValueError):
+            errors["bonus_amount"] = "Enter a valid amount."
+        try:
+            max_claims = int(max_claims)
+            if max_claims < 1:
+                errors["max_claims"] = "Must be at least 1."
+            elif max_claims < campaign.claimed_count:
+                errors["max_claims"] = f"Cannot be below claimed count ({campaign.claimed_count})."
+        except ValueError:
+            errors["max_claims"] = "Enter a valid number."
+        try:
+            max_claims_per_ip = int(max_claims_per_ip)
+            if max_claims_per_ip < 0:
+                errors["max_claims_per_ip"] = "Must be 0 or greater."
+        except ValueError:
+            errors["max_claims_per_ip"] = "Enter a valid number."
+
+        if not errors:
+            try:
+                with transaction.atomic():
+                    campaign = PromoCampaign.objects.select_for_update().get(id=campaign.id)
+                    campaign.name = name
+                    campaign.bonus_amount = bonus_amount
+                    campaign.max_claims = max_claims
+                    campaign.starts_at = starts_at
+                    campaign.ends_at = ends_at
+                    campaign.max_claims_per_ip = max_claims_per_ip
+                    campaign.status = status
+                    campaign.save()
+                _audit_promos(request.user, campaign, "edited", before, {
+                    "name": campaign.name, "bonus_amount": str(campaign.bonus_amount),
+                    "max_claims": campaign.max_claims, "status": campaign.status,
+                })
+                messages.success(request, f"Campaign '{campaign.code}' updated.")
+                return redirect("admin_panel:promos_detail", campaign_id=campaign.id)
+            except Exception as ex:
+                logger.error("Promo edit failed: %s", str(ex))
+                errors["__all__"] = f"Could not update campaign: {ex}"
+
+        context = {
+            "active_nav": "promos",
+            "campaign": campaign,
+            "errors": errors,
+            "form": {
+                "name": name, "bonus_amount": bonus_amount, "max_claims": max_claims,
+                "starts_at": starts_at, "ends_at": ends_at,
+                "max_claims_per_ip": max_claims_per_ip, "status": status,
+            },
+            "statuses": PromoCampaign.Status.choices,
+            "budget_preview": (bonus_amount * max_claims) if not errors else None,
+            "edit": True,
+        }
+        return render(request, "admin_panel/promos_form.html", context)
+
+    context = {
+        "active_nav": "promos",
+        "campaign": campaign,
+        "statuses": PromoCampaign.Status.choices,
+        "form": {
+            "name": campaign.name, "bonus_amount": campaign.bonus_amount,
+            "max_claims": campaign.max_claims, "starts_at": campaign.starts_at,
+            "ends_at": campaign.ends_at, "max_claims_per_ip": campaign.max_claims_per_ip,
+            "status": campaign.status,
+        },
+        "budget_preview": campaign.bonus_amount * campaign.max_claims,
+        "edit": True,
+        "PROMOS_ENABLED": getattr(settings, "PROMOS_ENABLED", False),
+    }
+    return render(request, "admin_panel/promos_form.html", context)
+
+
+@promo_admin_required
+def promos_detail(request, campaign_id):
+    campaign = get_object_or_404(PromoCampaign, id=campaign_id)
+    claims = (
+        PromoClaim.objects.filter(campaign=campaign)
+        .select_related("user")
+        .order_by("-created_at")
+    )
+
+    granted = claims.filter(status=PromoClaim.Status.GRANTED)
+    spent = granted.aggregate(total=Sum("amount"))["total"] or Decimal("0")
+    signups = claims.count()
+    spots_left = max(campaign.max_claims - campaign.claimed_count, 0)
+
+    # CSV export
+    if request.GET.get("export") == "csv":
+        return _promos_claims_csv(campaign, claims)
+
+    context = {
+        "active_nav": "promos",
+        "campaign": campaign,
+        "effective_status": campaign.effective_status,
+        "claims": claims,
+        "signups": signups,
+        "granted": granted.count(),
+        "spent": spent,
+        "spots_left": spots_left,
+        "budget_preview": campaign.bonus_amount * campaign.max_claims,
+        "promo_link": request.build_absolute_uri(
+            reverse("promos:join", args=[campaign.code])
+        ),
+        "statuses": PromoCampaign.Status.choices,
+        "PROMOS_ENABLED": getattr(settings, "PROMOS_ENABLED", False),
+    }
+    return render(request, "admin_panel/promos_detail.html", context)
+
+
+@promo_admin_required
+def promos_action(request, campaign_id):
+    """
+    POST actions: pause, resume, close, reopen, edit_bonus, raise_max,
+    retry_grant. Atomic, row-locked, audited.
+    """
+    if request.method != "POST":
+        return redirect("admin_panel:promos_detail", campaign_id=campaign_id)
+
+    action = (request.POST.get("action") or "").strip()
+    campaign = get_object_or_404(PromoCampaign, id=campaign_id)
+
+    before = {
+        "status": campaign.status, "bonus_amount": str(campaign.bonus_amount),
+        "max_claims": campaign.max_claims,
+    }
+    after = dict(before)
+
+    try:
+        with transaction.atomic():
+            campaign = PromoCampaign.objects.select_for_update().get(id=campaign.id)
+
+            if action == "pause":
+                campaign.status = PromoCampaign.Status.PAUSED
+            elif action == "resume":
+                if campaign.effective_status == PromoCampaign.Status.FULL:
+                    raise ValueError("Cannot resume a full campaign.")
+                campaign.status = PromoCampaign.Status.ACTIVE
+            elif action == "close":
+                campaign.status = PromoCampaign.Status.CLOSED
+            elif action == "reopen":
+                campaign.status = PromoCampaign.Status.ACTIVE
+            elif action == "edit_bonus":
+                new_bonus = (request.POST.get("bonus_amount") or "").strip()
+                try:
+                    new_bonus = Decimal(new_bonus)
+                    if new_bonus <= 0:
+                        raise ValueError("Bonus must be greater than 0.")
+                except (InvalidOperation, ValueError) as ex:
+                    messages.error(request, f"Invalid bonus: {ex}")
+                    return redirect("admin_panel:promos_detail", campaign_id=campaign.id)
+                campaign.bonus_amount = new_bonus
+                after["bonus_amount"] = str(new_bonus)
+            elif action == "raise_max":
+                new_max = (request.POST.get("max_claims") or "").strip()
+                try:
+                    new_max = int(new_max)
+                    if new_max < 1:
+                        raise ValueError("Must be at least 1.")
+                    if new_max < campaign.claimed_count:
+                        raise ValueError(f"Cannot be below claimed count ({campaign.claimed_count}).")
+                except ValueError as ex:
+                    messages.error(request, str(ex))
+                    return redirect("admin_panel:promos_detail", campaign_id=campaign.id)
+                campaign.max_claims = new_max
+                after["max_claims"] = new_max
+                # Reopen FULL if there is room
+                if campaign.status == PromoCampaign.Status.FULL and campaign.claimed_count < new_max:
+                    campaign.status = PromoCampaign.Status.ACTIVE
+            elif action == "retry_grant":
+                claim_id = (request.POST.get("claim_id") or "").strip()
+                try:
+                    claim = PromoClaim.objects.select_for_update().get(
+                        id=claim_id, campaign=campaign,
+                        status__in=[PromoClaim.Status.REJECTED, PromoClaim.Status.PENDING],
+                    )
+                except PromoClaim.DoesNotExist:
+                    messages.error(request, "Claim not found or not retryable.")
+                    return redirect("admin_panel:promos_detail", campaign_id=campaign.id)
+                # Reset to pending and attempt grant
+                claim.status = PromoClaim.Status.PENDING
+                claim.reject_reason = ""
+                claim.save(update_fields=["status", "reject_reason"])
+                granted_ok, _ = try_grant(
+                    claim.user,
+                    ip=claim.ip,
+                    source=claim.source,
+                )
+                if not granted_ok:
+                    messages.error(request, "Retry grant failed.")
+                else:
+                    messages.success(request, "Claim retried and bonus granted.")
+                return redirect("admin_panel:promos_detail", campaign_id=campaign.id)
+            else:
+                messages.error(request, "Unknown action.")
+                return redirect("admin_panel:promos_detail", campaign_id=campaign.id)
+
+            campaign.save()
+            _audit_promos(request.user, campaign, action, before, after)
+            messages.success(request, f"Campaign {action}d.")
+    except Exception as ex:
+        logger.error("Promo action %s failed: %s", action, str(ex))
+        messages.error(request, f"Action failed: {ex}")
+
+    return redirect("admin_panel:promos_detail", campaign_id=campaign_id)
+
+
+def _promos_claims_csv(campaign, claims):
+    class Echo:
+        def write(self, value):
+            return value
+
+    pseudo = Echo()
+    writer = csv.writer(pseudo)
+
+    def row_generator():
+        yield writer.writerow([
+            "user_id", "phone_number", "status", "amount", "source",
+            "ip", "created_at", "granted_at",
+        ])
+        for c in claims:
+            yield writer.writerow([
+                str(c.user.id), c.user.phone_number, c.status,
+                str(c.amount) if c.amount else "", c.source or "",
+                c.ip or "", c.created_at.isoformat(),
+                c.granted_at.isoformat() if c.granted_at else "",
+            ])
+
+    response = StreamingHttpResponse(
+        row_generator(), content_type="text/csv"
+    )
+    response["Content-Disposition"] = (
+        f'attachment; filename="promo_{campaign.code}_claims.csv"'
+    )
+    return response
+
+
+def _audit_promos(actor, campaign, action, before, after):
+    try:
+        PromoAuditLog.objects.create(
+            actor=actor,
+            campaign=campaign,
+            action=action,
+            before=before or {},
+            after=after or {},
+        )
+    except Exception as ex:
+        logger.error("Promo audit failed: %s", str(ex))
+
