@@ -17,9 +17,9 @@
 
     {% include 'partials/_messages.html' %}
 
-    {% if errors.__all__ %}
+    {% if errors.general %}
         <div class="p-3 rounded-lg bg-red-900/20 border border-red-500/30 text-red-300 text-sm mb-4">
-            {{ errors.__all__ }}
+            {{ errors.general }}
         </div>
     {% endif %}
 

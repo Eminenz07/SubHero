@@ -1988,7 +1988,7 @@ def promos_create(request):
                 return redirect("admin_panel:promos_detail", campaign_id=campaign.id)
             except Exception as ex:
                 logger.error("Promo create failed: %s", str(ex))
-                errors["__all__"] = f"Could not create campaign: {ex}"
+                errors["general"] = f"Could not create campaign: {ex}"
 
         context = {
             "active_nav": "promos",
@@ -2073,7 +2073,7 @@ def promos_edit(request, campaign_id):
                 return redirect("admin_panel:promos_detail", campaign_id=campaign.id)
             except Exception as ex:
                 logger.error("Promo edit failed: %s", str(ex))
-                errors["__all__"] = f"Could not update campaign: {ex}"
+                errors["general"] = f"Could not update campaign: {ex}"
 
         context = {
             "active_nav": "promos",
