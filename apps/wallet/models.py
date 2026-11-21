@@ -152,7 +152,7 @@ class WalletTransaction(models.Model):
         help_text="Gateway fee subtracted from this transaction",
     )
     reference = models.CharField(
-        max_length=50,
+        max_length=100,
         unique=True,
         help_text="Unique txn reference — idempotency key",
     )
