@@ -122,6 +122,22 @@ class TestTryGrant(TransactionTestCase):
         self.assertEqual(txn.amount, Decimal("1000.00"))
         self.assertEqual(txn.status, WalletTransaction.Status.SUCCESS)
 
+    def test_grant_via_registration_wrapper_no_ambient_transaction(self):
+        """Registration calls the wrapper with no surrounding transaction.
+
+        Regression: the initial PENDING-claim lookup must not use
+        select_for_update() outside an atomic block — on PostgreSQL that
+        raises TransactionManagementError and the claim gets rejected
+        instead of granting the bonus.
+        """
+        make_claim(self.user1, self.campaign)
+        granted, claim = grant_pending_claims_for_user(self.user1, ip="127.0.0.1")
+        self.assertTrue(granted)
+        self.assertEqual(claim.status, PromoClaim.Status.GRANTED)
+        self.assertEqual(claim.reject_reason, "")
+        wallet = Wallet.objects.get(user=self.user1)
+        self.assertEqual(wallet.balance, Decimal("1000.00"))
+
     def test_concurrency_exact_slots_granted(self):
         """Exactly max_claims granted across many verifications.
 

@@ -69,7 +69,6 @@ def try_grant(user, ip=None, source=None):
         claim = (
             PromoClaim.objects.select_related("campaign")
             .filter(user=user, status=PromoClaim.Status.PENDING)
-            .select_for_update()
             .first()
         )
     except PromoClaim.DoesNotExist:
