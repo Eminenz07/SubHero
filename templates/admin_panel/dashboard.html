@@ -97,7 +97,19 @@
         </div>
     </div>
 
-    <!-- Card 4: Gross Revenue -->
+    <!-- Card 4: Promo Spend -->
+    <div class="admin-card p-5">
+        <div class="flex items-center justify-between text-slate-400 mb-2">
+            <span class="text-xs font-semibold uppercase tracking-wider">Promo Spend</span>
+            {% include "icons/gift.html" %}
+        </div>
+        <div class="text-2xl font-bold text-purple-400 font-mono">₦{{ promo_spend|floatformat:2 }}</div>
+        <div class="text-[11px] text-slate-400 mt-2 font-semibold">
+            Total signup bonuses granted (excluded from revenue)
+        </div>
+    </div>
+
+    <!-- Card 5: Gross Revenue -->
     <div class="admin-card p-5">
         <div class="flex items-center justify-between text-slate-400 mb-2">
             <span class="text-xs font-semibold uppercase tracking-wider">Gross Sales</span>

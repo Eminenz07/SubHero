@@ -133,6 +133,10 @@ def dashboard(request):
     ogaviral_balance = fetch_ogaviral_balance()
     total_user_balance = Wallet.objects.filter(user__is_staff=False).aggregate(total=Sum("balance"))["total"] or Decimal("0")
 
+    # Promo spend — excluded from revenue/deposit analytics
+    from apps.admin_panel.queries import get_promo_spend
+    promo_spend = get_promo_spend()
+
     # Support ticket metrics
     open_tickets = Ticket.objects.filter(status__in=["open", "in_progress", "waiting_customer"]).count()
     unassigned_tickets = Ticket.objects.filter(
@@ -210,6 +214,7 @@ def dashboard(request):
         "total_profit": stats.total_profit,
         "total_deposits": stats.total_deposits,
         "total_user_balance": total_user_balance,
+        "promo_spend": promo_spend,
         "open_tickets": open_tickets,
         "unassigned_tickets": unassigned_tickets,
         "avg_first_response_hours": avg_first_response_hours,

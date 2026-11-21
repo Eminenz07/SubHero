@@ -513,6 +513,19 @@ def get_peak_transaction_hour() -> Any:
     ).order_by('-count').first()
 
 
+def get_promo_spend(start: date = None, end: date = None) -> Decimal:
+    """Total spent on promo bonuses (PROMO_BONUS), excluded from revenue."""
+    base = WalletTransaction.objects.filter(
+        txn_type=WalletTransaction.TxnType.PROMO_BONUS,
+        status=WalletTransaction.Status.SUCCESS,
+    )
+    if start and end:
+        s_dt = datetime.combine(start, datetime.min.time(), tzinfo=timezone.utc)
+        e_dt = datetime.combine(end, datetime.max.time(), tzinfo=timezone.utc)
+        base = base.filter(created_at__range=(s_dt, e_dt))
+    return base.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+
+
 # ─────────────────────────────────────────────────────────────
 # BACKWARD COMPATIBILITY FOR MAIN ADMIN DASHBOARD
 # ─────────────────────────────────────────────────────────────
