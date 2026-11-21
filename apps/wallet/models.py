@@ -108,6 +108,7 @@ class WalletTransaction(models.Model):
         P2P_RECEIVE = "P2P_RECEIVE", "P2P Transfer (Received)"
         REFUND = "REFUND", "Refund"
         GIVEAWAY_LOCK = "GIVEAWAY_LOCK", "Giveaway Locked Funds"
+        PROMO_BONUS = "PROMO_BONUS", "Promo Bonus"
 
     class Status(models.TextChoices):
         PENDING = "PENDING", "Pending"
