@@ -2019,7 +2019,7 @@ def promos_edit(request, campaign_id):
     if request.method == "POST":
         name = (request.POST.get("name") or "").strip()
         bonus_amount = (request.POST.get("bonus_amount") or "").strip()
-        max_claims = (request.POST.get("max_claims") or "").strip()
+        max_claims = (request.POST.get("max_claims") or "1").strip()
         starts_at = (request.POST.get("starts_at") or "").strip() or None
         ends_at = (request.POST.get("ends_at") or "").strip() or None
         max_claims_per_ip = (request.POST.get("max_claims_per_ip") or "5").strip()
