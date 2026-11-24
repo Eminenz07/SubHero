@@ -476,6 +476,15 @@ class TestForcedPasswordChange(TestCase):
         resp = self.client.get(reverse("support:desk:inbox"))
         self.assertEqual(resp.status_code, 200)
 
+    def test_change_password_page_loads_after_real_login(self):
+        """Full flow: real StaffLoginView login -> redirect to change-password -> GET page loads (no 500)."""
+        self.client.post(reverse("support:desk:staff_login"), {
+            "identifier": "newstaff@subhero.com.ng",
+            "password": "Passw0rd!",
+        })
+        resp = self.client.get(reverse("support:desk:staff_change_password"))
+        self.assertEqual(resp.status_code, 200)
+
 
 class TestRoleBlocking(TestCase):
     """Agent/lead staff blocked from all admin_panel URLs."""
