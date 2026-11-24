@@ -541,22 +541,27 @@ class TestStaffCreation(TestCase):
         self.client.force_login(self.owner)
 
     def test_create_staff_shows_temp_password_once(self):
+        # Create a registered customer first, then promote them to staff
+        customer = User.objects.create_user(
+            phone_number="+2349073601290", email="ada@subhero.com.ng",
+            password="Passw0rd!", is_staff=False, is_active=True,
+            is_verified=True, full_name="Ada Lovelace",
+        )
         resp = self.client.post(reverse("admin_panel:support_staff"), {
             "action": "create",
-            "name": "Ada Lovelace",
-            "email": "ada@subhero.com.ng",
-            "phone": "+2349073601290",
+            "user_id": str(customer.id),
             "role": "agent",
             "display_name": "Ada",
             "gen_password": "on",
         }, follow=True)
         self.assertEqual(resp.status_code, 200)
-        # Staff created
+        # Staff created (promoted)
         from apps.support.models import StaffProfile
         staff = User.objects.get(email="ada@subhero.com.ng")
         self.assertTrue(staff.is_staff)
         self.assertTrue(staff.staff_profile.must_change_password)
         self.assertEqual(staff.staff_profile.role, "agent")
+        self.assertEqual(staff.staff_profile.display_name, "Ada")
 
 
 class TestStaffExcludedFromMetrics(TestCase):

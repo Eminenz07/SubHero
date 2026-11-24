@@ -175,22 +175,15 @@
             {% csrf_token %}
             <input type="hidden" name="action" value="create">
             <div>
-                <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Full Name</label>
-                <input type="text" name="name" required
-                       class="w-full px-3 py-2 rounded-lg bg-[#060b13] border border-surface-border text-xs text-white focus:outline-none focus:border-brand-primary"
-                       placeholder="Ada Lovelace">
-            </div>
-            <div>
-                <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Email</label>
-                <input type="email" name="email" required
-                       class="w-full px-3 py-2 rounded-lg bg-[#060b13] border border-surface-border text-xs text-white focus:outline-none focus:border-brand-primary"
-                       placeholder="ada@subhero.com.ng">
-            </div>
-            <div>
-                <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Phone Number</label>
-                <input type="tel" name="phone" required
-                       class="w-full px-3 py-2 rounded-lg bg-[#060b13] border border-surface-border text-xs text-white focus:outline-none focus:border-brand-primary"
-                       placeholder="08012345678">
+                <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Select Registered User</label>
+                <select name="user_id" required
+                        class="w-full px-3 py-2 rounded-lg bg-[#060b13] border border-surface-border text-xs text-white focus:outline-none focus:border-brand-primary">
+                    <option value="">-- Choose a customer --</option>
+                    {% for u in existing_users %}
+                    <option value="{{ u.id }}">{{ u.full_name|default:u.phone_number }} ({{ u.email }}) — {{ u.phone_number }}</option>
+                    {% endfor %}
+                </select>
+                <p class="text-[10px] text-slate-500 mt-1">Only registered non-staff customers are eligible.</p>
             </div>
             <div>
                 <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Role</label>
@@ -218,10 +211,10 @@
                        placeholder="••••••••">
             </div>
             <button type="submit" class="w-full py-3 rounded-lg bg-brand-primary text-white font-semibold text-sm hover:bg-purple-600 transition-colors">
-                Create Staff Account
+                Promote to Support Staff
             </button>
             <p class="text-[10px] text-slate-500 mt-2">
-                The temporary password will be shown once after creation and must be changed on first login.
+                The user will be forced to change their password on first desk login.
             </p>
         </form>
     </div>

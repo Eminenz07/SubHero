@@ -2333,72 +2333,72 @@ def support_staff(request):
         action = request.POST.get("action", "").strip()
 
         if action == "create":
-            name = (request.POST.get("name") or "").strip()
-            email = (request.POST.get("email") or "").strip().lower()
-            phone = (request.POST.get("phone") or "").strip()
+            user_id = (request.POST.get("user_id") or "").strip()
             role = request.POST.get("role", "agent").strip()
             display_name = (request.POST.get("display_name") or "").strip()
             temp_password = (request.POST.get("temp_password") or "").strip()
 
-            if not name or not email or not phone:
-                messages.error(request, "Name, email and phone are required.")
+            if not user_id:
+                messages.error(request, "Please select a registered user.")
             elif role not in ("agent", "lead"):
                 messages.error(request, "Invalid role.")
             else:
-                email_ok = True
                 try:
-                    validate_email(email)
-                except ValidationError:
-                    messages.error(request, "Enter a valid email address.")
-                    email_ok = False
-                if email_ok and User.objects.filter(email=email).exists():
-                    messages.error(request, "A user with that email already exists.")
-                    email_ok = False
-                if email_ok and User.objects.filter(phone_number=phone).exists():
-                    messages.error(request, "A user with that phone number already exists.")
-                if email_ok:
-                    if not temp_password:
-                        temp_password = get_random_string(12)
-                    user = User.objects.create_user(
-                        phone_number=phone,
-                        email=email,
-                        password=temp_password,
-                        full_name=name,
-                        is_staff=True,
-                        is_active=True,
-                        is_verified=True,
-                    )
-                    StaffProfile.objects.create(
-                        user=user,
-                        role=role,
-                        display_name=display_name,
-                        is_available=True,
-                        must_change_password=True,
-                    )
-                    # Log creation
-                    try:
-                        from apps.admin_panel.models import AdminLog
-                        AdminLog.objects.create(
-                            admin_user=request.user,
-                            action="create_staff",
-                            target_type="user",
-                            target_id=str(user.id),
-                            detail=f"Created support staff {email} ({phone}) role={role}",
-                            ip_address=get_client_ip(request),
+                    target = User.objects.get(id=user_id)
+                except (User.DoesNotExist, ValueError):
+                    messages.error(request, "Selected user not found.")
+                else:
+                    if target.is_staff:
+                        messages.error(request, "That user is already a staff member.")
+                    else:
+                        if not temp_password:
+                            temp_password = get_random_string(12)
+                        target.set_password(temp_password)
+                        target.is_staff = True
+                        target.is_active = True
+                        target.is_verified = True
+                        target.save(
+                            update_fields=["password", "is_staff", "is_active", "is_verified"]
                         )
-                    except Exception:
-                        pass
-                    messages.success(
-                        request,
-                        f"Staff account created for {name}. Temporary password: {temp_password}",
-                    )
-                    # Stash for one-time display
-                    request.session["staff_temp_password"] = {
-                        "email": email,
-                        "password": temp_password,
-                        "login_url": request.build_absolute_uri(reverse("support:desk:staff_login")),
-                    }
-                    return redirect("admin_panel:support_staff")
+                        StaffProfile.objects.update_or_create(
+                            user=target,
+                            defaults={
+                                "role": role,
+                                "display_name": display_name,
+                                "is_available": True,
+                                "must_change_password": True,
+                            },
+                        )
+                        # Log creation
+                        try:
+                            from apps.admin_panel.models import AdminLog
+                            AdminLog.objects.create(
+                                admin_user=request.user,
+                                action="create_staff",
+                                target_type="user",
+                                target_id=str(target.id),
+                                detail=(
+                                    f"Promoted registered user {target.email} "
+                                    f"({target.phone_number}) to support staff role={role}"
+                                ),
+                                ip_address=get_client_ip(request),
+                            )
+                        except Exception:
+                            pass
+                        messages.success(
+                            request,
+                            f"Staff account created for {target.full_name or target.phone_number}. "
+                            f"Temporary password: {temp_password}",
+                        )
+                        # Stash for one-time display
+                        request.session["staff_temp_password"] = {
+                            "email": target.email,
+                            "password": temp_password,
+                            "login_url": request.build_absolute_uri(
+                                reverse("support:desk:staff_login")
+                            ),
+                        }
+                        return redirect("admin_panel:support_staff")
 
         elif action == "toggle_status":
             staff_id = request.POST.get("staff_id")
@@ -2468,6 +2468,12 @@ def support_staff(request):
     # One-time temp password display (popped after render)
     temp_password_info = request.session.pop("staff_temp_password", None)
 
+    # Existing registered (non-staff) users eligible for promotion
+    existing_users = (
+        User.objects.filter(is_staff=False)
+        .order_by("full_name", "phone_number")
+    )
+
     # Pagination
     from django.core.paginator import Paginator
     paginator = Paginator(staff_qs, 25)
@@ -2479,6 +2485,7 @@ def support_staff(request):
         "staff_page": staff_page,
         "q": q,
         "temp_password_info": temp_password_info,
+        "existing_users": existing_users,
     }
     return render(request, "admin_panel/support_staff_list.html", context)
 
