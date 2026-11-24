@@ -817,71 +817,48 @@ class ProfileView(LoginRequiredMixin, View):
             current_password = request.POST.get("current_password", "")
             new_password = request.POST.get("new_password", "")
             confirm_password = request.POST.get("confirm_password", "")
-            
+
             if not current_password or not new_password or not confirm_password:
                 messages.error(request, "All password fields are required.")
                 return render(request, self.template_name)
-                
+
             if not request.user.check_password(current_password):
                 messages.error(request, "Current password is incorrect.")
                 return render(request, self.template_name)
-                
+
             if new_password != confirm_password:
                 messages.error(request, "New passwords do not match.")
                 return render(request, self.template_name)
-                
+
             if len(new_password) < 8:
                 messages.error(request, "Password must be at least 8 characters long.")
                 return render(request, self.template_name)
-                
-            request.user.set_password(new_password)
-            request.user.save()
-            
-            # Password changed notification
-            try:
-                from apps.notifications.models import Notification
-                Notification.add(
-                    request.user,
-                    "Account Password Changed",
-                    "Your account login password has been changed. Use your new password for subsequent logins.",
-                    level="security"
-                )
-                if request.user.email:
-                    from django.utils import timezone
-                    subject = "Security Alert: Password Changed 🔐"
-                    email_message = (
-                        f"Hello {request.user.full_name or 'SubHero User'},\n\n"
-                        f"Your SubHero account login password has been successfully changed.\n\n"
-                        f"Details:\n"
-                        f"- Time: {timezone.now().strftime('%Y-%m-%d %H:%M:%S UTC')}\n\n"
-                        f"If you did not make this change, please contact support immediately to secure your account.\n\n"
-                        f"Best regards,\n"
-                        f"The SubHero Team"
-                    )
-                    _send_async_email(
-                        subject=subject,
-                        message=email_message,
-                        from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@subhero.com.ng"),
-                        recipient_list=[request.user.email],
-                    )
-            except Exception as ex:
-                logger.error("Password change notification/email creation failed: %s", str(ex))
 
-            # Since password changed, log user in again to maintain session
-            from django.contrib.auth import update_session_auth_hash
-            update_session_auth_hash(request, request.user)
-            messages.success(request, "Password changed successfully.")
-            return redirect("accounts:profile")
-            
+            # --- OTP gate: require email OTP before applying password change ---
+            request.session["profile_action"] = "password_change"
+            request.session["profile_new_password"] = new_password
+            request.session["profile_otp_verified"] = False
+
+            try:
+                send_email_otp(request.user, purpose="profile_password_change", session=request.session)
+            except Exception as ex:
+                logger.error("Profile password-change OTP dispatch failed: %s", str(ex))
+                messages.error(request, "Could not send verification code. Please try again.")
+                return render(request, self.template_name)
+
+            logger.info("Profile password-change OTP dispatched: user=%s", request.user.id)
+            messages.info(request, "A 6-digit code has been sent to your email. Please verify it to complete the password change.")
+            return redirect("accounts:verify_profile_otp")
+
         elif action == "change_pin":
             current_pin = request.POST.get("current_pin", "")
             new_pin = request.POST.get("new_pin", "")
             confirm_pin = request.POST.get("confirm_pin", "")
-            
+
             if not new_pin or not confirm_pin:
                 messages.error(request, "New PIN and confirmation are required.")
                 return render(request, self.template_name)
-                
+
             if request.user.has_pin:
                 if not current_pin:
                     messages.error(request, "Current transaction PIN is required.")
@@ -889,31 +866,30 @@ class ProfileView(LoginRequiredMixin, View):
                 if not request.user.check_pin(current_pin):
                     messages.error(request, "Current transaction PIN is incorrect.")
                     return render(request, self.template_name)
-                    
+
             if new_pin != confirm_pin:
                 messages.error(request, "New PINs do not match.")
                 return render(request, self.template_name)
-                
+
             if len(new_pin) != 4 or not new_pin.isdigit():
                 messages.error(request, "PIN must be exactly 4 digits.")
                 return render(request, self.template_name)
-                
-            request.user.set_pin(new_pin)
-            
-            # PIN change notification
-            try:
-                from apps.notifications.models import Notification
-                Notification.add(
-                    request.user,
-                    "Transaction PIN Updated",
-                    "Your secure transaction PIN has been successfully updated. Use this new PIN for subsequent transfers and VTU/SMM orders.",
-                    level="security"
-                )
-            except Exception as ex:
-                logger.error("PIN change notification creation failed: %s", str(ex))
 
-            messages.success(request, "Transaction PIN updated successfully.")
-            return redirect("accounts:profile")
+            # --- OTP gate: require email OTP before applying PIN change ---
+            request.session["profile_action"] = "pin_change"
+            request.session["profile_new_pin"] = new_pin
+            request.session["profile_otp_verified"] = False
+
+            try:
+                send_email_otp(request.user, purpose="profile_pin_change", session=request.session)
+            except Exception as ex:
+                logger.error("Profile PIN-change OTP dispatch failed: %s", str(ex))
+                messages.error(request, "Could not send verification code. Please try again.")
+                return render(request, self.template_name)
+
+            logger.info("Profile PIN-change OTP dispatched: user=%s", request.user.id)
+            messages.info(request, "A 6-digit code has been sent to your email. Please verify it to complete the PIN change.")
+            return redirect("accounts:verify_profile_otp")
             
         else:
             messages.error(request, "Invalid action.")
@@ -1174,4 +1150,184 @@ class ResetPasswordView(View):
         except User.DoesNotExist:
             messages.error(request, "User account not found. Please try again.")
             return redirect("accounts:forgot_password")
+
+
+class VerifyProfileOTPView(LoginRequiredMixin, View):
+    """
+    Step 2 of profile password/PIN change: verify the 6-digit email OTP
+    before applying the change.
+    """
+    template_name = "accounts/verify_profile_otp.html"
+
+    @method_decorator(ratelimit(key="ip", rate="5/m", method="POST", block=True))
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
+    def get(self, request):
+        if not request.session.get("profile_action"):
+            messages.warning(request, "No pending password/PIN change. Please start from the profile page.")
+            return redirect("accounts:profile")
+        return render(request, self.template_name, {
+            "masked_email": mask_email(request.user.email),
+            "action": request.session.get("profile_action"),
+        })
+
+    def post(self, request):
+        profile_action = request.session.get("profile_action")
+        if not profile_action:
+            messages.error(request, "Session expired. Please start again from the profile page.")
+            return redirect("accounts:profile")
+
+        email = request.user.email.strip().lower()
+        form = VerifyResetOTPForm(request.POST)
+
+        if not form.is_valid():
+            messages.error(request, "Please enter a valid 6-digit code.")
+            return render(request, self.template_name, {
+                "masked_email": mask_email(email),
+                "action": profile_action,
+            })
+
+        code = form.cleaned_data["reset_code"]
+
+        if not verify_otp(email, code, session=request.session):
+            messages.error(request, "Invalid or expired reset code. Please check your email or request a new code.")
+            return render(request, self.template_name, {
+                "masked_email": mask_email(email),
+                "action": profile_action,
+            })
+
+        # Mark OTP as verified for this profile change
+        request.session["profile_otp_verified"] = True
+        logger.info("Profile %s OTP verified: user=%s", profile_action, request.user.id)
+        messages.success(request, "Code confirmed! Applying your change now.")
+        return redirect("accounts:complete_profile_change")
+
+
+class ResendProfileOTPView(LoginRequiredMixin, View):
+    """Resend profile change OTP to the user's email."""
+
+    @method_decorator(ratelimit(key="ip", rate="3/m", method="POST", block=True))
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
+    def post(self, request):
+        profile_action = request.session.get("profile_action")
+        if not profile_action:
+            messages.error(request, "Session expired. Please start again from the profile page.")
+            return redirect("accounts:profile")
+
+        try:
+            send_email_otp(request.user, purpose=profile_action, session=request.session)
+        except Exception as ex:
+            logger.error("Profile OTP resend failed: %s", str(ex))
+            messages.error(request, "Could not resend verification code. Please try again.")
+            return redirect("accounts:verify_profile_otp")
+
+        messages.success(request, f"A new 6-digit code has been sent to {mask_email(request.user.email)}.")
+        return redirect("accounts:verify_profile_otp")
+
+
+class CompleteProfileChangeView(LoginRequiredMixin, View):
+    """
+    Step 3 of profile password/PIN change: apply the change after OTP
+    has been verified.
+    """
+    @method_decorator(ratelimit(key="ip", rate="5/m", method="POST", block=True))
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
+    def get(self, request):
+        if not request.session.get("profile_otp_verified"):
+            messages.error(request, "OTP not verified. Please verify the code first.")
+            return redirect("accounts:verify_profile_otp")
+        return self.post(request)
+
+    def post(self, request):
+        profile_action = request.session.get("profile_action")
+        otp_verified = request.session.get("profile_otp_verified")
+
+        if not profile_action or not otp_verified:
+            messages.error(request, "Session expired or unverified. Please verify the code first.")
+            return redirect("accounts:verify_profile_otp")
+
+        user = request.user
+        from django.contrib.auth import update_session_auth_hash
+        from django.utils import timezone
+
+        if profile_action == "password_change":
+            new_password = request.session.get("profile_new_password")
+            if not new_password:
+                messages.error(request, "Pending password change missing. Please try again.")
+                return redirect("accounts:profile")
+            user.set_password(new_password)
+            user.save(update_fields=["password"])
+            update_session_auth_hash(request, user)
+
+            # Notification
+            try:
+                from apps.notifications.models import Notification
+                Notification.add(
+                    user,
+                    "Account Password Changed",
+                    "Your account login password has been changed. Use your new password for subsequent logins.",
+                    level="security",
+                )
+                if user.email:
+                    subject = "Security Alert: Password Changed 🔐"
+                    email_message = (
+                        f"Hello {user.full_name or 'SubHero User'},\n\n"
+                        f"Your SubHero account login password has been successfully changed.\n\n"
+                        f"Details:\n"
+                        f"- Time: {timezone.now().strftime('%Y-%m-%d %H:%M:%S UTC')}\n\n"
+                        f"If you did not make this change, please contact support immediately to secure your account.\n\n"
+                        f"Best regards,\n"
+                        f"The SubHero Team"
+                    )
+                    _send_async_email(
+                        subject=subject,
+                        message=email_message,
+                        from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@subhero.com.ng"),
+                        recipient_list=[user.email],
+                    )
+            except Exception as ex:
+                logger.error("Password change notification failed: %s", str(ex))
+
+            messages.success(request, "Password changed successfully.")
+
+        elif profile_action == "pin_change":
+            new_pin = request.session.get("profile_new_pin")
+            if not new_pin:
+                messages.error(request, "Pending PIN change missing. Please try again.")
+                return redirect("accounts:profile")
+            user.set_pin(new_pin)
+
+            try:
+                from apps.notifications.models import Notification
+                Notification.add(
+                    user,
+                    "Transaction PIN Updated",
+                    "Your secure transaction PIN has been successfully updated.",
+                    level="security",
+                )
+            except Exception as ex:
+                logger.error("PIN change notification failed: %s", str(ex))
+
+            messages.success(request, "Transaction PIN updated successfully.")
+        else:
+            messages.error(request, "Invalid pending action.")
+            return redirect("accounts:profile")
+
+        # Clear profile change session data
+        request.session.pop("profile_action", None)
+        request.session.pop("profile_new_password", None)
+        request.session.pop("profile_new_pin", None)
+        request.session.pop("profile_otp_verified", None)
+        request.session.pop("otp_hash", None)
+        request.session.pop("otp_expires_at", None)
+        request.session.pop("otp_identifier", None)
+        request.session.pop("otp_attempts", None)
+
+        logger.info("Profile %s completed: user=%s", profile_action, user.id)
+        return redirect("accounts:profile")
 

@@ -21,4 +21,7 @@ urlpatterns = [
     path("forgot-password/verify/", views.VerifyResetOTPView.as_view(), name="verify_reset_otp"),
     path("forgot-password/resend/", views.ResendResetOTPView.as_view(), name="resend_reset_otp"),
     path("reset-password/", views.ResetPasswordView.as_view(), name="reset_password"),
+    path("profile/change-otp/", views.VerifyProfileOTPView.as_view(), name="verify_profile_otp"),
+    path("profile/change-otp/resend/", views.ResendProfileOTPView.as_view(), name="resend_profile_otp"),
+    path("profile/change-complete/", views.CompleteProfileChangeView.as_view(), name="complete_profile_change"),
 ]
