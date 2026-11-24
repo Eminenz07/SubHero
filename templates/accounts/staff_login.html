@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+
+{% block main_extra_classes %}no-bottom-nav p-0{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+    <div class="auth-top">
+        <div class="auth-logo">Sub<span>Hero</span></div>
+        <div class="auth-tagline">Support Desk — Secure staff login</div>
+    </div>
+
+    <div class="auth-form">
+        <h2 class="auth-title">Support Desk Login</h2>
+        <p class="text-xs text-slate-400 mb-6">For support agents and team leads only.</p>
+
+        <form method="post" class="flex flex-col gap-2">
+            {% csrf_token %}
+
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert {% if message.tags == 'error' %}alert-error{% elif message.tags == 'success' %}alert-success{% else %}alert-info{% endif %} mb-3">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            {% if form.non_field_errors %}
+                <div class="alert-error mb-3">
+                    {% for error in form.non_field_errors %}
+                        <p>{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <!-- Email or Phone -->
+            <div class="form-group">
+                <label for="{{ form.identifier.id_for_label }}" class="form-label">Email or Phone Number</label>
+                <input type="text" name="{{ form.identifier.name }}" id="{{ form.identifier.id_for_label }}"
+                       class="form-input {% if form.identifier.errors %}form-input--error{% endif %}"
+                       placeholder="e.g. ada@subhero.com.ng or 08012345678" required
+                       value="{{ form.identifier.value|default:'' }}">
+                {% if form.identifier.errors %}
+                    <p class="form-error">{{ form.identifier.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Password -->
+            <div class="form-group">
+                <div class="flex justify-between items-end mb-1.5">
+                    <label for="{{ form.password.id_for_label }}" class="form-label !mb-0">Password</label>
+                </div>
+                <div class="relative">
+                    <input type="password" name="{{ form.password.name }}" id="{{ form.password.id_for_label }}"
+                           class="form-input pr-11 {% if form.password.errors %}form-input--error{% endif %}"
+                           placeholder="••••••••" required>
+                    {% if form.password.errors %}
+                        <p class="form-error">{{ form.password.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <button type="submit" class="btn-primary btn-block mt-4">
+                Sign In to Desk
+            </button>
+        </form>
+
+        <p class="text-center text-sm mt-8 text-text-secondary">
+            Not a support staff member? <a href="{% url 'landing' %}" class="font-bold text-brand-primary">Return to site</a>
+        </p>
+    </div>
+</div>
+{% endblock %}
+
+{% block modals %}{% endblock %}

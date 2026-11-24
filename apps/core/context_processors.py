@@ -1,5 +1,8 @@
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from apps.smm.platforms import PLATFORMS_META
+
+User = get_user_model()
 
 
 def meta_pixel(request):
@@ -32,8 +35,10 @@ def service_flags(request):
     """
     Expose service launch flags to templates, so a service that is not live yet
     can be labelled "Soon" on every surface that lists it.
+    Also exposes whether the current user is a support desk staff member
+    (agent/lead role), used to filter the admin navigation.
     """
-    return {
+    flags = {
         "exam_pin_coming_soon": getattr(settings, "EXAM_PIN_COMING_SOON", False),
         "vtu_data_enabled": getattr(settings, "VTU_ENABLE_DATA", True),
         "vtu_airtime_enabled": getattr(settings, "VTU_ENABLE_AIRTIME", True),
@@ -41,3 +46,12 @@ def service_flags(request):
         "vtu_electricity_soon": not getattr(settings, "VTU_ENABLE_ELECTRICITY", False),
         "vtu_exam_soon": not getattr(settings, "VTU_ENABLE_EXAM", False),
     }
+    try:
+        flags["is_support_staff"] = (
+            request.user.is_authenticated
+            and request.user.is_staff
+            and request.user.staff_profile.role in ("agent", "lead")
+        )
+    except AttributeError:
+        flags["is_support_staff"] = False
+    return flags

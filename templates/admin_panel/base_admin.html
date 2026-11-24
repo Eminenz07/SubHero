@@ -89,6 +89,13 @@
 
         <!-- Navigation Links -->
         <nav class="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">
+            {% if is_support_staff %}
+            <!-- Support desk staff (agent/lead) see only the Support Desk link -->
+            <a href="{% url 'support:desk:inbox' %}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all bg-emerald-600/15 text-emerald-400 border border-emerald-500/20">
+                {% include "icons/mail.html" %}
+                Support Desk
+            </a>
+            {% else %}
             <a href="{% url 'admin_panel:dashboard' %}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all {% if active_nav == 'dashboard' %}bg-emerald-600/15 text-emerald-400 border border-emerald-500/20{% else %}text-slate-400 hover:text-white hover:bg-white/[0.03] border border-transparent{% endif %}">
                 {% include "icons/grid.html" %}
                 Dashboard
@@ -145,6 +152,7 @@
                 {% include "icons/gift.html" %}
                 Promo Campaigns
             </a>
+            {% endif %}
         </nav>
 
         <!-- User Profile Footer -->

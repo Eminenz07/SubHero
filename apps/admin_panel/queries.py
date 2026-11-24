@@ -199,19 +199,21 @@ def get_user_stats(start: date, end: date) -> Dict[str, Any]:
         s_dt = datetime.combine(start, datetime.min.time(), tzinfo=timezone.utc)
         e_dt = datetime.combine(end, datetime.max.time(), tzinfo=timezone.utc)
         s_dt = max(s_dt, CUTOFF_DATE)
-        
-        total = User.objects.count()
-        new_in_range = User.objects.filter(date_joined__range=(s_dt, e_dt)).count()
-        
+
+        # Exclude staff accounts from customer metrics.
+        base_qs = User.objects.filter(is_staff=False)
+        total = base_qs.count()
+        new_in_range = base_qs.filter(date_joined__range=(s_dt, e_dt)).count()
+
         thirty_days_ago = now() - timedelta(days=30)
-        active = User.objects.filter(
+        active = base_qs.filter(
             wallet__transactions__created_at__gte=thirty_days_ago,
             wallet__transactions__status='SUCCESS'
         ).distinct().count()
-        
-        funded = User.objects.filter(wallet__balance__gt=0).count()
-        dormant = User.objects.filter(wallet__transactions__isnull=True).count()
-        
+
+        funded = base_qs.filter(wallet__balance__gt=0).count()
+        dormant = base_qs.filter(wallet__transactions__isnull=True).count()
+
         return {
             'total': total,
             'new_in_range': new_in_range,
@@ -232,9 +234,8 @@ def get_user_growth_chart(start: date, end: date) -> List[Dict[str, Any]]:
         return []
         
     return list(
-        User.objects.filter(
-            date_joined__range=(s_dt, e_dt)
-        ).annotate(
+        User.objects.filter(is_staff=False, date_joined__range=(s_dt, e_dt))
+        .annotate(
             day=TruncDate('date_joined')
         ).values('day').annotate(
             count=Count('id')
@@ -268,7 +269,7 @@ def get_arpu(start: date, end: date) -> Decimal:
     """Average Revenue Per User in time range."""
     revenue = get_gross_revenue(start, end)['total']
     e_dt = datetime.combine(end, datetime.max.time(), tzinfo=timezone.utc)
-    user_count = User.objects.filter(date_joined__lte=e_dt).count()
+    user_count = User.objects.filter(is_staff=False, date_joined__lte=e_dt).count()
     return revenue / user_count if user_count else Decimal('0.00')
 
 def get_vtu_stats(start: date, end: date) -> Dict[str, Any]:

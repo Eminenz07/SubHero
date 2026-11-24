@@ -11,12 +11,16 @@ import threading
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import get_user_model
+from django.contrib.auth import update_session_auth_hash
 from django.core.cache import cache
+from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
 from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import redirect, render
 from django.urls import reverse
+from django.utils import timezone
 from django.views import View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django_ratelimit.decorators import ratelimit
@@ -33,8 +37,11 @@ from apps.core.utils import (
 )
 from apps.core.email import send_async_app_email
 from apps.promos.models import PromoCampaign, PromoClaim
+from apps.support.models import StaffProfile, StaffLoginLog
 from .forms import (
     LoginForm,
+    StaffLoginForm,
+    StaffChangePasswordForm,
     OTPVerificationForm,
     RegistrationForm,
     TransactionPINForm,
@@ -45,6 +52,8 @@ from .forms import (
 )
 
 logger = logging.getLogger(__name__)
+
+User = get_user_model()
 
 
 def _send_async_email(subject, message, from_email, recipient_list):
@@ -298,6 +307,159 @@ class LoginView(View):
         return redirect("dashboard")
 
 
+class StaffLoginView(View):
+    """
+    Dedicated staff login for the support desk at /support/desk/login/.
+    - Branded "SubHero Support Desk"
+    - Accepts email OR phone number plus password
+    - Only users with is_staff=True and is_active=True (StaffProfile) can log in
+    - Generic "invalid credentials" message (no enumeration)
+    - Rate limited: 10 req/min per IP
+    - Every attempt logged (time, IP, success/failure)
+    """
+
+    template_name = "accounts/staff_login.html"
+
+    @method_decorator(ratelimit(key="ip", rate="10/m", method="POST", block=True))
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
+    def get(self, request):
+        if request.user.is_authenticated and request.user.is_staff:
+            return redirect("support:desk:inbox")
+        form = StaffLoginForm()
+        return render(request, self.template_name, {"form": form})
+
+    def post(self, request):
+        if request.user.is_authenticated and request.user.is_staff:
+            return redirect("support:desk:inbox")
+
+        form = StaffLoginForm(request.POST)
+        if not form.is_valid():
+            messages.error(request, "Invalid credentials. Please try again.")
+            return render(request, self.template_name, {"form": form})
+
+        identifier = form.cleaned_data["identifier"].strip()
+        password = form.cleaned_data["password"]
+        client_ip = get_client_ip(request)
+
+        # Resolve by email OR phone
+        user = None
+        if "@" in identifier:
+            try:
+                user = User.objects.get(email__iexact=identifier)
+            except User.DoesNotExist:
+                user = None
+        else:
+            try:
+                phone = normalize_phone(identifier)
+                user = User.objects.get(phone_number=phone)
+            except (User.DoesNotExist, ValidationError):
+                user = None
+
+        # Generic failure path — never reveals whether the identifier exists
+        def _fail(reason=""):
+            if reason:
+                logger.warning("Failed staff login: %s, ip=%s", reason, client_ip)
+            StaffLoginLog.objects.create(
+                user=user,
+                email_or_phone=identifier,
+                ip_address=client_ip,
+                user_agent=request.META.get("HTTP_USER_AGENT", "")[:500],
+                success=False,
+            )
+            messages.error(request, "Invalid credentials. Please try again.")
+            return render(request, self.template_name, {"form": form})
+
+        if user is None:
+            return _fail("identifier not found")
+
+        if not user.check_password(password):
+            return _fail("wrong password")
+
+        if not user.is_active:
+            return _fail("inactive account")
+
+        if not user.is_staff:
+            return _fail("not staff")
+
+        try:
+            sp = user.staff_profile
+        except StaffProfile.DoesNotExist:
+            return _fail("no staff profile")
+
+        # Successful staff login
+        StaffLoginLog.objects.create(
+            user=user,
+            email_or_phone=identifier,
+            ip_address=client_ip,
+            user_agent=request.META.get("HTTP_USER_AGENT", "")[:500],
+            success=True,
+        )
+
+        # Track last login via session
+        request.session["staff_last_login"] = timezone.now().isoformat()
+
+        # Session rotation
+        login(request, user, backend="apps.accounts.backends.PhoneAuthBackend")
+        request.session.cycle_key()
+        request.session["staff_session_start"] = timezone.now().isoformat()
+        request.session["staff_last_activity"] = timezone.now().isoformat()
+
+        logger.info("Successful staff login: user=%s, ip=%s", user.phone_number, client_ip)
+        messages.success(request, f"Welcome back, {user.full_name or user.phone_number}.")
+        next_url = request.GET.get("next", "")
+        if next_url and next_url.startswith("/"):
+            return redirect(next_url)
+        return redirect("support:desk:inbox")
+
+
+class StaffChangePasswordView(LoginRequiredMixin, View):
+    """
+    Forced password-change page for staff whose StaffProfile.must_change_password
+    is True (new accounts and password resets). Blocks all other desk access
+    until the password is changed.
+    """
+
+    template_name = "accounts/staff_change_password.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_staff:
+            return redirect("landing")
+        try:
+            sp = request.user.staff_profile
+        except StaffProfile.DoesNotExist:
+            # Staff user without a profile: treat as already cleared.
+            return redirect("support:desk:inbox")
+        if not sp.must_change_password:
+            return redirect("support:desk:inbox")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request):
+        form = StaffChangePasswordForm()
+        return render(request, self.template_name, {"form": form})
+
+    def post(self, request):
+        form = StaffChangePasswordForm(request.POST)
+        if not form.is_valid():
+            return render(request, self.template_name, {"form": form})
+
+        request.user.set_password(form.cleaned_data["new_password"])
+        request.user.save(update_fields=["password"])
+
+        sp = request.user.staff_profile
+        sp.must_change_password = False
+        sp.last_password_reset_at = timezone.now()
+        sp.save(update_fields=["must_change_password", "last_password_reset_at"])
+
+        # Invalidate all other sessions for this user
+        from django.contrib.auth import update_session_auth_hash
+        update_session_auth_hash(request, request.user)
+
+        messages.success(request, "Your password has been changed successfully.")
+        return redirect("support:desk:inbox")
+
+
 class VerifyOTPView(View):
     """
     PRD Section 6.1.1: OTP verification.
@@ -418,7 +580,8 @@ class VerifyOTPView(View):
                         logger.error("Meta Pixel CompleteRegistration event failed: %s", str(pixel_err))
 
                     # Auto-create wallet + virtual account (PRD Section 6.1.1)
-                    if purpose == "registration":
+                    # Staff accounts do not get customer wallets.
+                    if purpose == "registration" and not user.is_staff:
                         try:
                             from apps.wallet.services import create_wallet
                             create_wallet(user)

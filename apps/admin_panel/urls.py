@@ -73,4 +73,7 @@ urlpatterns = [
     path("promos/<uuid:campaign_id>/edit/", views.promos_edit, name="promos_edit"),
     path("promos/<uuid:campaign_id>/", views.promos_detail, name="promos_detail"),
     path("promos/<uuid:campaign_id>/action/", views.promos_action, name="promos_action"),
+
+    # Support Staff — Owner-only management page
+    path("support-staff/", views.support_staff, name="support_staff"),
 ]

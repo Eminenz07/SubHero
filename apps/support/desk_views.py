@@ -64,9 +64,9 @@ class DeskInboxView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         qs = Ticket.objects.select_related("user", "assigned_to").order_by("-created_at")
-        tab = self.request.GET.get("tab", "unassigned")
+        tab = self.request.GET.get("tab", "pending")
 
-        if tab == "mine":
+        if tab == "ongoing":
             qs = qs.filter(assigned_to=self.request.user)
         elif tab == "waiting":
             qs = qs.filter(status=Ticket.Status.WAITING_CUSTOMER)
@@ -74,7 +74,7 @@ class DeskInboxView(LoginRequiredMixin, ListView):
             qs = qs.exclude(status__in=[Ticket.Status.CLOSED])
         elif tab == "resolved":
             qs = qs.filter(status=Ticket.Status.RESOLVED)
-        else:  # unassigned
+        else:  # pending — unassigned
             qs = qs.filter(assigned_to__isnull=True).exclude(
                 status__in=[Ticket.Status.RESOLVED, Ticket.Status.CLOSED]
             )
@@ -101,19 +101,35 @@ class DeskInboxView(LoginRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["tab"] = self.request.GET.get("tab", "unassigned")
+        context["tab"] = self.request.GET.get("tab", "pending")
         context["category_filter"] = self.request.GET.get("category", "")
         context["priority_filter"] = self.request.GET.get("priority", "")
         context["search"] = self.request.GET.get("search", "")
         context["categories"] = Ticket.Category.choices
         context["priorities"] = Ticket.Priority.choices
         context["staff_profile"] = getattr(self.request.user, "staff_profile", None)
+
+        base_qs = Ticket.objects.all()
+        pending_count = base_qs.filter(
+            assigned_to__isnull=True
+        ).exclude(
+            status__in=[Ticket.Status.RESOLVED, Ticket.Status.CLOSED]
+        ).count()
+        ongoing_count = base_qs.filter(
+            assigned_to=self.request.user
+        ).exclude(
+            status__in=[Ticket.Status.RESOLVED, Ticket.Status.CLOSED]
+        ).count()
+        waiting_count = base_qs.filter(
+            status=Ticket.Status.WAITING_CUSTOMER
+        ).count()
+
         context["tabs"] = [
-            ("unassigned", "Unassigned"),
-            ("mine", "Mine"),
-            ("waiting", "Waiting on Customer"),
-            ("all", "All Open"),
-            ("resolved", "Resolved"),
+            ("pending", "Pending", pending_count),
+            ("ongoing", "Ongoing", ongoing_count),
+            ("waiting", "Waiting on Customer", waiting_count),
+            ("all", "All Open", base_qs.exclude(status__in=[Ticket.Status.CLOSED]).count()),
+            ("resolved", "Resolved", base_qs.filter(status=Ticket.Status.RESOLVED).count()),
         ]
         return context
 

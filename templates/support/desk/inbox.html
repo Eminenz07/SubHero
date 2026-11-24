@@ -22,11 +22,15 @@
 
     <!-- Tabs -->
     <div class="flex gap-1 overflow-x-auto pb-2 mb-4 scrollbar-hide">
-        {% for tab_key, tab_label in tabs %}
+        {% for tab_key, tab_label, tab_count in tabs %}
         <a href="?tab={{ tab_key }}{% if category_filter %}&category={{ category_filter }}{% endif %}{% if priority_filter %}&priority={{ priority_filter }}{% endif %}{% if search %}&search={{ search }}{% endif %}"
            class="px-4 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap
                   {% if tab == tab_key %}bg-emerald-600/15 text-emerald-400 border border-emerald-500/20{% else %}text-slate-400 hover:text-white hover:bg-white/[0.03] border border-transparent{% endif %}">
-            {{ tab_label }}
+            <span>{{ tab_label }}</span>
+            <span class="ml-1.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold
+                {% if tab == tab_key %}bg-emerald-400 text-black{% else %}bg-white/[0.06] text-slate-400{% endif %}">
+                {{ tab_count }}
+            </span>
         </a>
         {% endfor %}
     </div>

@@ -70,6 +70,9 @@ SESSION_COOKIE_SECURE = True
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
 SESSION_COOKIE_AGE = 86400  # 24 hours default
+# Staff session timeouts (configurable via env)
+STAFF_IDLE_TIMEOUT_SECONDS = int(os.environ.get("STAFF_IDLE_TIMEOUT_SECONDS", 30 * 60))  # 30 min idle
+STAFF_MAX_SESSION_SECONDS = int(os.environ.get("STAFF_MAX_SESSION_SECONDS", 8 * 60 * 60))  # 8 hr max
 SESSION_SAVE_EVERY_REQUEST = True
 
 # =============================================================
@@ -133,6 +136,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "apps.core.middleware.PinSetupMiddleware",
+    "apps.core.middleware.StaffSessionTimeoutMiddleware",
     "apps.admin_panel.middleware.MaintenanceModeMiddleware",
 ]
 

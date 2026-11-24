@@ -1,12 +1,14 @@
 """
 Core — Middleware
 ==================
-1. PinSetupMiddleware: PIN setup enforcement middleware.
-2. ErrorAlertMiddleware: Immediate 500 error email notification to admin with diagnostics and deduplication.
+1. PinSetupMiddleware: PIN setup enforcement middleware (exempts staff).
+2. StaffSessionTimeoutMiddleware: Staff idle (30 min) and max (8 hr) session limits.
+3. ErrorAlertMiddleware: Immediate 500 error email notification to admin with diagnostics and deduplication.
 """
 
 import logging
 import traceback
+from datetime import timedelta
 from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import PermissionDenied, SuspiciousOperation
@@ -16,14 +18,23 @@ from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
 from apps.core.email import send_async_app_email
+from apps.support.models import StaffProfile
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Staff session timeout settings (configurable via env)
+# ---------------------------------------------------------------------------
+STAFF_IDLE_TIMEOUT_SECONDS = int(getattr(settings, "STAFF_IDLE_TIMEOUT_SECONDS", 30 * 60))   # 30 min
+STAFF_MAX_SESSION_SECONDS = int(getattr(settings, "STAFF_MAX_SESSION_SECONDS", 8 * 60 * 60))  # 8 hr
 
 
 class PinSetupMiddleware:
     """
     Redirects authenticated users without a transaction PIN to the
-    PIN setup page. Skips admin URLs and auth URLs to avoid loops.
+    PIN setup page. Skips admin URLs, auth URLs, and STAFF users to avoid
+    loops — staff accounts do not need a transaction PIN or wallet.
     PRD Section 6.1.3: PIN is mandatory before wallet is active.
     """
 
@@ -39,6 +50,10 @@ class PinSetupMiddleware:
 
     def __call__(self, request):
         if request.user.is_authenticated:
+            # Staff accounts are exempt from PIN/wallet requirements.
+            if request.user.is_staff:
+                return self.get_response(request)
+
             path = request.path
 
             # Skip exempt URLs (auth pages, static, admin)
@@ -49,6 +64,75 @@ class PinSetupMiddleware:
                 # Check if user has set their PIN
                 if not request.user.has_pin and path != reverse("accounts:set_pin"):
                     return redirect("accounts:set_pin")
+
+        response = self.get_response(request)
+        return response
+
+
+class StaffSessionTimeoutMiddleware:
+    """
+    Enforces staff session limits:
+      - 30-minute idle timeout (resets on each request)
+      - 8-hour maximum session length since login
+    Only applies to authenticated staff users on /desk/ paths.
+    """
+
+    STAFF_PASSWORD_CHANGE_URLS = [
+        "/support/desk/change-password/",
+        "/support/desk/login/",
+        "/support/desk/logout/",
+        "/auth/logout/",
+    ]
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if request.user.is_authenticated and request.user.is_staff:
+            path = request.path
+            is_desk = path.startswith("/support/desk/") or path.startswith(f"/{getattr(settings, 'ADMIN_HQ_URL', 'subhero-hq/')}/")
+            if is_desk:
+                # Force password change if required (exempt the change-password page itself)
+                is_pw_change_path = any(path.startswith(u) for u in self.STAFF_PASSWORD_CHANGE_URLS)
+                try:
+                    sp = request.user.staff_profile
+                    if sp.must_change_password and not is_pw_change_path:
+                        return redirect("support:desk:staff_change_password")
+                except StaffProfile.DoesNotExist:
+                    pass
+
+                now = timezone.now()
+                start = request.session.get("staff_session_start")
+                last_activity = request.session.get("staff_last_activity")
+
+                # Max session age check
+                if start:
+                    try:
+                        started = timezone.datetime.fromisoformat(start)
+                        if timezone.is_naive(started):
+                            started = timezone.make_aware(started)
+                        if (now - started).total_seconds() > STAFF_MAX_SESSION_SECONDS:
+                            from django.contrib.auth import logout
+                            logout(request)
+                            return redirect("support:desk:staff_login")
+                    except (ValueError, OSError):
+                        request.session["staff_session_start"] = now.isoformat()
+
+                # Idle timeout check
+                if last_activity:
+                    try:
+                        last = timezone.datetime.fromisoformat(last_activity)
+                        if timezone.is_naive(last):
+                            last = timezone.make_aware(last)
+                        if (now - last).total_seconds() > STAFF_IDLE_TIMEOUT_SECONDS:
+                            from django.contrib.auth import logout
+                            logout(request)
+                            return redirect("desk:staff_login")
+                    except (ValueError, OSError):
+                        pass
+
+                # Refresh idle timestamp
+                request.session["staff_last_activity"] = now.isoformat()
 
         response = self.get_response(request)
         return response

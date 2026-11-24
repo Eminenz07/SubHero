@@ -21,7 +21,7 @@ def support_required(view_func):
     @wraps(view_func)
     def _wrapped_view(request, *args, **kwargs):
         if not request.user.is_authenticated:
-            login_url = reverse("accounts:login")
+            login_url = reverse("desk:staff_login")
             return redirect(f"{login_url}?next={request.path}")
         if not request.user.is_staff:
             return redirect("landing")

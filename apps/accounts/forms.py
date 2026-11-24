@@ -123,6 +123,30 @@ class LoginForm(forms.Form):
     )
 
 
+class StaffLoginForm(forms.Form):
+    """
+    Support desk staff login.
+    Accepts email OR phone number plus password.
+    """
+
+    identifier = forms.CharField(
+        max_length=254,
+        widget=forms.TextInput(attrs={
+            "placeholder": "Email or phone number",
+            "autocomplete": "username",
+            "class": "form-input",
+            "autofocus": "autofocus",
+        }),
+    )
+    password = forms.CharField(
+        widget=forms.PasswordInput(attrs={
+            "placeholder": "Password",
+            "autocomplete": "current-password",
+            "class": "form-input",
+        }),
+    )
+
+
 class OTPVerificationForm(forms.Form):
     """
     PRD Section 6.1.1: 6-digit OTP verification.
@@ -234,6 +258,44 @@ class VerifyResetOTPForm(forms.Form):
         if not code.isdigit() or len(code) != 6:
             raise forms.ValidationError("Enter a valid 6-digit code.")
         return code
+
+
+class StaffChangePasswordForm(forms.Form):
+    """
+    Form for staff to change their password when must_change_password is True.
+    """
+
+    new_password = forms.CharField(
+        min_length=8,
+        widget=forms.PasswordInput(attrs={
+            "placeholder": "New password (min 8 chars)",
+            "autocomplete": "new-password",
+            "class": "form-input",
+        }),
+    )
+    confirm_password = forms.CharField(
+        min_length=8,
+        widget=forms.PasswordInput(attrs={
+            "placeholder": "Confirm new password",
+            "autocomplete": "new-password",
+            "class": "form-input",
+        }),
+    )
+
+    def clean_new_password(self):
+        password = self.cleaned_data["new_password"]
+        validate_password_strength(password)
+        return password
+
+    def clean(self):
+        cleaned_data = super().clean()
+        new_password = cleaned_data.get("new_password")
+        confirm_password = cleaned_data.get("confirm_password")
+
+        if new_password and confirm_password and new_password != confirm_password:
+            self.add_error("confirm_password", "Passwords do not match.")
+
+        return cleaned_data
 
 
 class SetNewPasswordForm(forms.Form):

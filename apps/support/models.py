@@ -51,6 +51,15 @@ class StaffProfile(models.Model):
         default=True,
         help_text="Whether this staff member should receive new ticket alerts.",
     )
+    must_change_password = models.BooleanField(
+        default=True,
+        help_text="Force the staff member to set a new password on next desk login.",
+    )
+    last_password_reset_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the password was last reset/changed.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -382,6 +391,53 @@ class CannedReply(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class StaffLoginLog(models.Model):
+    """
+    Audit log of every staff login attempt to the support desk.
+    Records time, IP address, and whether the attempt succeeded.
+    Never stores passwords.
+    """
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="staff_login_logs",
+    )
+    email_or_phone = models.CharField(
+        max_length=255,
+        help_text="Identifier used at login (email or phone), not the password.",
+    )
+    ip_address = models.GenericIPAddressField(
+        help_text="Client IP address at login time.",
+    )
+    user_agent = models.CharField(
+        max_length=500,
+        blank=True,
+        default="",
+        help_text="Client user-agent string.",
+    )
+    success = models.BooleanField(
+        default=False,
+        help_text="Whether the login succeeded.",
+    )
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        db_table = "support_staff_login_log"
+        verbose_name = "Staff Login Log"
+        verbose_name_plural = "Staff Login Logs"
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["user", "-created_at"]),
+            models.Index(fields=["success", "-created_at"]),
+        ]
+
+    def __str__(self):
+        return f"StaffLoginLog({self.email_or_phone} | {'ok' if self.success else 'fail'} | {self.created_at})"
 
 
 class RefundRequest(models.Model):

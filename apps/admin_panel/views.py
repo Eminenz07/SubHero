@@ -11,7 +11,7 @@ from django.db import transaction
 from django.db.models import Q, Sum, F, Count
 from django.http import JsonResponse, HttpResponse, StreamingHttpResponse
 from django.urls import reverse
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.utils import timezone
 from django.core.mail import send_mail
 from django.core.cache import cache
@@ -23,15 +23,16 @@ import time
 import requests
 import logging
 
-from apps.admin_panel.decorators import admin_required, promo_admin_required
+from apps.admin_panel.decorators import admin_required, promo_admin_required, _is_support_staff_role
 from apps.admin_panel.models import AdminLog, SystemLog, AlertConfig, SystemSetting
 from apps.admin_panel.utils import syslog, log_admin_action
+from apps.core.utils import get_client_ip
 from apps.wallet.models import Wallet, WalletTransaction
 from apps.promos.models import PromoCampaign, PromoClaim, PromoAuditLog
 from apps.promos.services import try_grant, block_p2p_until_deposit
 from apps.vtu.models import VTUOrder, AirtimeOrder, CableOrder, ElectricityOrder, ExamPinOrder, VTUPlan, CablePlan, ExamProduct
 from apps.smm.models import SMMOrder, SMMService
-from apps.support.models import Ticket
+from apps.support.models import Ticket, StaffProfile
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
@@ -114,7 +115,7 @@ def dashboard(request):
     from apps.admin_panel.queries import AnalyticsQueries
     stats = AnalyticsQueries.get_dashboard_stats(days=None)
     
-    new_users_today = User.objects.filter(date_joined__date=timezone.now().date()).count()
+    new_users_today = User.objects.filter(is_staff=False, date_joined__date=timezone.now().date()).count()
     
     # Active orders count across all operational services
     valid_refs = WalletTransaction.objects.values('reference')
@@ -2284,4 +2285,200 @@ def _audit_promos(actor, campaign, action, before, after):
         )
     except Exception as ex:
         logger.error("Promo audit failed: %s", str(ex))
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Support Staff — Owner-only management page
+# ══════════════════════════════════════════════════════════════════════════════
+@admin_required
+def support_staff(request):
+    """
+    Owner-only page to manage support desk staff accounts.
+
+    GET  : list all staff (users with a StaffProfile), with search.
+    POST actions:
+      - create      : name, email, phone, role, display_name, temp_password (optional)
+      - toggle_status : deactivate/reactivate a staff account
+      - reset_password: generate a new temporary password (shown once)
+      - change_role : switch role between agent and lead
+
+    Temporary passwords are shown once after creation/reset and are never
+    stored in plain text (they are hashed via set_password).
+    """
+    from django.core.validators import validate_email
+    from django.utils.crypto import get_random_string
+    from django.contrib.auth.hashers import make_password
+
+    User = get_user_model()
+
+    # Only admins (superusers or staff without an agent/lead profile) may manage staff.
+    if _is_support_staff_role(request.user):
+        return HttpResponseForbidden("Support desk staff cannot manage staff accounts.")
+
+    staff_qs = (
+        User.objects.filter(is_staff=True)
+        .select_related("staff_profile")
+        .order_by("-date_joined")
+    )
+
+    q = request.GET.get("q", "").strip()
+    if q:
+        staff_qs = staff_qs.filter(
+            Q(full_name__icontains=q)
+            | Q(email__icontains=q)
+            | Q(phone_number__icontains=q)
+        )
+
+    if request.method == "POST":
+        action = request.POST.get("action", "").strip()
+
+        if action == "create":
+            name = (request.POST.get("name") or "").strip()
+            email = (request.POST.get("email") or "").strip().lower()
+            phone = (request.POST.get("phone") or "").strip()
+            role = request.POST.get("role", "agent").strip()
+            display_name = (request.POST.get("display_name") or "").strip()
+            temp_password = (request.POST.get("temp_password") or "").strip()
+
+            if not name or not email or not phone:
+                messages.error(request, "Name, email and phone are required.")
+            elif role not in ("agent", "lead"):
+                messages.error(request, "Invalid role.")
+            else:
+                email_ok = True
+                try:
+                    validate_email(email)
+                except ValidationError:
+                    messages.error(request, "Enter a valid email address.")
+                    email_ok = False
+                if email_ok and User.objects.filter(email=email).exists():
+                    messages.error(request, "A user with that email already exists.")
+                    email_ok = False
+                if email_ok and User.objects.filter(phone_number=phone).exists():
+                    messages.error(request, "A user with that phone number already exists.")
+                if email_ok:
+                    if not temp_password:
+                        temp_password = get_random_string(12)
+                    user = User.objects.create_user(
+                        phone_number=phone,
+                        email=email,
+                        password=temp_password,
+                        full_name=name,
+                        is_staff=True,
+                        is_active=True,
+                        is_verified=True,
+                    )
+                    StaffProfile.objects.create(
+                        user=user,
+                        role=role,
+                        display_name=display_name,
+                        is_available=True,
+                        must_change_password=True,
+                    )
+                    # Log creation
+                    try:
+                        from apps.admin_panel.models import AdminLog
+                        AdminLog.objects.create(
+                            admin_user=request.user,
+                            action="create_staff",
+                            target_type="user",
+                            target_id=str(user.id),
+                            detail=f"Created support staff {email} ({phone}) role={role}",
+                            ip_address=get_client_ip(request),
+                        )
+                    except Exception:
+                        pass
+                    messages.success(
+                        request,
+                        f"Staff account created for {name}. Temporary password: {temp_password}",
+                    )
+                    # Stash for one-time display
+                    request.session["staff_temp_password"] = {
+                        "email": email,
+                        "password": temp_password,
+                        "login_url": request.build_absolute_uri(reverse("support:desk:staff_login")),
+                    }
+                    return redirect("admin_panel:support_staff")
+
+        elif action == "toggle_status":
+            staff_id = request.POST.get("staff_id")
+            try:
+                target = User.objects.get(id=staff_id, is_staff=True)
+            except (User.DoesNotExist, ValueError):
+                messages.error(request, "Staff member not found.")
+            else:
+                target.is_active = not target.is_active
+                target.save(update_fields=["is_active"])
+                messages.success(
+                    request,
+                    f"Staff {target.full_name or target.phone_number} {'activated' if target.is_active else 'deactivated'}.",
+                )
+
+        elif action == "reset_password":
+            staff_id = request.POST.get("staff_id")
+            new_password = (request.POST.get("temp_password") or "").strip() or get_random_string(12)
+            try:
+                target = User.objects.get(id=staff_id, is_staff=True)
+            except (User.DoesNotExist, ValueError):
+                messages.error(request, "Staff member not found.")
+            else:
+                target.set_password(new_password)
+                target.save(update_fields=["password"])
+                try:
+                    sp = target.staff_profile
+                    sp.must_change_password = True
+                    sp.last_password_reset_at = timezone.now()
+                    sp.save(update_fields=["must_change_password", "last_password_reset_at"])
+                except StaffProfile.DoesNotExist:
+                    pass
+                request.session["staff_temp_password"] = {
+                    "email": target.email,
+                    "password": new_password,
+                    "login_url": request.build_absolute_uri(reverse("support:desk:staff_login")),
+                }
+                messages.success(
+                    request,
+                    f"Password reset for {target.full_name or target.phone_number}. Temporary password: {new_password}",
+                )
+
+        elif action == "change_role":
+            staff_id = request.POST.get("staff_id")
+            new_role = request.POST.get("role", "").strip()
+            if new_role not in ("agent", "lead"):
+                messages.error(request, "Invalid role.")
+            else:
+                try:
+                    target = User.objects.get(id=staff_id, is_staff=True)
+                except (User.DoesNotExist, ValueError):
+                    messages.error(request, "Staff member not found.")
+                else:
+                    try:
+                        sp = target.staff_profile
+                        sp.role = new_role
+                        sp.save(update_fields=["role"])
+                        messages.success(
+                            request,
+                            f"Role for {target.full_name or target.phone_number} set to {new_role}.",
+                        )
+                    except StaffProfile.DoesNotExist:
+                        messages.error(request, "Staff profile not found.")
+
+        return redirect("admin_panel:support_staff")
+
+    # One-time temp password display (popped after render)
+    temp_password_info = request.session.pop("staff_temp_password", None)
+
+    # Pagination
+    from django.core.paginator import Paginator
+    paginator = Paginator(staff_qs, 25)
+    page_number = request.GET.get("page")
+    staff_page = paginator.get_page(page_number)
+
+    context = {
+        "active_nav": "support_staff",
+        "staff_page": staff_page,
+        "q": q,
+        "temp_password_info": temp_password_info,
+    }
+    return render(request, "admin_panel/support_staff_list.html", context)
 
