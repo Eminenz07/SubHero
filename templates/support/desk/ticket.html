@@ -133,8 +133,7 @@
             <button hx-post="{% url 'support:desk:action' ticket_id=ticket.id %}"
                     hx-params="action"
                     hx-vals='{"action": "claim"}'
-                    hx-target="#desk-ticket-panel"
-                    hx-swap="innerHTML"
+                    hx-swap="none"
                     class="w-full py-2.5 rounded-lg bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 text-xs font-bold hover:bg-emerald-600/30 transition-colors">
                 Claim Ticket
             </button>
@@ -142,8 +141,7 @@
             <button hx-post="{% url 'support:desk:action' ticket_id=ticket.id %}"
                     hx-params="action"
                     hx-vals='{"action": "unassign"}'
-                    hx-target="#desk-ticket-panel"
-                    hx-swap="innerHTML"
+                    hx-swap="none"
                     class="w-full py-2.5 rounded-lg bg-amber-600/20 text-amber-400 border border-amber-500/30 text-xs font-bold hover:bg-amber-600/30 transition-colors">
                 Unassign
             </button>
@@ -156,6 +154,7 @@
                     hx-params="action"
                     hx-vals='{"action": "assign"}'
                     hx-trigger="click"
+                    hx-swap="none"
                     class="w-full py-2.5 rounded-lg bg-purple-600/20 text-purple-400 border border-purple-500/30 text-xs font-bold hover:bg-purple-600/30 transition-colors">
                 Reassign Ticket
             </button>
@@ -167,8 +166,7 @@
                 <select hx-post="{% url 'support:desk:action' ticket_id=ticket.id %}"
                         hx-params="action,status"
                         hx-trigger="change"
-                        hx-target="#desk-ticket-panel"
-                        hx-swap="innerHTML"
+                        hx-swap="none"
                         class="w-full px-2 py-1.5 rounded-lg bg-[#060b13] border border-surface-border text-xs text-slate-300 focus:outline-none focus:border-brand-primary">
                     {% for code, label in ticket.Status.choices %}
                     <option value="{{ code }}" {% if ticket.status == code %}selected{% endif %}>{{ label }}</option>
@@ -182,8 +180,7 @@
                 <select hx-post="{% url 'support:desk:action' ticket_id=ticket.id %}"
                         hx-params="action,priority"
                         hx-trigger="change"
-                        hx-target="#desk-ticket-panel"
-                        hx-swap="innerHTML"
+                        hx-swap="none"
                         class="w-full px-2 py-1.5 rounded-lg bg-[#060b13] border border-surface-border text-xs text-slate-300 focus:outline-none focus:border-brand-primary">
                     {% for code, label in ticket.Priority.choices %}
                     <option value="{{ code }}" {% if ticket.priority == code %}selected{% endif %}>{{ label }}</option>
@@ -193,6 +190,9 @@
         </div>
     </div>
 </div>
+
+    <!-- Toast container for desk action feedback -->
+    <div id="desk-toast" class="fixed bottom-4 right-4 z-[100] flex flex-col gap-2 hidden"></div>
 {% endblock %}
 
 {% block extra_js %}
@@ -234,5 +234,45 @@
         div.textContent = text;
         return div.innerHTML;
     }
+
+    function showDeskToast(message, type = 'error') {
+        const container = document.getElementById('desk-toast');
+        const div = document.createElement('div');
+        const isError = type === 'error';
+        div.className = `px-4 py-3 rounded-lg text-white font-semibold text-[11px] flex items-center gap-2 min-w-[260px] shadow-lg ${isError ? 'bg-red-900 border border-red-500/40' : 'bg-emerald-900 border border-emerald-500/40'}`;
+        div.innerHTML = `<span class="flex-1">${escapeHtml(message)}</span><button type="button" onclick="this.parentElement.remove()" class="ml-2 opacity-70 hover:opacity-100">×</button>`;
+        container.appendChild(div);
+        container.classList.remove('hidden');
+        setTimeout(() => {
+            div.style.opacity = '0';
+            div.style.transition = 'opacity 0.3s ease';
+            setTimeout(() => {
+                div.remove();
+                if (container.children.length === 0) container.classList.add('hidden');
+            }, 300);
+        }, 4000);
+    }
+
+    // Desk ticket actions return JSON. Reload the page on success so the
+    // ticket detail reflects the new state; show a toast on failure.
+    document.body.addEventListener('htmx:afterRequest', function(evt) {
+        const path = evt.detail.path || '';
+        if (path.includes('/desk/tickets/') && path.includes('/action/')) {
+            const xhr = evt.detail.xhr;
+            const ok = xhr && xhr.status >= 200 && xhr.status < 300;
+            if (ok) {
+                window.location.reload();
+            } else {
+                let msg = 'Action failed.';
+                try {
+                    const body = JSON.parse(xhr.responseText || '{}');
+                    if (body.error) msg = body.error;
+                } catch (e) {
+                    /* ignore parse errors */
+                }
+                showDeskToast(msg, 'error');
+            }
+        }
+    });
 </script>
 {% endblock %}

@@ -5,6 +5,7 @@ Customer-facing Hero support ticketing.
 """
 
 import logging
+from datetime import timedelta
 from decimal import Decimal, InvalidOperation
 
 from django.conf import settings
@@ -25,6 +26,8 @@ from django.views.generic import ListView, DetailView, CreateView
 from apps.core.utils import get_client_ip
 from apps.notifications.models import Notification
 from apps.notifications.services import send_push_notification
+from apps.smm.models import SMMOrder
+from apps.vtu.models import VTUOrder
 from apps.wallet.models import Wallet, WalletTransaction
 
 from .models import (
@@ -119,6 +122,79 @@ def _notify_staff_about_ticket(ticket, actor=None, extra_context=None):
         logger.exception("Failed to notify staff about ticket %s", ticket.reference)
 
 
+def compute_priority(category, body, related_ref, related_type):
+    """
+    Compute a ticket priority (HIGH / NORMAL) from the linked order or
+    transaction and the ticket body.
+
+    Rules (HIGH if any is true, else NORMAL):
+      - related VTU / SMM / wallet-transaction order is FAILED or PENDING
+      - related order is PROCESSING for more than 15 minutes
+      - wallet funding transaction is PENDING/FAILED (money debited but not
+        credited to the wallet)
+      - linked amount is at least ₦20,000
+      - category is wallet and the user mentions money being debited
+    """
+    if not related_ref:
+        return Ticket.Priority.NORMAL
+
+    now = timezone.now()
+    high = False
+    amount = Decimal("0")
+
+    # Resolve the actual linked order / transaction (not only WalletTransaction).
+    order = None
+    if related_type == "vtu_order":
+        try:
+            order = VTUOrder.objects.get(reference=related_ref)
+        except VTUOrder.DoesNotExist:
+            order = None
+    elif related_type == "smm_order":
+        try:
+            order = SMMOrder.objects.get(reference=related_ref)
+        except SMMOrder.DoesNotExist:
+            order = None
+    elif related_type == "wallet_transaction":
+        try:
+            order = WalletTransaction.objects.get(reference=related_ref)
+        except WalletTransaction.DoesNotExist:
+            order = None
+
+    # Order status / staleness rules.
+    if order is not None:
+        status = getattr(order, "status", None)
+        if status in ("FAILED", "PENDING"):
+            high = True
+        elif status == "PROCESSING":
+            created = getattr(order, "created_at", None)
+            if created and (now - created) > timedelta(minutes=15):
+                high = True
+        amount = getattr(order, "amount", None) or Decimal("0")
+
+    # Wallet funding transaction: PENDING/FAILED means money was debited but
+    # not yet credited to the wallet ("debited without a credit").
+    if related_type == "wallet_transaction" and order is not None:
+        txn_type = getattr(order, "txn_type", None)
+        if txn_type == WalletTransaction.TxnType.FUND and order.status in ("PENDING", "FAILED"):
+            high = True
+
+    # Amount threshold.
+    if amount and amount >= Decimal("20000"):
+        high = True
+
+    # Wallet category + body mentions money being debited.
+    if category == Ticket.Category.WALLET:
+        body_lower = (body or "").lower()
+        debited_keywords = (
+            "debited", "deducted", "money debited", "debited without",
+            "took my money", "charged but", "not credited", "never received",
+        )
+        if any(kw in body_lower for kw in debited_keywords):
+            high = True
+
+    return Ticket.Priority.HIGH if high else Ticket.Priority.NORMAL
+
+
 class TicketListView(LoginRequiredMixin, ListView):
     """My tickets page — /support/"""
 
@@ -193,21 +269,13 @@ class TicketCreateView(LoginRequiredMixin, View):
             messages.error(request, "You already have 3 open tickets. Please wait for one to be resolved before opening a new one.")
             return redirect("support:ticket_list")
 
-        # Determine priority: auto-high for debited-but-undelivered orders
-        priority = Ticket.Priority.NORMAL
-        # Check if this looks like a payment/order issue
-        if related_ref:
-            from apps.wallet.models import WalletTransaction
-            from apps.vtu.models import VTUOrder
-            from apps.smm.models import SMMOrder
-
-            # Quick check: is there a pending/failed transaction with this ref?
-            pending_txn = WalletTransaction.objects.filter(
-                reference=related_ref,
-                status__in=["PENDING", "FAILED"],
-            ).first()
-            if pending_txn:
-                priority = Ticket.Priority.HIGH
+        # Determine priority from the linked order / transaction.
+        priority = compute_priority(
+            category=category,
+            body=body,
+            related_ref=related_ref,
+            related_type=related_type,
+        )
 
         with transaction.atomic():
             ticket = Ticket.objects.create(

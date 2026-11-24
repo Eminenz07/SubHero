@@ -1,9 +1,6 @@
-{% comment %}Single ticket row for desk inbox.{% endcomment %}
-<div class="group border border-surface-border rounded-xl p-3 hover:bg-white/[0.02] transition-colors cursor-pointer"
-     hx-get="{% url 'support:desk:ticket' ticket_id=ticket.id %}"
-     hx-target="#desk-ticket-panel"
-     hx-swap="innerHTML"
-     hx-push-url="true">
+{% comment %}Single ticket row for desk inbox. Linked to the ticket detail page.{% endcomment %}
+<a href="{% url 'support:desk:ticket' ticket_id=ticket.id %}"
+   class="group block border border-surface-border rounded-xl p-3 hover:bg-white/[0.02] transition-colors no-underline hover:no-underline">
     <div class="flex justify-between items-start mb-2">
         <span class="text-xs font-bold text-text-primary">{{ ticket.reference }}</span>
         <span class="text-[10px] font-bold px-2 py-0.5 rounded-full {% if ticket.priority == 'high' %}bg-red-900/20 text-red-400 border border-red-500/30{% else %}bg-slate-900/50 text-slate-400{% endif %}">{{ ticket.get_priority_display }}</span>
@@ -20,4 +17,4 @@
         <span class="text-red-400 font-bold">SLA at risk</span>
         {% endif %}
     </div>
-</div>
+</a>

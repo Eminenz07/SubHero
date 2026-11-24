@@ -21,7 +21,7 @@ urlpatterns = [
     path("help-with-order/", views.HelpWithOrderView.as_view(), name="help_with_order"),
     # Ticket detail / actions — reference pattern restricted to HRO-XXXXXX
     path("HRO-<int:ref_num>/", views.TicketDetailView.as_view(), name="ticket_detail"),
-    path("HRO-<int:ref_num>/messages/", views.TicketMessagesPartialView.as_view(), name="ticket_messages_partial"),
+    path("<str:reference>/messages/", views.TicketMessagesPartialView.as_view(), name="ticket_messages_partial"),
     path("HRO-<int:ref_num>/reply/", views.TicketReplyView.as_view(), name="ticket_reply"),
     path("HRO-<int:ref_num>/csat/", views.TicketCsatView.as_view(), name="ticket_csat"),
     # Refund requests (agent creates, lead/admin approves)

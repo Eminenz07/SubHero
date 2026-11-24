@@ -6,6 +6,8 @@ Hero support staff desk: inbox, ticket detail, replies, and actions.
 
 import logging
 
+from datetime import timedelta
+
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
@@ -395,15 +397,32 @@ class DeskActionView(View):
             valid_priorities = [c[0] for c in Ticket.Priority.choices]
             if new_priority not in valid_priorities:
                 return JsonResponse({"error": "Invalid priority."}, status=400)
+            old_priority = ticket.priority
             ticket.priority = new_priority
-            ticket.save(update_fields=["priority", "updated_at"])
+            # Recompute SLA due date from ticket creation time (1h High, 4h Normal).
+            hours = 1 if new_priority == Ticket.Priority.HIGH else 4
+            ticket.sla_due_at = ticket.created_at + timedelta(hours=hours)
+            ticket.save(update_fields=["priority", "sla_due_at", "updated_at"])
             TicketEvent.objects.create(
                 ticket=ticket,
                 actor=request.user,
                 event_type=TicketEvent.EventType.STATUS_CHANGE,
-                description=f"Priority changed to {new_priority}",
+                description=(
+                    f"Priority changed from {old_priority} to {new_priority}; "
+                    f"SLA due at {ticket.sla_due_at}"
+                ),
+                metadata={
+                    "old_priority": old_priority,
+                    "new_priority": new_priority,
+                    "sla_due_at": ticket.sla_due_at.isoformat() if ticket.sla_due_at else None,
+                },
             )
-            return JsonResponse({"status": "ok", "action": "priority_change", "new_priority": new_priority})
+            return JsonResponse({
+                "status": "ok",
+                "action": "priority_change",
+                "new_priority": new_priority,
+                "sla_due_at": ticket.sla_due_at.isoformat() if ticket.sla_due_at else None,
+            })
 
         if action == "internal_note":
             body = escape((request.POST.get("body") or "").strip())
